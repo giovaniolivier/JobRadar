@@ -10,13 +10,26 @@ import {
   parseJobsCsv,
   parsePastedJob,
   syncRemotive,
+  type ManualJobInput,
 } from "../services/ingestion.js";
 
-export const jobsRouter = Router();
+export const offersRouter = Router();
 
-jobsRouter.use(requireAuth);
+offersRouter.use(requireAuth);
 
-jobsRouter.get("/", async (req: AuthedRequest, res, next) => {
+const jobInputSchema = z.object({
+  title: z.string().min(1),
+  company: z.string().min(1),
+  location: z.string().optional(),
+  salaryRaw: z.string().optional(),
+  description: z.string().min(1),
+  techStack: z.array(z.string()).optional(),
+  seniority: z.string().optional(),
+  url: z.string().optional(),
+});
+
+/** GET /offers — liste avec filtres (score, salaire, remote, stack) */
+offersRouter.get("/", async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const minScore = req.query.minScore ? Number(req.query.minScore) : undefined;
@@ -24,22 +37,37 @@ jobsRouter.get("/", async (req: AuthedRequest, res, next) => {
     const location =
       typeof req.query.location === "string" ? req.query.location : undefined;
     const tech = typeof req.query.tech === "string" ? req.query.tech : undefined;
+    const stack = typeof req.query.stack === "string" ? req.query.stack : tech;
     const q = typeof req.query.q === "string" ? req.query.q : undefined;
+    const remote =
+      req.query.remote === "true" || req.query.remote === "1" || req.query.remote === "yes";
+    const hasSalary =
+      req.query.salary === "true" ||
+      req.query.salary === "1" ||
+      req.query.hasSalary === "true";
 
     const jobs = await prisma.job.findMany({
       where: {
-        ...(source ? { source } : {}),
-        ...(location ? { location: { contains: location, mode: "insensitive" } } : {}),
-        ...(tech ? { techStack: { has: tech } } : {}),
-        ...(q
-          ? {
-              OR: [
-                { title: { contains: q, mode: "insensitive" } },
-                { company: { contains: q, mode: "insensitive" } },
-                { description: { contains: q, mode: "insensitive" } },
-              ],
-            }
-          : {}),
+        AND: [
+          ...(source ? [{ source }] : []),
+          ...(location ? [{ location: { contains: location, mode: "insensitive" as const } }] : []),
+          ...(remote
+            ? [{ location: { contains: "remote", mode: "insensitive" as const } }]
+            : []),
+          ...(hasSalary ? [{ salaryRaw: { not: null } }] : []),
+          ...(stack ? [{ techStack: { has: stack } }] : []),
+          ...(q
+            ? [
+                {
+                  OR: [
+                    { title: { contains: q, mode: "insensitive" as const } },
+                    { company: { contains: q, mode: "insensitive" as const } },
+                    { description: { contains: q, mode: "insensitive" as const } },
+                  ],
+                },
+              ]
+            : []),
+        ],
       },
       include: {
         analyses: { where: { userId }, take: 1 },
@@ -69,7 +97,67 @@ jobsRouter.get("/", async (req: AuthedRequest, res, next) => {
   }
 });
 
-jobsRouter.get("/:id", async (req: AuthedRequest, res, next) => {
+/** POST /offers — ajouter une offre (manuel / CSV / texte) */
+offersRouter.post("/", async (req, res, next) => {
+  try {
+    const body = z
+      .object({
+        csv: z.string().optional(),
+        text: z.string().optional(),
+        title: z.string().optional(),
+        company: z.string().optional(),
+        location: z.string().optional(),
+        salaryRaw: z.string().optional(),
+        description: z.string().optional(),
+        techStack: z.array(z.string()).optional(),
+        seniority: z.string().optional(),
+        url: z.string().optional(),
+        offers: z.array(jobInputSchema).optional(),
+        jobs: z.array(jobInputSchema).optional(),
+      })
+      .parse(req.body ?? {});
+
+    let toImport: ManualJobInput[] = [...(body.offers ?? []), ...(body.jobs ?? [])];
+
+    if (body.csv) toImport = [...toImport, ...parseJobsCsv(body.csv)];
+    if (body.text) toImport = [...toImport, parsePastedJob(body.text)];
+
+    if (body.title && body.company && body.description) {
+      toImport.push({
+        title: body.title,
+        company: body.company,
+        location: body.location,
+        salaryRaw: body.salaryRaw,
+        description: body.description,
+        techStack: body.techStack,
+        seniority: body.seniority,
+        url: body.url,
+      });
+    }
+
+    if (!toImport.length) {
+      throw new HttpError(400, "Provide csv, text, a single offer, or offers[]");
+    }
+
+    const created = await importManualJobs(toImport);
+    res.status(201).json({ count: created.length, offers: created });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Bonus: sync Remotive (ingestion externe) */
+offersRouter.post("/sync", async (req, res, next) => {
+  try {
+    const body = z.object({ search: z.string().optional() }).parse(req.body ?? {});
+    const result = await syncRemotive(body.search);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+offersRouter.get("/:id", async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
@@ -80,7 +168,7 @@ jobsRouter.get("/:id", async (req: AuthedRequest, res, next) => {
         applications: { where: { userId }, take: 1 },
       },
     });
-    if (!job) throw new HttpError(404, "Job not found");
+    if (!job) throw new HttpError(404, "Offer not found");
 
     const { analyses, applications, ...rest } = job;
     res.json({
@@ -93,83 +181,15 @@ jobsRouter.get("/:id", async (req: AuthedRequest, res, next) => {
   }
 });
 
-jobsRouter.post("/sync", async (req, res, next) => {
-  try {
-    const body = z.object({ search: z.string().optional() }).parse(req.body ?? {});
-    const result = await syncRemotive(body.search);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-});
-
-jobsRouter.post("/ingest", async (req, res, next) => {
-  try {
-    const body = z
-      .object({
-        title: z.string().min(1),
-        company: z.string().min(1),
-        location: z.string().optional(),
-        salaryRaw: z.string().optional(),
-        description: z.string().min(1),
-        techStack: z.array(z.string()).optional(),
-        seniority: z.string().optional(),
-        url: z.string().url().optional(),
-      })
-      .parse(req.body);
-
-    const [job] = await importManualJobs([body]);
-    res.status(201).json(job);
-  } catch (err) {
-    next(err);
-  }
-});
-
-jobsRouter.post("/import", async (req, res, next) => {
-  try {
-    const body = z
-      .object({
-        csv: z.string().optional(),
-        text: z.string().optional(),
-        jobs: z
-          .array(
-            z.object({
-              title: z.string(),
-              company: z.string(),
-              location: z.string().optional(),
-              salaryRaw: z.string().optional(),
-              description: z.string(),
-              techStack: z.array(z.string()).optional(),
-              seniority: z.string().optional(),
-              url: z.string().optional(),
-            })
-          )
-          .optional(),
-      })
-      .parse(req.body);
-
-    let toImport = body.jobs ?? [];
-    if (body.csv) toImport = [...toImport, ...parseJobsCsv(body.csv)];
-    if (body.text) toImport = [...toImport, parsePastedJob(body.text)];
-
-    if (!toImport.length) throw new HttpError(400, "Nothing to import");
-
-    const created = await importManualJobs(toImport);
-    res.status(201).json({ count: created.length, jobs: created });
-  } catch (err) {
-    next(err);
-  }
-});
-
-jobsRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
+offersRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
     const job = await prisma.job.findUnique({ where: { id } });
-    if (!job) throw new HttpError(404, "Job not found");
+    if (!job) throw new HttpError(404, "Offer not found");
 
     const profile = await prisma.profile.findUnique({ where: { userId } });
-    if (!profile) throw new HttpError(400, "Complete your profile first");
+    if (!profile) throw new HttpError(400, "Upload your CV first (POST /auth/upload-cv)");
 
     const result = await analyzeJobAgainstProfile(profile, job);
 
@@ -212,16 +232,16 @@ jobsRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
   }
 });
 
-jobsRouter.post("/:id/cover-letter", async (req: AuthedRequest, res, next) => {
+offersRouter.post("/:id/generate-letter", async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
     const body = z.object({ tone: z.string().optional() }).parse(req.body ?? {});
     const job = await prisma.job.findUnique({ where: { id } });
-    if (!job) throw new HttpError(404, "Job not found");
+    if (!job) throw new HttpError(404, "Offer not found");
 
     const profile = await prisma.profile.findUnique({ where: { userId } });
-    if (!profile) throw new HttpError(400, "Complete your profile first");
+    if (!profile) throw new HttpError(400, "Upload your CV first (POST /auth/upload-cv)");
 
     const coverLetter = await generateCoverLetter(profile, job, body.tone);
 

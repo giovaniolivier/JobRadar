@@ -24,6 +24,7 @@ export default function App() {
         <Route element={<PrivateRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/offers/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/pipeline" element={<PipelinePage />} />

@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.js";
 import { profileRouter } from "./routes/profile.js";
-import { jobsRouter } from "./routes/jobs.js";
+import { offersRouter } from "./routes/offers.js";
 import { applicationsRouter } from "./routes/applications.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -24,7 +24,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/profile", profileRouter);
-app.use("/jobs", jobsRouter);
+app.use("/offers", offersRouter);
 app.use("/applications", applicationsRouter);
 
 app.use(errorHandler);

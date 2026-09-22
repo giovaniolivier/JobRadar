@@ -1,11 +1,18 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import multer from "multer";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { signToken } from "../lib/jwt.js";
+import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 
 export const authRouter = Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -55,3 +62,53 @@ authRouter.post("/login", async (req, res, next) => {
     next(err);
   }
 });
+
+/**
+ * POST /auth/upload-cv
+ * - multipart: field "cv" (fichier .txt / .md / .csv)
+ * - ou JSON: { "cvText": "..." }
+ */
+authRouter.post(
+  "/upload-cv",
+  requireAuth,
+  upload.single("cv"),
+  async (req: AuthedRequest, res, next) => {
+    try {
+      const userId = req.user!.userId;
+      let cvText = "";
+
+      if (req.file) {
+        const name = (req.file.originalname || "").toLowerCase();
+        if (name.endsWith(".pdf") || req.file.mimetype === "application/pdf") {
+          throw new HttpError(400, "PDF non supporté pour l'instant — utilisez .txt ou collez le texte");
+        }
+        cvText = req.file.buffer.toString("utf8").trim();
+      } else if (typeof req.body?.cvText === "string") {
+        cvText = req.body.cvText.trim();
+      }
+
+      if (!cvText) {
+        throw new HttpError(400, "Provide a cv file or JSON { cvText }");
+      }
+
+      const profile = await prisma.profile.upsert({
+        where: { userId },
+        create: { userId, cvText },
+        update: { cvText },
+      });
+
+      res.json({
+        ok: true,
+        profile: {
+          cvText: profile.cvText,
+          skills: profile.skills,
+          targetRoles: profile.targetRoles,
+          experienceYears: profile.experienceYears,
+          preferredLocations: profile.preferredLocations,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);

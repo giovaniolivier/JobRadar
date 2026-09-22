@@ -46,19 +46,23 @@ export function ProfilePage() {
     setMessage(null);
     setError(null);
     try {
+      await api("/auth/upload-cv", {
+        method: "POST",
+        token,
+        body: JSON.stringify({ cvText }),
+      });
       await api("/profile", {
         method: "PUT",
         token,
         body: JSON.stringify({
           name,
-          cvText,
           skills: splitList(skills),
           targetRoles: splitList(targetRoles),
           experienceYears: experienceYears === "" ? null : Number(experienceYears),
           preferredLocations: splitList(preferredLocations),
         }),
       });
-      setMessage("Profil enregistré.");
+      setMessage("Profil et CV enregistrés.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
     } finally {

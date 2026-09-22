@@ -14,7 +14,7 @@ export function JobDetailPage() {
 
   async function reload() {
     if (!token || !id) return;
-    const data = await api<Job>(`/jobs/${id}`, { token });
+    const data = await api<Job>(`/offers/${id}`, { token });
     setJob(data);
     setCoverLetter(data.application?.coverLetter ?? null);
   }
@@ -28,7 +28,7 @@ export function JobDetailPage() {
     setBusy("analyze");
     setError(null);
     try {
-      await api(`/jobs/${id}/analyze`, { method: "POST", token, body: "{}" });
+      await api(`/offers/${id}/analyze`, { method: "POST", token, body: "{}" });
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur analyse");
@@ -42,7 +42,7 @@ export function JobDetailPage() {
     setBusy("letter");
     setError(null);
     try {
-      const data = await api<{ coverLetter: string }>(`/jobs/${id}/cover-letter`, {
+      const data = await api<{ coverLetter: string }>(`/offers/${id}/generate-letter`, {
         method: "POST",
         token,
         body: "{}",

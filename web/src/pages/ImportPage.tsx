@@ -21,7 +21,7 @@ export function ImportPage() {
     setMessage(null);
     setError(null);
     try {
-      const data = await api<{ count: number }>("/jobs/import", {
+      const data = await api<{ count: number }>("/offers", {
         method: "POST",
         token,
         body: JSON.stringify({ csv }),
@@ -41,7 +41,7 @@ export function ImportPage() {
     setMessage(null);
     setError(null);
     try {
-      const data = await api<{ count: number }>("/jobs/import", {
+      const data = await api<{ count: number }>("/offers", {
         method: "POST",
         token,
         body: JSON.stringify({ text }),
@@ -59,9 +59,8 @@ export function ImportPage() {
       <p className="label">Ingestion</p>
       <h1 className="mt-1 text-3xl sm:text-4xl">Import d'offres</h1>
       <p className="mt-2 text-[var(--ink-soft)]">
-        CSV ou collage texte. Endpoint{" "}
-        <code className="mono text-[var(--ink)]">POST /jobs/ingest</code> prêt pour une extension
-        navigateur.
+        CSV ou collage texte via{" "}
+        <code className="mono text-[var(--ink)]">POST /offers</code>.
       </p>
 
       {message && (

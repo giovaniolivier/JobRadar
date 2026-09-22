@@ -28,7 +28,7 @@ export function DashboardPage() {
       if (minScore) params.set("minScore", minScore);
       if (location) params.set("location", location);
       if (tech) params.set("tech", tech);
-      const data = await api<Job[]>(`/jobs?${params}`, { token });
+      const data = await api<Job[]>(`/offers?${params}`, { token });
       setJobs(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -47,7 +47,7 @@ export function DashboardPage() {
     setInfo(null);
     setError(null);
     try {
-      const result = await api<{ count: number }>("/jobs/sync", {
+      const result = await api<{ count: number }>("/offers/sync", {
         method: "POST",
         token,
         body: JSON.stringify({ search: q || "developer" }),
@@ -154,7 +154,7 @@ export function DashboardPage() {
             {jobs.map((job, i) => (
               <li key={job.id} className="fade-in" style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}>
                 <Link
-                  to={`/jobs/${job.id}`}
+                  to={`/offers/${job.id}`}
                   className="board-row md:grid"
                   style={{ gridTemplateColumns: "52px 1fr 140px 110px 90px" }}
                 >

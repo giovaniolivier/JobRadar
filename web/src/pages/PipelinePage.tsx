@@ -80,7 +80,7 @@ export function PipelinePage() {
                       <ScoreBadge score={app.job?.analysis?.relevanceScore} size={36} />
                       <div className="min-w-0 flex-1">
                         <Link
-                          to={`/jobs/${app.jobId}`}
+                          to={`/offers/${app.jobId}`}
                           className="display block truncate text-sm font-semibold hover:text-[var(--amber)]"
                         >
                           {app.job?.title ?? "Offre"}
