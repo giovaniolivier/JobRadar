@@ -1,0 +1,304 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+
+  /* Clair — parchemin froid */
+  --ink: #1b2430;
+  --paper: #e4e0d4;
+  --paper-lift: #f2efe6;
+  --paper-deep: #d5d0c2;
+  --amber: #c08a2e;
+  --match: #4b6650;
+  --brick: #9c4a3b;
+  --hairline: #b4ad9c;
+  --ink-soft: rgba(27, 36, 48, 0.58);
+  --field-bg: var(--paper-lift);
+  --field-focus: #faf8f2;
+  --btn-hover: #2a3544;
+  --ghost-hover: rgba(27, 36, 48, 0.05);
+  --row-hover: rgba(192, 138, 46, 0.07);
+  --grid-line: rgba(180, 173, 156, 0.16);
+  --grid-size: 14px;
+  --glow-amber: rgba(192, 138, 46, 0.07);
+  --glow-match: rgba(75, 102, 80, 0.05);
+  --btn-fg: var(--paper-lift);
+  --amber-fg: #1b2430;
+  --noise-opacity: 0.03;
+  --scroll-track: var(--paper-deep);
+  --scroll-thumb: #8a8375;
+  --scroll-thumb-hover: var(--amber);
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* Sombre — tour de contrôle */
+    --ink: #ece8de;
+    --paper: #121820;
+    --paper-lift: #1b2430;
+    --paper-deep: #0e1319;
+    --amber: #c08a2e;
+    --match: #7a9a82;
+    --brick: #c46a5a;
+    --hairline: #3a4452;
+    --ink-soft: rgba(236, 232, 222, 0.55);
+    --field-bg: #1b2430;
+    --field-focus: #222b36;
+    --btn-hover: #d8d2c4;
+    --ghost-hover: rgba(236, 232, 222, 0.06);
+    --row-hover: rgba(192, 138, 46, 0.1);
+    --grid-line: rgba(236, 232, 222, 0.045);
+    --grid-size: 14px;
+    --glow-amber: rgba(192, 138, 46, 0.08);
+    --glow-match: rgba(122, 154, 130, 0.04);
+    --btn-fg: #121820;
+    --amber-fg: #121820;
+    --noise-opacity: 0.035;
+    --scroll-track: #0e1319;
+    --scroll-thumb: #4a5564;
+    --scroll-thumb-hover: var(--amber);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+/* Scrollbar — instrument panel (pas de pilule arrondie) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+  border-left: 1px solid var(--hairline);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 2px solid var(--scroll-track);
+  border-radius: 0;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scroll-track);
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(ellipse 90% 55% at 8% -5%, var(--glow-amber), transparent 52%),
+    radial-gradient(ellipse 50% 35% at 100% 0%, var(--glow-match), transparent 45%),
+    linear-gradient(180deg, color-mix(in srgb, var(--paper-lift) 70%, transparent) 0%, transparent 22%),
+    /* Petits carreaux — grille fine type papier millimétré */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent calc(var(--grid-size) - 1px),
+      var(--grid-line) calc(var(--grid-size) - 1px),
+      var(--grid-line) var(--grid-size)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(var(--grid-size) - 1px),
+      var(--grid-line) calc(var(--grid-size) - 1px),
+      var(--grid-line) var(--grid-size)
+    );
+  background-attachment: fixed;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+h1,
+h2,
+h3,
+.brand,
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--hairline);
+  background: var(--field-bg);
+  color: var(--ink);
+  padding: 0.55rem 0.75rem;
+  border-radius: 0;
+  outline: none;
+}
+
+.field:focus {
+  border-color: var(--ink);
+  background: var(--field-focus);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--btn-fg);
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--btn-hover);
+  border-color: var(--btn-hover);
+  color: var(--paper);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--ghost-hover);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.btn-amber {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--amber-fg);
+}
+
+.btn-amber:hover:not(:disabled) {
+  background: #a97624;
+  border-color: #a97624;
+  color: var(--amber-fg);
+}
+
+.board {
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.board-head {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.board-row {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--hairline);
+  align-items: start;
+  transition: background 140ms ease;
+}
+
+.board-row:last-child {
+  border-bottom: none;
+}
+
+.board-row:hover {
+  background: var(--row-hover);
+}
+
+.panel {
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--hairline);
+  padding: 1.25rem 0;
+}
+
+.panel + .panel {
+  border-top-color: var(--hairline);
+}
+
+@keyframes dial-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sweep {
+  from {
+    stroke-dashoffset: 88;
+  }
+  to {
+    stroke-dashoffset: var(--dial-offset);
+  }
+}
+
+.fade-in {
+  animation: dial-in 320ms ease both;
+}

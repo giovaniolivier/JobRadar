@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApplicationStatus {
+  TO_APPLY
+  APPLIED
+  INTERVIEW
+  RESPONSE
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  profile      Profile?
+  analyses     Analysis[]
+  applications Application[]
+}
+
+model Profile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cvText              String   @default("")
+  skills              String[] @default([])
+  targetRoles         String[] @default([])
+  experienceYears     Int?
+  preferredLocations  String[] @default([])
+  updatedAt           DateTime @updatedAt
+}
+
+model Job {
+  id           String        @id @default(cuid())
+  source       String
+  externalId   String?
+  title        String
+  company      String
+  location     String?
+  salaryRaw    String?
+  description  String
+  techStack    String[]      @default([])
+  seniority    String?
+  url          String?
+  fetchedAt    DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  analyses     Analysis[]
+  applications Application[]
+
+  @@unique([source, externalId])
+  @@index([title])
+  @@index([company])
+}
+
+model Analysis {
+  id                 String   @id @default(cuid())
+  jobId              String
+  userId             String
+  job                Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relevanceScore     Int
+  redFlags           String[] @default([])
+  summary            String
+  extractedSalary    String?
+  extractedStack     String[] @default([])
+  extractedSeniority String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([jobId, userId])
+  @@index([relevanceScore])
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  jobId       String
+  userId      String
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      ApplicationStatus @default(TO_APPLY)
+  notes       String?
+  coverLetter String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([jobId, userId])
+  @@index([status])
+}
