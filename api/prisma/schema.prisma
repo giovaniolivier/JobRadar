@@ -28,6 +28,22 @@ model User {
   applications   Application[]
   refreshTokens  RefreshToken[]
   passwordResets PasswordResetToken[]
+  loginOtps      LoginOtp[]
+}
+
+model LoginOtp {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeHash String    @unique
+  codeHash      String
+  remember      Boolean   @default(true)
+  attempts      Int       @default(0)
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model RefreshToken {

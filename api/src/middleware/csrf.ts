@@ -4,6 +4,8 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 const CSRF_EXEMPT_PREFIXES = [
   "/auth/login",
+  "/auth/verify-2fa",
+  "/auth/resend-2fa",
   "/auth/register",
   "/auth/forgot-password",
   "/auth/reset-password",

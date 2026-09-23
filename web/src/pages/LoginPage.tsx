@@ -20,6 +20,10 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [emailHint, setEmailHint] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (params.get("oauth") === "error") {
@@ -36,12 +40,28 @@ export function LoginPage() {
     setError(null);
     setInfo(null);
     try {
-      const data = await api<{ user: AuthUser }>("/auth/login", {
+      const data = await api<{
+        requires2fa?: boolean;
+        challengeId?: string;
+        emailHint?: string;
+        devCode?: string;
+        user?: AuthUser;
+      }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password, remember }),
       });
-      setSession(data.user);
-      navigate("/");
+      if (data.requires2fa && data.challengeId) {
+        setChallengeId(data.challengeId);
+        setEmailHint(data.emailHint ?? null);
+        setDevCode(data.devCode ?? null);
+        setOtpCode("");
+        setInfo(`Un code a été envoyé à ${data.emailHint ?? "votre email"}.`);
+        return;
+      }
+      if (data.user) {
+        setSession(data.user);
+        navigate("/");
+      }
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 400)) {
         setError("Identifiants incorrects. Vérifiez votre email et votre mot de passe.");
@@ -51,6 +71,120 @@ export function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onVerifyOtp(e: FormEvent) {
+    e.preventDefault();
+    if (!challengeId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api<{ user: AuthUser }>("/auth/verify-2fa", {
+        method: "POST",
+        body: JSON.stringify({ challengeId, code: otpCode.trim() }),
+      });
+      setSession(data.user);
+      navigate("/");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Vérification impossible. Réessayez.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onResendOtp() {
+    if (!challengeId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api<{
+        challengeId: string;
+        emailHint?: string;
+        devCode?: string;
+      }>("/auth/resend-2fa", {
+        method: "POST",
+        body: JSON.stringify({ challengeId }),
+      });
+      setChallengeId(data.challengeId);
+      setEmailHint(data.emailHint ?? null);
+      setDevCode(data.devCode ?? null);
+      setOtpCode("");
+      setInfo("Un nouveau code a été envoyé.");
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.message);
+      else setError("Impossible de renvoyer le code.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (challengeId) {
+    return (
+      <AuthShell
+        title="Vérification"
+        subtitle={`Saisissez le code à 6 chiffres envoyé à ${emailHint ?? "votre email"}.`}
+      >
+        <form onSubmit={onVerifyOtp} className="space-y-4" noValidate>
+          <Field
+            label="Code de vérification"
+            value={otpCode}
+            onChange={(v) => setOtpCode(v.replace(/\D/g, "").slice(0, 6))}
+            autoComplete="one-time-code"
+            placeholder="000000"
+          />
+          {devCode && (
+            <p className="text-xs text-[var(--ink-soft)]">
+              Code dev : <span className="font-mono text-[var(--ink)]">{devCode}</span>
+            </p>
+          )}
+          {error && (
+            <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
+              {error}
+            </p>
+          )}
+          {info && (
+            <p className="text-sm" style={{ color: "var(--match)" }}>
+              {info}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={loading || otpCode.length !== 6}
+            className="btn btn-amber w-full"
+          >
+            {loading ? "Vérification…" : "Valider le code"}
+          </button>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <button
+              type="button"
+              className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
+              disabled={loading}
+              onClick={() => void onResendOtp()}
+            >
+              Renvoyer le code
+            </button>
+            <button
+              type="button"
+              className="text-[var(--ink-soft)] underline underline-offset-4"
+              disabled={loading}
+              onClick={() => {
+                setChallengeId(null);
+                setOtpCode("");
+                setDevCode(null);
+                setInfo(null);
+                setError(null);
+              }}
+            >
+              Retour
+            </button>
+          </div>
+        </form>
+      </AuthShell>
+    );
   }
 
   return (

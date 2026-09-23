@@ -16,6 +16,7 @@ import {
   signAccessToken,
   setAuthCookies,
 } from "../lib/authTokens.js";
+import { generateOtpCode, maskEmail, sendMail } from "../lib/mail.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 
@@ -36,6 +37,17 @@ const authLimiter = rateLimit({
   message: { error: "Trop de tentatives. Réessayez dans 15 minutes." },
 });
 
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop de tentatives. Réessayez dans 15 minutes." },
+});
+
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -44,6 +56,45 @@ const credentialsSchema = z.object({
 
 function publicUser(user: { id: string; email: string; name: string }) {
   return { id: user.id, email: user.email, name: user.name };
+}
+
+async function issueLoginOtp(user: { id: string; email: string }, remember: boolean) {
+  await prisma.loginOtp.deleteMany({ where: { userId: user.id, consumedAt: null } });
+
+  const code = generateOtpCode();
+  const challengeId = createRawToken();
+  await prisma.loginOtp.create({
+    data: {
+      userId: user.id,
+      challengeHash: hashResetToken(challengeId),
+      codeHash: hashResetToken(code),
+      remember,
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    },
+  });
+
+  const mail = await sendMail({
+    to: user.email,
+    subject: "JobRadar — code de connexion",
+    text: `Votre code de vérification JobRadar est : ${code}\n\nIl expire dans 10 minutes.\nSi vous n'êtes pas à l'origine de cette connexion, ignorez cet email.`,
+    html: `
+      <div style="font-family:sans-serif;max-width:420px;line-height:1.5">
+        <p>Votre code de vérification <strong>JobRadar</strong> :</p>
+        <p style="font-size:28px;letter-spacing:6px;font-weight:700">${code}</p>
+        <p style="color:#666">Il expire dans 10 minutes.</p>
+        <p style="color:#666;font-size:13px">Si vous n'êtes pas à l'origine de cette connexion, ignorez cet email.</p>
+      </div>
+    `,
+  });
+
+  return {
+    requires2fa: true as const,
+    challengeId,
+    emailHint: maskEmail(user.email),
+    expiresInSec: Math.floor(OTP_TTL_MS / 1000),
+    // Only expose the code in API when SMTP is not configured (local fallback)
+    ...(!mail.delivered ? { devCode: code } : {}),
+  };
 }
 
 /** Issue CSRF cookie for the SPA (call on app boot). */
@@ -118,8 +169,71 @@ authRouter.post("/login", authLimiter, async (req, res, next) => {
     const ok = await bcrypt.compare(body.password, user.passwordHash);
     if (!ok) throw new HttpError(401, "Invalid credentials");
 
-    await createSession(res, user.id, user.email, { remember: body.remember ?? true });
-    res.json({ user: publicUser(user) });
+    const challenge = await issueLoginOtp(user, body.remember ?? true);
+    res.json(challenge);
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post("/verify-2fa", otpLimiter, async (req, res, next) => {
+  try {
+    const body = z
+      .object({
+        challengeId: z.string().min(20),
+        code: z.string().regex(/^\d{6}$/, "Code à 6 chiffres requis"),
+      })
+      .parse(req.body);
+
+    const challengeHash = hashResetToken(body.challengeId);
+    const row = await prisma.loginOtp.findUnique({
+      where: { challengeHash },
+      include: { user: { select: { id: true, email: true, name: true } } },
+    });
+
+    if (!row || row.consumedAt || row.expiresAt < new Date()) {
+      throw new HttpError(400, "Code expiré ou invalide. Reconnectez-vous.");
+    }
+    if (row.attempts >= OTP_MAX_ATTEMPTS) {
+      throw new HttpError(429, "Trop de tentatives. Reconnectez-vous pour un nouveau code.");
+    }
+
+    const codeOk = row.codeHash === hashResetToken(body.code);
+    if (!codeOk) {
+      await prisma.loginOtp.update({
+        where: { id: row.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new HttpError(401, "Code incorrect");
+    }
+
+    await prisma.loginOtp.update({
+      where: { id: row.id },
+      data: { consumedAt: new Date() },
+    });
+
+    await createSession(res, row.user.id, row.user.email, { remember: row.remember });
+    res.json({ user: publicUser(row.user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post("/resend-2fa", otpLimiter, async (req, res, next) => {
+  try {
+    const body = z.object({ challengeId: z.string().min(20) }).parse(req.body);
+    const challengeHash = hashResetToken(body.challengeId);
+    const row = await prisma.loginOtp.findUnique({
+      where: { challengeHash },
+      include: { user: { select: { id: true, email: true } } },
+    });
+
+    if (!row || row.consumedAt) {
+      throw new HttpError(400, "Session de vérification invalide. Reconnectez-vous.");
+    }
+
+    const challenge = await issueLoginOtp(row.user, row.remember);
+    res.json(challenge);
   } catch (err) {
     next(err);
   }
@@ -186,12 +300,11 @@ authRouter.post("/forgot-password", authLimiter, async (req, res, next) => {
     const webOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
     const resetUrl = `${webOrigin}/reset-password?token=${raw}`;
 
-    if (process.env.NODE_ENV === "production" && process.env.SMTP_URL) {
-      // Hook for real email provider later
-      console.log("[mail] password reset for", email, resetUrl);
-    } else {
-      console.log("[dev] Password reset link:", resetUrl);
-    }
+    await sendMail({
+      to: email,
+      subject: "JobRadar — réinitialisation du mot de passe",
+      text: `Pour réinitialiser votre mot de passe, ouvrez ce lien (valide 1 h) :\n${resetUrl}\n\nSi vous n'avez pas fait cette demande, ignorez cet email.`,
+    });
 
     res.json({
       ...generic,

@@ -66,7 +66,7 @@ export async function api<T>(
   };
 
   let res = await run();
-  if (res.status === 401 && path !== "/auth/login" && path !== "/auth/refresh") {
+  if (res.status === 401 && path !== "/auth/login" && path !== "/auth/refresh" && path !== "/auth/verify-2fa") {
     const ok = await tryRefresh();
     if (ok) res = await run();
   }
