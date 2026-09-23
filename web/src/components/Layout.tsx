@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLocale } from "../lib/i18n";
 import { AnalyzeOfferProvider, useAnalyzeOffer } from "./AnalyzeOfferPanel";
 
 type NotificationItem = {
@@ -53,6 +54,7 @@ export function Layout() {
 
 function LayoutShell() {
   const { user, logout } = useAuth();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const { openAnalyze } = useAnalyzeOffer();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -75,16 +77,16 @@ function LayoutShell() {
           {/* Center — main nav (desktop) */}
           <nav className="hidden items-center justify-center gap-x-7 lg:flex">
             <NavLink to="/" end className={linkClass}>
-              Tableau de bord
+              {t("nav.dashboard")}
             </NavLink>
             <NavLink to="/offers" className={linkClass}>
-              Offres
+              {t("nav.offers")}
             </NavLink>
             <NavLink to="/pipeline" className={linkClass}>
-              Candidatures
+              {t("nav.pipeline")}
             </NavLink>
             <NavLink to="/profile" className={linkClass}>
-              Mon profil
+              {t("nav.profile")}
             </NavLink>
           </nav>
 
@@ -98,7 +100,7 @@ function LayoutShell() {
                 openAnalyze();
               }}
             >
-              + Nouvelle offre
+              {t("nav.newOffer")}
             </button>
 
             <NotificationsMenu />
@@ -115,7 +117,7 @@ function LayoutShell() {
               type="button"
               className="inline-flex h-9 w-9 items-center justify-center border border-[var(--ink)] bg-transparent text-[var(--ink)] lg:hidden"
               aria-expanded={mobileOpen}
-              aria-label="Ouvrir le menu"
+              aria-label={t("nav.openMenu")}
               onClick={() => setMobileOpen((v) => !v)}
             >
               <MenuIcon open={mobileOpen} />
@@ -127,16 +129,16 @@ function LayoutShell() {
           <nav className="border-t border-[var(--hairline)] px-4 py-3 lg:hidden">
             <div className="flex flex-col gap-3">
               <NavLink to="/" end className={linkClass} onClick={() => setMobileOpen(false)}>
-                Tableau de bord
+                {t("nav.dashboard")}
               </NavLink>
               <NavLink to="/offers" className={linkClass} onClick={() => setMobileOpen(false)}>
-                Offres
+                {t("nav.offers")}
               </NavLink>
               <NavLink to="/pipeline" className={linkClass} onClick={() => setMobileOpen(false)}>
-                Candidatures
+                {t("nav.pipeline")}
               </NavLink>
               <NavLink to="/profile" className={linkClass} onClick={() => setMobileOpen(false)}>
-                Mon profil
+                {t("nav.profile")}
               </NavLink>
               <button
                 type="button"
@@ -146,7 +148,7 @@ function LayoutShell() {
                   openAnalyze();
                 }}
               >
-                + Nouvelle offre
+                {t("nav.newOffer")}
               </button>
             </div>
           </nav>
@@ -160,6 +162,7 @@ function LayoutShell() {
 }
 
 function NotificationsMenu() {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [seen, setSeen] = useState<Set<string>>(() => readSeen());
@@ -211,7 +214,9 @@ function NotificationsMenu() {
         className="relative inline-flex h-9 w-9 items-center justify-center border border-[var(--ink)] bg-transparent text-[var(--ink)] transition-colors hover:bg-[var(--ghost-hover)]"
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={unread ? `Notifications (${unread} non lues)` : "Notifications"}
+        aria-label={
+          unread ? t("nav.notificationsUnread", { n: unread }) : t("nav.notifications")
+        }
         onClick={openPanel}
       >
         <BellIcon />
@@ -228,10 +233,10 @@ function NotificationsMenu() {
           className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,20rem)] border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
         >
           <div className="border-b border-[var(--hairline)] px-3 py-2">
-            <p className="label">Notifications</p>
+            <p className="label">{t("nav.notifications")}</p>
           </div>
           {items.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-[var(--ink-soft)]">Rien de nouveau pour le moment.</p>
+            <p className="px-3 py-4 text-sm text-[var(--ink-soft)]">{t("nav.notificationsEmpty")}</p>
           ) : (
             <ul className="max-h-80 overflow-auto">
               {items.map((item) => (
@@ -268,6 +273,7 @@ function UserMenu({
   onSettings: () => void;
   onLogout: () => void;
 }) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -308,7 +314,7 @@ function UserMenu({
         aria-expanded={open}
         aria-controls={panelId}
         aria-haspopup="menu"
-        aria-label="Menu du compte"
+        aria-label={t("nav.accountMenu")}
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" && !open) {
@@ -323,7 +329,7 @@ function UserMenu({
         <div
           id={panelId}
           role="menu"
-          aria-label="Menu du compte"
+          aria-label={t("nav.accountMenu")}
           className="absolute right-0 z-40 mt-2 w-56 border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
         >
           <div className="border-b border-[var(--hairline)] px-3 py-2.5">
@@ -335,12 +341,12 @@ function UserMenu({
             </p>
           </div>
           <div className="py-1">
-            <MenuItem onClick={() => closeAnd(onAccount)}>Mon compte</MenuItem>
-            <MenuItem onClick={() => closeAnd(onSettings)}>Paramètres</MenuItem>
+            <MenuItem onClick={() => closeAnd(onAccount)}>{t("nav.myAccount")}</MenuItem>
+            <MenuItem onClick={() => closeAnd(onSettings)}>{t("nav.settings")}</MenuItem>
           </div>
           <div className="border-t border-[var(--hairline)] py-1">
             <MenuItem onClick={() => closeAnd(onLogout)} tone="danger">
-              Se déconnecter
+              {t("nav.logout")}
             </MenuItem>
           </div>
         </div>

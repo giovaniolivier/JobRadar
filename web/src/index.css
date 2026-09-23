@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-:root {
+:root,
+:root[data-theme="light"] {
   color-scheme: light;
 
   /* Clair — parchemin froid */
@@ -34,11 +35,40 @@
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Sombre — tour de contrôle */
+  --ink: #ece8de;
+  --paper: #121820;
+  --paper-lift: #1b2430;
+  --paper-deep: #0e1319;
+  --amber: #c08a2e;
+  --match: #7a9a82;
+  --brick: #c46a5a;
+  --hairline: #3a4452;
+  --ink-soft: rgba(236, 232, 222, 0.55);
+  --field-bg: #1b2430;
+  --field-focus: #222b36;
+  --btn-hover: #d8d2c4;
+  --ghost-hover: rgba(236, 232, 222, 0.06);
+  --row-hover: rgba(192, 138, 46, 0.1);
+  --grid-line: rgba(236, 232, 222, 0.045);
+  --grid-size: 14px;
+  --glow-amber: rgba(192, 138, 46, 0.08);
+  --glow-match: rgba(122, 154, 130, 0.04);
+  --btn-fg: #121820;
+  --amber-fg: #121820;
+  --noise-opacity: 0.035;
+  --scroll-track: #0e1319;
+  --scroll-thumb: #4a5564;
+  --scroll-thumb-hover: var(--amber);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
     color-scheme: dark;
 
-    /* Sombre — tour de contrôle */
     --ink: #ece8de;
     --paper: #121820;
     --paper-lift: #1b2430;

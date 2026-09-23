@@ -5,6 +5,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { authRouter } from "./routes/auth.js";
 import { profileRouter } from "./routes/profile.js";
+import { settingsRouter } from "./routes/settings.js";
 import { offersRouter } from "./routes/offers.js";
 import { applicationsRouter } from "./routes/applications.js";
 import { dashboardRouter } from "./routes/dashboard.js";
@@ -47,6 +48,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/profile", profileRouter);
+app.use("/settings", settingsRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/notifications", notificationsRouter);
 app.use("/offers", offersRouter);

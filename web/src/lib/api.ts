@@ -155,6 +155,53 @@ export type ProfileResponse = {
   profile: ProfileData | null;
 };
 
+export type UserSettings = {
+  emailNotifications: boolean;
+  inAppNotifications: boolean;
+  notifyHighScore: boolean;
+  notifyFollowUp: boolean;
+  notifyInterview: boolean;
+  notifyWeeklyDigest: boolean;
+  digestFrequency: "daily" | "weekly" | string;
+  theme: "light" | "dark" | "system" | string;
+  locale: "fr" | "en" | string;
+  dateFormat: string;
+  currency: string;
+  updatedAt?: string;
+};
+
+/** Télécharge l’export RGPD (JSON). */
+export async function downloadDataExport(): Promise<void> {
+  const run = async () =>
+    fetch(`${API_URL}/settings/export`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+  let res = await run();
+  if (res.status === 401) {
+    const ok = await tryRefresh();
+    if (ok) res = await run();
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText);
+  }
+
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  const filename = match?.[1] ?? `jobradar-export-${new Date().toISOString().slice(0, 10)}.json`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** Upload multipart (CV) — ne force pas Content-Type JSON. */
 export async function apiForm<T>(path: string, form: FormData): Promise<T> {
   const method = "POST";

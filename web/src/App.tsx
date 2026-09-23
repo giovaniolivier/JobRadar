@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
+import { LocaleProvider } from "./lib/i18n";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -33,28 +34,30 @@ function PrivateRoute() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/legal/cgu" element={<LegalCguPage />} />
-        <Route path="/legal/privacy" element={<LegalPrivacyPage />} />
-        <Route path="/continue" element={<ContinuePage />} />
-        <Route element={<PrivateRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/offers" element={<OffersPage />} />
-            <Route path="/offers/:id" element={<JobDetailPage />} />
-            <Route path="/jobs/:id" element={<JobDetailPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/pipeline" element={<PipelinePage />} />
-            <Route path="/import" element={<ImportPage />} />
+    <LocaleProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/legal/cgu" element={<LegalCguPage />} />
+          <Route path="/legal/privacy" element={<LegalPrivacyPage />} />
+          <Route path="/continue" element={<ContinuePage />} />
+          <Route element={<PrivateRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/offers" element={<OffersPage />} />
+              <Route path="/offers/:id" element={<JobDetailPage />} />
+              <Route path="/jobs/:id" element={<JobDetailPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/pipeline" element={<PipelinePage />} />
+              <Route path="/import" element={<ImportPage />} />
+            </Route>
           </Route>
-        </Route>
-      </Routes>
-    </AuthProvider>
+        </Routes>
+      </AuthProvider>
+    </LocaleProvider>
   );
 }
