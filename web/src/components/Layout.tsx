@@ -1,36 +1,10 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { api } from "../lib/api";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLocale } from "../lib/i18n";
 import { AnalyzeOfferProvider, useAnalyzeOffer } from "./AnalyzeOfferPanel";
 import { BrandLogo } from "./BrandLogo";
-
-type NotificationItem = {
-  id: string;
-  type: "followup" | "response" | "high_score";
-  title: string;
-  body: string;
-  href: string;
-  createdAt: string;
-};
-
-const SEEN_KEY = "jobradar_notif_seen";
-
-function readSeen(): Set<string> {
-  try {
-    const raw = localStorage.getItem(SEEN_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as string[];
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function writeSeen(ids: Set<string>) {
-  localStorage.setItem(SEEN_KEY, JSON.stringify([...ids]));
-}
+import { NotificationsMenu } from "./NotificationsMenu";
 
 function initials(name: string | undefined, email: string | undefined) {
   const source = (name?.trim() || email?.trim() || "?").split(/\s+/);
@@ -156,105 +130,6 @@ function LayoutShell() {
   );
 }
 
-function NotificationsMenu() {
-  const { t } = useLocale();
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [seen, setSeen] = useState<Set<string>>(() => readSeen());
-  const rootRef = useRef<HTMLDivElement>(null);
-  const panelId = useId();
-
-  useEffect(() => {
-    let cancelled = false;
-    void api<{ items: NotificationItem[] }>("/notifications")
-      .then((data) => {
-        if (!cancelled) setItems(data.items);
-      })
-      .catch(() => {
-        if (!cancelled) setItems([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    function onDoc(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
-
-  const unread = items.filter((i) => !seen.has(i.id)).length;
-
-  function markAllSeen() {
-    const next = new Set(seen);
-    for (const i of items) next.add(i.id);
-    setSeen(next);
-    writeSeen(next);
-  }
-
-  function openPanel() {
-    const willOpen = !open;
-    setOpen(willOpen);
-    if (willOpen) markAllSeen();
-  }
-
-  return (
-    <div className="relative" ref={rootRef}>
-      <button
-        type="button"
-        className="relative inline-flex h-9 w-9 items-center justify-center border border-[var(--ink)] bg-transparent text-[var(--ink)] transition-colors hover:bg-[var(--ghost-hover)]"
-        aria-expanded={open}
-        aria-controls={panelId}
-        aria-label={
-          unread ? t("nav.notificationsUnread", { n: unread }) : t("nav.notifications")
-        }
-        onClick={openPanel}
-      >
-        <BellIcon />
-        {unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--brick)] px-1 text-[0.65rem] font-semibold text-[var(--paper-lift)]">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
-      {open && (
-        <div
-          id={panelId}
-          role="menu"
-          className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,20rem)] border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
-        >
-          <div className="border-b border-[var(--hairline)] px-3 py-2">
-            <p className="label">{t("nav.notifications")}</p>
-          </div>
-          {items.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-[var(--ink-soft)]">{t("nav.notificationsEmpty")}</p>
-          ) : (
-            <ul className="max-h-80 overflow-auto">
-              {items.map((item) => (
-                <li key={item.id} className="border-b border-[var(--hairline)] last:border-0">
-                  <Link
-                    to={item.href}
-                    role="menuitem"
-                    className="block px-3 py-3 transition-colors hover:bg-[var(--row-hover)]"
-                    onClick={() => setOpen(false)}
-                  >
-                    <p className="text-sm font-medium">{item.title}</p>
-                    <p className="mt-0.5 text-xs text-[var(--ink-soft)]">{item.body}</p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function UserMenu({
   name,
   email,
@@ -370,19 +245,6 @@ function MenuItem({
     >
       {children}
     </button>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 9a6 6 0 1 1 12 0c0 3.2 1 4.4 1.7 5.2.3.3.1.8-.3.8H4.6c-.4 0-.6-.5-.3-.8C5 13.4 6 12.2 6 9Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path d="M10 18a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
   );
 }
 

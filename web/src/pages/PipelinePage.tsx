@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   api,
   type Application,
@@ -86,6 +87,7 @@ function isStale(app: Application) {
 export function PipelinePage() {
   const { token } = useAuth();
   const { openAnalyze } = useAnalyzeOffer();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +112,18 @@ export function PipelinePage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const appId = searchParams.get("app");
+    if (!appId || loading || apps.length === 0) return;
+    const match = apps.find((a) => a.id === appId);
+    if (match) {
+      setSelected(match);
+      const next = new URLSearchParams(searchParams);
+      next.delete("app");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams, apps, loading]);
 
   const activeCount = useMemo(
     () => apps.filter((a) => a.status !== "RESPONSE" || a.outcome !== "rejected").length,

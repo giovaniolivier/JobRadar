@@ -12,7 +12,7 @@ type BrandLogoProps = {
 const HEIGHT: Record<NonNullable<BrandLogoProps["size"]>, string> = {
   sm: "h-9",
   md: "h-11",
-  lg: "h-14",
+  lg: "h-16",
 };
 
 export function BrandLogo({

@@ -273,7 +273,7 @@ export function SettingsPage() {
         )}
       </header>
 
-      <section className="space-y-1 border-b border-[var(--hairline)] pb-10">
+      <section id="notifications" className="scroll-mt-24 space-y-1 border-b border-[var(--hairline)] pb-10">
         <h2 className="text-xl">{t("settings.notifications")}</h2>
         <p className="text-sm text-[var(--ink-soft)]">{t("settings.notificationsHint")}</p>
 
