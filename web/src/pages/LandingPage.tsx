@@ -36,7 +36,7 @@ export function LandingPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6 lg:py-3">
-          <BrandLogo to="/" size="md" />
+          <BrandLogo to="/" size="md" lockup="full" />
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/login"

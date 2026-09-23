@@ -645,7 +645,7 @@ function InputStep({
           <p>{error}</p>
           {needsCv && (
             <Link
-              to="/profile?onboarding=1"
+              to="/onboarding"
               className="mt-2 inline-block underline decoration-[var(--amber)] underline-offset-4"
             >
               Importer mon CV

@@ -39,7 +39,7 @@ export async function fetchDashboard(): Promise<DashboardSummary> {
 export async function resolvePostAuthPath(): Promise<string> {
   try {
     const data = await fetchDashboard();
-    if (data.needsOnboarding) return "/profile?onboarding=1";
+    if (data.needsOnboarding) return "/onboarding";
     return "/dashboard";
   } catch {
     return "/dashboard";

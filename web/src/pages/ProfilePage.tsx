@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { TagInput } from "../components/TagInput";
 import { api, type ProfileData, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import {
   dedupeNormalize,
   formatSalaryDisplay,
   isWorkModeLocationTag,
-  normalizeSkillLabel,
   parseSalaryDigits,
   workModeFromTag,
 } from "../lib/skills";
@@ -40,87 +40,6 @@ function formatDate(iso: string | null | undefined) {
   } catch {
     return null;
   }
-}
-
-function TagEditor({
-  label,
-  hint,
-  tags,
-  onChange,
-  placeholder,
-  normalize = true,
-  onIntercept,
-}: {
-  label: string;
-  hint?: string;
-  tags: string[];
-  onChange: (next: string[]) => void;
-  placeholder?: string;
-  normalize?: boolean;
-  /** Si retourne true, le tag n’est pas ajouté (ex. Remote → type de poste). */
-  onIntercept?: (value: string) => boolean;
-}) {
-  const [draft, setDraft] = useState("");
-
-  function add(raw: string) {
-    const trimmed = raw.trim();
-    if (!trimmed) return;
-    if (onIntercept?.(trimmed)) {
-      setDraft("");
-      return;
-    }
-    const value = normalize ? normalizeSkillLabel(trimmed) : trimmed;
-    if (!value) return;
-    if (tags.some((t) => t.toLowerCase() === value.toLowerCase())) {
-      setDraft("");
-      return;
-    }
-    onChange([...tags, value]);
-    setDraft("");
-  }
-
-  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      add(draft);
-    } else if (e.key === "Backspace" && !draft && tags.length) {
-      onChange(tags.slice(0, -1));
-    }
-  }
-
-  return (
-    <div>
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="label">{label}</span>
-        {hint && <span className="text-xs text-[var(--ink-soft)]">{hint}</span>}
-      </div>
-      <div className="flex flex-wrap gap-1.5 border border-[var(--hairline)] bg-[var(--field-bg)] p-2 focus-within:border-[var(--ink)]">
-        {tags.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            className="inline-flex items-center gap-1 border border-[var(--ink)] bg-[var(--ink)] px-2 py-0.5 text-sm text-[var(--btn-fg)]"
-            onClick={() => onChange(tags.filter((t) => t !== tag))}
-            title="Retirer"
-          >
-            {tag}
-            <span aria-hidden className="opacity-70">
-              ×
-            </span>
-          </button>
-        ))}
-        <input
-          className="min-w-[8rem] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKeyDown}
-          onBlur={() => add(draft)}
-          placeholder={tags.length ? placeholder ?? "Ajouter…" : placeholder ?? "Tapez puis Entrée"}
-          aria-label={label}
-        />
-      </div>
-    </div>
-  );
 }
 
 function SalaryField({
@@ -621,20 +540,20 @@ export function ProfilePage() {
             Corrigez ou complétez ce que l’import a détecté — le score s’appuie dessus.
           </p>
         </div>
-        <TagEditor
+        <TagInput
           label="Techniques"
           tags={skills}
           onChange={setSkills}
           placeholder="ex. TypeScript"
           hint="Entrée pour ajouter"
         />
-        <TagEditor
+        <TagInput
           label="Soft skills"
           tags={softSkills}
           onChange={setSoftSkills}
           placeholder="ex. Communication"
         />
-        <TagEditor
+        <TagInput
           label="Rôles cibles"
           tags={targetRoles}
           onChange={setTargetRoles}
@@ -700,7 +619,7 @@ export function ProfilePage() {
           </div>
         </div>
 
-        <TagEditor
+        <TagInput
           label="Localisations acceptées"
           tags={preferredLocations}
           onChange={setPreferredLocations}
@@ -750,13 +669,13 @@ export function ProfilePage() {
           </label>
         </div>
 
-        <TagEditor
+        <TagInput
           label="Secteurs à privilégier"
           tags={preferredSectors}
           onChange={setPreferredSectors}
           placeholder="ex. SaaS"
         />
-        <TagEditor
+        <TagInput
           label="Secteurs à éviter"
           tags={avoidedSectors}
           onChange={setAvoidedSectors}

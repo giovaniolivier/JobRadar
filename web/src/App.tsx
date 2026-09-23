@@ -6,6 +6,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { OnboardingCvPage } from "./pages/OnboardingCvPage";
 import { OffersPage } from "./pages/OffersPage";
 import { JobDetailPage } from "./pages/JobDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/legal/privacy" element={<LegalPrivacyPage />} />
           <Route path="/continue" element={<ContinuePage />} />
           <Route element={<PrivateRoute />}>
+            <Route path="/onboarding" element={<OnboardingCvPage />} />
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/offers" element={<OffersPage />} />

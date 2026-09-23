@@ -441,7 +441,7 @@ function AuthShell({
         compact ? "py-3 sm:py-4" : "py-6 sm:py-8"
       }`}
     >
-      <BrandLogo to="/" size={compact ? "lg" : "lg"} />
+      <BrandLogo to="/" size="lg" />
       {!compact && <p className="label mt-2">Tour de contrôle · candidatures</p>}
       <h1 className={`text-xl sm:text-2xl ${compact ? "mt-2" : "mt-3"}`}>{title}</h1>
       <p

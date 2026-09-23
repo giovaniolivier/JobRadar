@@ -41,9 +41,24 @@ export function DashboardPage() {
 
   const { stats, topOffers, pipelineFocus } = data;
   const isEmpty = stats.totalAnalyses === 0 && topOffers.length === 0;
+  const needsCv = !data.hasCv;
 
   return (
     <div className="fade-in space-y-10">
+      {needsCv && (
+        <div className="border border-[var(--amber)]/50 bg-[var(--row-hover)] px-4 py-3 sm:px-5">
+          <p className="text-sm text-[var(--ink)]">
+            Importez votre CV pour débloquer des scores fiables.{" "}
+            <Link
+              to="/onboarding"
+              className="font-medium underline decoration-[var(--amber)] underline-offset-4"
+            >
+              Continuer l’import
+            </Link>
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 border-b border-[var(--hairline)] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl">
           <p className="label">Tour de contrôle</p>
