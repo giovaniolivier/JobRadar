@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, type Job } from "../lib/api";
+import { CoverLetterPanel } from "./CoverLetterPanel";
 import { RedFlagList, ScoreBadge, ScoreDialLoading } from "./ScoreBadge";
 
 type Step = "input" | "loading" | "result" | "error";
@@ -107,6 +108,7 @@ function AnalyzeOfferPanel({
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]!);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [letter, setLetter] = useState<string | null>(null);
+  const [letterOpen, setLetterOpen] = useState(false);
   const [stillWaiting, setStillWaiting] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -119,6 +121,7 @@ function AnalyzeOfferPanel({
     setBusyAction(null);
     setStillWaiting(false);
     setLetter(initialJob?.application?.coverLetter ?? null);
+    setLetterOpen(false);
 
     if (intent === "view" && initialJob) {
       setResult(initialJob);
@@ -158,11 +161,11 @@ function AnalyzeOfferPanel({
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && step !== "loading") requestClose();
+      if (e.key === "Escape" && step !== "loading" && !letterOpen) requestClose();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, step, description, url, title, company, fileName]);
+  }, [open, step, letterOpen, description, url, title, company, fileName]);
 
   function hasDraft() {
     return Boolean(
@@ -287,23 +290,6 @@ function AnalyzeOfferPanel({
     }
   }
 
-  async function generateLetter() {
-    if (!result) return;
-    setBusyAction("letter");
-    setError(null);
-    try {
-      const data = await api<{ coverLetter: string }>(`/offers/${result.id}/generate-letter`, {
-        method: "POST",
-        body: "{}",
-      });
-      setLetter(data.coverLetter);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Génération impossible");
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
   async function ignoreOffer() {
     setBusyAction("ignore");
     try {
@@ -317,6 +303,7 @@ function AnalyzeOfferPanel({
   if (!open) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
@@ -423,12 +410,12 @@ function AnalyzeOfferPanel({
           {step === "result" && result?.analysis && (
             <ResultStep
               job={result}
-              letter={letter}
+              hasLetter={Boolean(letter)}
               error={error}
               busyAction={busyAction}
               alreadyInPipeline={Boolean(result.application)}
               onPipeline={() => void addToPipeline()}
-              onLetter={() => void generateLetter()}
+              onLetter={() => setLetterOpen(true)}
               onIgnore={() => void ignoreOffer()}
             />
           )}
@@ -455,6 +442,21 @@ function AnalyzeOfferPanel({
         )}
       </div>
     </div>
+
+    <CoverLetterPanel
+      open={letterOpen && Boolean(result)}
+      onClose={() => setLetterOpen(false)}
+      job={result}
+      initialLetter={letter}
+      applicationId={result?.application?.id ?? null}
+      onSaved={(nextLetter, application) => {
+        setLetter(nextLetter);
+        if (application && result) {
+          setResult({ ...result, application });
+        }
+      }}
+    />
+    </>
   );
 }
 
@@ -657,7 +659,7 @@ function InputStep({
 
 function ResultStep({
   job,
-  letter,
+  hasLetter,
   error,
   busyAction,
   alreadyInPipeline,
@@ -666,7 +668,7 @@ function ResultStep({
   onIgnore,
 }: {
   job: Job;
-  letter: string | null;
+  hasLetter: boolean;
   error: string | null;
   busyAction: string | null;
   alreadyInPipeline: boolean;
@@ -748,15 +750,6 @@ function ResultStep({
         </div>
       )}
 
-      {letter && (
-        <section className="border border-[var(--hairline)] px-3 py-3">
-          <p className="label">Lettre de motivation</p>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed not-italic">
-            {letter}
-          </pre>
-        </section>
-      )}
-
       {error && (
         <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
           {error}
@@ -784,7 +777,7 @@ function ResultStep({
           disabled={!!busyAction}
           onClick={onLetter}
         >
-          {busyAction === "letter" ? "Génération…" : "Générer la lettre de motivation"}
+          {hasLetter ? "Voir / éditer la lettre" : "Générer la lettre de motivation"}
         </button>
         {!alreadyInPipeline && (
           <button

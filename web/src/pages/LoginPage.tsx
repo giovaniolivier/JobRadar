@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { BrandLogo } from "../components/BrandLogo";
 import { ApiError, api } from "../lib/api";
 import { useAuth, type AuthUser } from "../lib/auth";
 import { resolvePostAuthPath } from "../lib/home";
@@ -432,10 +433,8 @@ function AuthShell({
 }) {
   return (
     <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
-      <Link to="/login" className="brand text-3xl tracking-tight">
-        JobRadar
-      </Link>
-      <p className="label mt-2">Tour de contrôle · candidatures</p>
+      <BrandLogo to="/login" size="lg" />
+      <p className="label mt-3">Tour de contrôle · candidatures</p>
       <h1 className="mt-6 text-2xl">{title}</h1>
       <p className="mt-2 mb-8 text-sm leading-relaxed text-[var(--ink-soft)]">{subtitle}</p>
       <div className="border-y border-[var(--ink)] py-6">{children}</div>

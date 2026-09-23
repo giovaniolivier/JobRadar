@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLocale } from "../lib/i18n";
 import { AnalyzeOfferProvider, useAnalyzeOffer } from "./AnalyzeOfferPanel";
+import { BrandLogo } from "./BrandLogo";
 
 type NotificationItem = {
   id: string;
@@ -62,16 +63,10 @@ function LayoutShell() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px]">
-        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-5">
+        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-4 px-4 py-2 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-2">
           {/* Left — logo */}
           <div className="min-w-0">
-            <Link
-              to="/"
-              className="brand inline-block text-[1.65rem] leading-none tracking-tight"
-              onClick={() => setMobileOpen(false)}
-            >
-              JobRadar
-            </Link>
+            <BrandLogo to="/" size="lg" onClick={() => setMobileOpen(false)} />
           </div>
 
           {/* Center — main nav (desktop) */}

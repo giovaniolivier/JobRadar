@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { api, type Application, type ApplicationStatus, type StatusEvent } from "../lib/api";
+import { CoverLetterPanel } from "./CoverLetterPanel";
 import { RedFlagList, ScoreBadge } from "./ScoreBadge";
 
 const STATUSES = ["TO_APPLY", "APPLIED", "INTERVIEW", "RESPONSE"] as const;
@@ -106,7 +107,7 @@ export function ApplicationDetailPanel({
   onUpdated: (app: Application) => void;
 }) {
   const [notes, setNotes] = useState("");
-  const [letterOpen, setLetterOpen] = useState(false);
+  const [coverPanelOpen, setCoverPanelOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [local, setLocal] = useState<Application | null>(null);
@@ -122,7 +123,7 @@ export function ApplicationDetailPanel({
     setNotes(app.notes ?? "");
     setNotesDirty(false);
     setNotesSavedAt(app.notes ? app.updatedAt : null);
-    setLetterOpen(Boolean(app.coverLetter));
+    setCoverPanelOpen(false);
     setError(null);
     setBusy(null);
     scrollRef.current?.scrollTo({ top: 0 });
@@ -136,7 +137,6 @@ export function ApplicationDetailPanel({
         setLocal(fresh);
         setNotes(fresh.notes ?? "");
         setNotesSavedAt(fresh.notes ? fresh.updatedAt : null);
-        setLetterOpen(Boolean(fresh.coverLetter));
         onUpdated(fresh);
       } catch {
         /* garde le snapshot liste */
@@ -153,7 +153,7 @@ export function ApplicationDetailPanel({
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !coverPanelOpen) onClose();
     }
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -162,7 +162,7 @@ export function ApplicationDetailPanel({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open, onClose, coverPanelOpen]);
 
   useEffect(() => {
     if (!local || !notesDirty) return;
@@ -257,24 +257,8 @@ export function ApplicationDetailPanel({
     await patch(body, "status");
   }
 
-  async function generateLetter() {
-    if (!job) return;
-    setBusy("letter");
-    setError(null);
-    try {
-      const data = await api<{ coverLetter: string }>(`/offers/${job.id}/generate-letter`, {
-        method: "POST",
-        body: "{}",
-      });
-      const updated = await patch({ coverLetter: data.coverLetter }, "letter-save");
-      if (updated) setLetterOpen(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Génération impossible");
-      setBusy(null);
-    }
-  }
-
   return createPortal(
+    <>
     <div className="fixed inset-0 z-50 overflow-hidden">
       <button
         type="button"
@@ -472,11 +456,21 @@ export function ApplicationDetailPanel({
             </p>
           )}
 
-          {letterOpen && local.coverLetter && (
+          {local.coverLetter && (
             <section className="mt-3 border border-[var(--hairline)] px-3 py-2">
-              <p className="label">Lettre</p>
-              <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed">
-                {local.coverLetter}
+              <div className="flex items-center justify-between gap-2">
+                <p className="label">Lettre enregistrée</p>
+                <button
+                  type="button"
+                  className="text-xs underline underline-offset-4 text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                  onClick={() => setCoverPanelOpen(true)}
+                >
+                  Ouvrir
+                </button>
+              </div>
+              <pre className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed text-[var(--ink-soft)]">
+                {local.coverLetter.slice(0, 280)}
+                {local.coverLetter.length > 280 ? "…" : ""}
               </pre>
             </section>
           )}
@@ -514,24 +508,33 @@ export function ApplicationDetailPanel({
             <button
               type="button"
               className="btn btn-amber flex-1 !py-2"
-              disabled={!!busy}
-              onClick={() => {
-                if (local.coverLetter) {
-                  setLetterOpen(true);
-                  scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-                } else void generateLetter();
-              }}
+              disabled={!!busy || !job}
+              onClick={() => setCoverPanelOpen(true)}
             >
-              {busy === "letter" || busy === "letter-save"
-                ? "…"
-                : local.coverLetter
-                  ? "Voir la lettre"
-                  : "Générer la lettre"}
+              {local.coverLetter ? "Voir la lettre" : "Générer la lettre"}
             </button>
           </div>
         </footer>
       </div>
-    </div>,
+    </div>
+
+    <CoverLetterPanel
+      open={coverPanelOpen && Boolean(job)}
+      onClose={() => setCoverPanelOpen(false)}
+      job={job ?? null}
+      initialLetter={local.coverLetter}
+      applicationId={local.id}
+      onSaved={(nextLetter, application) => {
+        const merged: Application = {
+          ...(application ?? local),
+          coverLetter: nextLetter,
+          job: application?.job?.id ? application.job : local.job,
+        };
+        setLocal(merged);
+        onUpdated(merged);
+      }}
+    />
+    </>,
     document.body
   );
 }

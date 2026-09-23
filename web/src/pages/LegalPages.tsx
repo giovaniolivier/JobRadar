@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { BrandLogo } from "../components/BrandLogo";
 import { ApiError, api } from "../lib/api";
 import { isValidEmail, passwordStrength } from "../lib/validation";
 
@@ -49,10 +50,8 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
-      <Link to="/login" className="brand text-3xl tracking-tight">
-        JobRadar
-      </Link>
-      <p className="label mt-2">Récupération</p>
+      <BrandLogo to="/login" size="lg" />
+      <p className="label mt-3">Récupération</p>
       <h1 className="mt-6 text-2xl">Mot de passe oublié</h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
         Indiquez l’email de votre compte. Nous vous enverrons un lien pour choisir un nouveau mot de
@@ -167,10 +166,8 @@ export function ResetPasswordPage() {
 
   return (
     <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
-      <Link to="/login" className="brand text-3xl tracking-tight">
-        JobRadar
-      </Link>
-      <p className="label mt-2">Récupération</p>
+      <BrandLogo to="/login" size="lg" />
+      <p className="label mt-3">Récupération</p>
       <h1 className="mt-6 text-2xl">Nouveau mot de passe</h1>
       <p className="mt-3 text-sm text-[var(--ink-soft)]">
         Choisissez un mot de passe d’au moins 8 caractères.
@@ -280,10 +277,8 @@ export function LegalPrivacyPage() {
 function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="fade-in mx-auto min-h-screen max-w-2xl px-4 py-12">
-      <Link to="/login" className="brand text-2xl tracking-tight">
-        JobRadar
-      </Link>
-      <p className="label mt-2">Informations légales</p>
+      <BrandLogo to="/login" size="md" />
+      <p className="label mt-3">Informations légales</p>
       <h1 className="mt-6 text-3xl">{title}</h1>
       <div className="mt-8 space-y-4 border-t border-[var(--ink)] pt-6 text-sm leading-relaxed text-[var(--ink)]/90">
         {children}

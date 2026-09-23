@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Job } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { CoverLetterPanel } from "../components/CoverLetterPanel";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 
 export function JobDetailPage() {
@@ -9,6 +10,7 @@ export function JobDetailPage() {
   const { token } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [coverLetter, setCoverLetter] = useState<string | null>(null);
+  const [letterOpen, setLetterOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,25 +34,6 @@ export function JobDetailPage() {
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur analyse");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function generateLetter() {
-    if (!token || !id) return;
-    setBusy("letter");
-    setError(null);
-    try {
-      const data = await api<{ coverLetter: string }>(`/offers/${id}/generate-letter`, {
-        method: "POST",
-        token,
-        body: "{}",
-      });
-      setCoverLetter(data.coverLetter);
-      await reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lettre");
     } finally {
       setBusy(null);
     }
@@ -105,8 +88,8 @@ export function JobDetailPage() {
         <ActionBtn onClick={() => void analyze()} disabled={!!busy}>
           {busy === "analyze" ? "Analyse…" : "Analyser"}
         </ActionBtn>
-        <ActionBtn onClick={() => void generateLetter()} disabled={!!busy} variant="ghost">
-          {busy === "letter" ? "Génération…" : "Lettre"}
+        <ActionBtn onClick={() => setLetterOpen(true)} disabled={!!busy} variant="ghost">
+          {coverLetter ? "Voir la lettre" : "Lettre"}
         </ActionBtn>
         <ActionBtn onClick={() => void addToPipeline()} disabled={!!busy} variant="ghost">
           {job.application ? "Dans le pipeline" : "Au pipeline"}
@@ -175,9 +158,17 @@ export function JobDetailPage() {
         <section className="panel">
           <p className="label">Brouillon</p>
           <h2 className="mt-1 text-xl">Lettre de motivation</h2>
-          <pre className="mt-3 whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed text-[var(--ink)]/90">
-            {coverLetter}
+          <pre className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed text-[var(--ink)]/90">
+            {coverLetter.slice(0, 400)}
+            {coverLetter.length > 400 ? "…" : ""}
           </pre>
+          <button
+            type="button"
+            className="btn btn-ghost mt-3 !text-xs"
+            onClick={() => setLetterOpen(true)}
+          >
+            Ouvrir l’éditeur
+          </button>
         </section>
       )}
 
@@ -188,6 +179,20 @@ export function JobDetailPage() {
           {job.description}
         </p>
       </section>
+
+      <CoverLetterPanel
+        open={letterOpen}
+        onClose={() => setLetterOpen(false)}
+        job={job}
+        initialLetter={coverLetter}
+        applicationId={job.application?.id ?? null}
+        onSaved={(nextLetter, application) => {
+          setCoverLetter(nextLetter);
+          if (application) {
+            setJob({ ...job, application });
+          }
+        }}
+      />
     </div>
   );
 }

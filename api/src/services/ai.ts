@@ -451,43 +451,166 @@ ${job.description.slice(0, 8000)}`;
   return analysisSchema.parse(extractJson(text));
 }
 
+export type CoverLetterOptions = {
+  tone?: "formal" | "neutral" | "direct";
+  length?: "short" | "standard" | "detailed";
+  highlight?: string;
+};
+
+export type CoverLetterResult = {
+  coverLetter: string;
+  /** true si lettre synthétique (pas d’appel Claude) — à signaler hors du texte. */
+  demo: boolean;
+};
+
+function demoCoverLetter(
+  profile: ProfileContext,
+  job: JobContext,
+  tone: "formal" | "neutral" | "direct",
+  length: "short" | "standard" | "detailed",
+  highlight: string
+): string {
+  const roles = profile.targetRoles.filter(Boolean);
+  const skills = profile.skills.slice(0, 6);
+  const roleLabel = roles[0] || "développeur";
+  const skillsList = skills.length ? skills.join(", ") : "mes compétences techniques";
+  const years =
+    profile.experienceYears && profile.experienceYears > 0
+      ? `${profile.experienceYears} an${profile.experienceYears > 1 ? "s" : ""} d’expérience`
+      : null;
+  const angle = highlight.trim();
+
+  const greeting =
+    tone === "formal"
+      ? "Madame, Monsieur,"
+      : tone === "direct"
+        ? "Bonjour,"
+        : "Bonjour,";
+
+  const opener =
+    tone === "formal"
+      ? `Je me permets de vous adresser ma candidature pour le poste de ${job.title} au sein de ${job.company}.`
+      : tone === "direct"
+        ? `Je vous écris pour le poste de ${job.title} chez ${job.company} — un rôle qui colle à ce que je construis au quotidien.`
+        : `Je vous contacte concernant le poste de ${job.title} chez ${job.company}.`;
+
+  const profileBit =
+    tone === "direct"
+      ? `Je suis ${roleLabel}${years ? ` (${years})` : ""}. Ce que j’apporte concrètement : ${skillsList}.`
+      : tone === "formal"
+        ? `Fort${years ? ` de ${years}` : ""} en tant que ${roleLabel}, je maîtrise notamment ${skillsList}, compétences directement mobilisables sur cette offre.`
+        : `Mon parcours de ${roleLabel}${years ? ` (${years})` : ""} et mes compétences (${skillsList}) s’alignent avec les besoins décrits.`;
+
+  const angleBit = angle
+    ? tone === "direct"
+      ? `Un point que je souhaite clarifier d’emblée : ${angle.charAt(0).toLowerCase()}${angle.slice(1)}.`
+      : tone === "formal"
+        ? `Je souhaite particulièrement mettre en avant le point suivant : ${angle}.`
+        : `Je souhaite notamment mettre en avant : ${angle}.`
+    : "";
+
+  const motivation =
+    tone === "direct"
+      ? `Chez ${job.company}, ce qui m’intéresse n’est pas seulement la stack : c’est de livrer quelque chose d’utile, vite, avec une équipe qui assume les choix techniques.`
+      : tone === "formal"
+        ? `La mission proposée chez ${job.company} correspond aux responsabilités que je recherche, et j’y vois une opportunité de contribuer avec sérieux et constance.`
+        : `${job.company} représente un cadre professionnel dans lequel je pourrais apporter une contribution solide et progressive.`;
+
+  const close =
+    tone === "formal"
+      ? `Je reste à votre disposition pour un entretien, et vous prie d’agréer, Madame, Monsieur, l’expression de mes salutations distinguées.`
+      : tone === "direct"
+        ? `Si mon profil vous parle, je serai ravi d’échanger — même brièvement — pour voir si on avance ensemble.\n\nBien à vous,`
+        : `Je serais heureux d’échanger avec vous sur cette opportunité.\n\nCordialement,`;
+
+  if (length === "short") {
+    return [greeting, "", opener, profileBit, angleBit, "", close].filter((l) => l !== "").join("\n");
+  }
+
+  if (length === "detailed") {
+    const detail =
+      tone === "direct"
+        ? `Dans mes projets récents, j’ai l’habitude de partir du besoin métier, de cadrer un MVP, puis d’itérer. ${skills.slice(0, 3).join(", ") || "Ma stack"} me sert d’outil, pas de finalité.`
+        : tone === "formal"
+          ? `Au fil de mon parcours, j’ai développé une approche structurée : compréhension du besoin, conception sobre, livraison et amélioration continue. Ces réflexes me semblent adaptés aux enjeux de ${job.company}.`
+          : `Mon expérience m’a appris à articuler technique et contraintes produit, en restant attentif à la qualité du code et à la collaboration d’équipe.`;
+    const fit =
+      job.location || job.seniority
+        ? `Je suis également à l’aise avec le contexte de l’offre${job.seniority ? ` (${job.seniority})` : ""}${job.location ? ` — ${job.location}` : ""}.`
+        : `Je m’adapte facilement aux rythmes d’équipe et aux priorités qui évoluent.`;
+
+    return [greeting, "", opener, profileBit, angleBit, motivation, detail, fit, "", close]
+      .filter((l) => l !== "")
+      .join("\n");
+  }
+
+  // standard
+  return [greeting, "", opener, profileBit, angleBit, motivation, "", close]
+    .filter((l) => l !== "")
+    .join("\n");
+}
+
 export async function generateCoverLetter(
   profile: ProfileContext,
   job: JobContext,
-  companyToneHint?: string
-): Promise<string> {
+  options: CoverLetterOptions | string = {}
+): Promise<CoverLetterResult> {
+  const opts: CoverLetterOptions =
+    typeof options === "string" ? { tone: "neutral", highlight: options } : options;
+
+  const tone = opts.tone ?? "neutral";
+  const length = opts.length ?? "standard";
+  const highlight = opts.highlight?.trim() || "";
+
+  const toneFr =
+    tone === "formal"
+      ? "formel et soigné (formule d’appel « Madame, Monsieur », vouvoiement, tournures classiques, formule de politesse longue)"
+      : tone === "direct"
+        ? "direct et personnel : formule d’appel « Bonjour », phrases courtes, « je » incarné, exemples concrets, pas de « Madame, Monsieur », clôture chaleureuse type « Bien à vous » — jamais le registre administratif classique"
+        : "neutre et professionnel (Bonjour, clair, sans emphase)";
+
+  const lengthFr =
+    length === "short"
+      ? "courte (120-160 mots, 2 paragraphes max)"
+      : length === "detailed"
+        ? "détaillée (280-380 mots, plusieurs paragraphes)"
+        : "standard (180-260 mots)";
+
   const client = getClient();
   if (!client) {
-    return `Madame, Monsieur,
-
-Je vous contacte concernant le poste de ${job.title} chez ${job.company}.
-Mon profil (${profile.targetRoles.join(", ") || "développeur"}) et mes compétences (${profile.skills.slice(0, 6).join(", ") || "à préciser"}) correspondent aux besoins de l'offre.
-
-[Mode démo — configurez ANTHROPIC_API_KEY pour une lettre générée par Claude]
-
-Cordialement`;
+    return {
+      coverLetter: demoCoverLetter(profile, job, tone, length, highlight),
+      demo: true,
+    };
   }
 
-  const prompt = `Rédige une lettre de motivation courte (180-280 mots) en français, professionnelle,
-adaptée au ton de l'entreprise${companyToneHint ? ` (indice: ${companyToneHint})` : ""}.
-Pas de markdown, texte brut uniquement.
+  const prompt = `Rédige une lettre de motivation ${lengthFr} en français, ton ${toneFr}.
+Le ton choisi DOIT être clairement perceptible dès la première ligne (formule d’appel + registre).
+Pas de markdown, texte brut uniquement. Pas d'invention de diplômes ou d'expériences absentes du CV.
+N’inclue AUCUNE mention technique (pas de « mode démo », pas de clé API, pas de note système).
+${highlight ? `Angle à mettre en avant (prioritaire, à intégrer naturellement dans le corps) : ${highlight}` : ""}
 
 PROFIL / CV (extrait):
 ${profile.cvText.slice(0, 5000)}
 Skills: ${profile.skills.join(", ")}
+Rôles cibles: ${profile.targetRoles.join(", ") || "n/a"}
 
 OFFRE: ${job.title} chez ${job.company}
 ${job.description.slice(0, 4000)}`;
 
+  const maxTokens = length === "detailed" ? 1200 : length === "short" ? 600 : 900;
+
   const message = await client.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 800,
+    max_tokens: maxTokens,
     messages: [{ role: "user", content: prompt }],
   });
 
-  return message.content
+  const coverLetter = message.content
     .filter((b) => b.type === "text")
     .map((b) => (b.type === "text" ? b.text : ""))
     .join("\n")
     .trim();
+
+  return { coverLetter, demo: false };
 }

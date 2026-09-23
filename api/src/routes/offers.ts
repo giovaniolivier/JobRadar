@@ -435,28 +435,46 @@ offersRouter.post("/:id/generate-letter", async (req: AuthedRequest, res, next) 
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
-    const body = z.object({ tone: z.string().optional() }).parse(req.body ?? {});
+    const body = z
+      .object({
+        tone: z.enum(["formal", "neutral", "direct"]).optional(),
+        length: z.enum(["short", "standard", "detailed"]).optional(),
+        highlight: z.string().max(500).optional(),
+        /** Si false, renvoie la lettre sans l’écrire sur la candidature (brouillon local). */
+        save: z.boolean().optional().default(true),
+      })
+      .parse(req.body ?? {});
+
     const job = await prisma.job.findUnique({ where: { id } });
     if (!job) throw new HttpError(404, "Offer not found");
 
     const profile = await prisma.profile.findUnique({ where: { userId } });
-    if (!profile) throw new HttpError(400, "Upload your CV first (POST /auth/upload-cv)");
+    if (!profile?.cvText?.trim()) {
+      throw new HttpError(400, "Importez votre CV pour générer une lettre");
+    }
 
-    const coverLetter = await generateCoverLetter(profile, job, body.tone);
-
-    const application = await prisma.application.upsert({
-      where: { jobId_userId: { jobId: job.id, userId } },
-      create: {
-        jobId: job.id,
-        userId,
-        status: "TO_APPLY",
-        coverLetter,
-        statusHistory: [{ status: "TO_APPLY", at: new Date().toISOString() }],
-      },
-      update: { coverLetter },
+    const { coverLetter, demo } = await generateCoverLetter(profile, job, {
+      tone: body.tone,
+      length: body.length,
+      highlight: body.highlight,
     });
 
-    res.json({ coverLetter, application });
+    let application = null;
+    if (body.save) {
+      application = await prisma.application.upsert({
+        where: { jobId_userId: { jobId: job.id, userId } },
+        create: {
+          jobId: job.id,
+          userId,
+          status: "TO_APPLY",
+          coverLetter,
+          statusHistory: [{ status: "TO_APPLY", at: new Date().toISOString() }],
+        },
+        update: { coverLetter },
+      });
+    }
+
+    res.json({ coverLetter, demo, application });
   } catch (err) {
     next(err);
   }
