@@ -18,6 +18,7 @@ type InputMode = "paste" | "link" | "file";
 type AnalyzeOfferContextValue = {
   open: boolean;
   openAnalyze: () => void;
+  openOfferDetail: (job: Job) => void;
   closeAnalyze: () => void;
 };
 
@@ -37,24 +38,60 @@ const LOADING_MESSAGES = [
 
 const MIN_TEXT = 80;
 
+type PanelIntent = "create" | "view";
+
 export function AnalyzeOfferProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const openAnalyze = useCallback(() => setOpen(true), []);
-  const closeAnalyze = useCallback(() => setOpen(false), []);
+  const [intent, setIntent] = useState<PanelIntent>("create");
+  const [viewJob, setViewJob] = useState<Job | null>(null);
+
+  const openAnalyze = useCallback(() => {
+    setIntent("create");
+    setViewJob(null);
+    setOpen(true);
+  }, []);
+
+  const openOfferDetail = useCallback((job: Job) => {
+    setIntent("view");
+    setViewJob(job);
+    setOpen(true);
+  }, []);
+
+  const closeAnalyze = useCallback(() => {
+    setOpen(false);
+    setViewJob(null);
+    setIntent("create");
+  }, []);
+
   const value = useMemo(
-    () => ({ open, openAnalyze, closeAnalyze }),
-    [open, openAnalyze, closeAnalyze]
+    () => ({ open, openAnalyze, openOfferDetail, closeAnalyze }),
+    [open, openAnalyze, openOfferDetail, closeAnalyze]
   );
 
   return (
     <AnalyzeOfferContext.Provider value={value}>
       {children}
-      <AnalyzeOfferPanel open={open} onClose={closeAnalyze} />
+      <AnalyzeOfferPanel
+        open={open}
+        onClose={closeAnalyze}
+        intent={intent}
+        initialJob={viewJob}
+      />
     </AnalyzeOfferContext.Provider>
   );
 }
 
-function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+function AnalyzeOfferPanel({
+  open,
+  onClose,
+  intent,
+  initialJob,
+}: {
+  open: boolean;
+  onClose: () => void;
+  intent: PanelIntent;
+  initialJob: Job | null;
+}) {
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<Step>("input");
@@ -75,6 +112,20 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
 
   useEffect(() => {
     if (!open) return;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setError(null);
+    setNeedsCv(false);
+    setBusyAction(null);
+    setStillWaiting(false);
+    setLetter(initialJob?.application?.coverLetter ?? null);
+
+    if (intent === "view" && initialJob) {
+      setResult(initialJob);
+      setStep("result");
+      return;
+    }
+
     setStep("input");
     setMode("paste");
     setDescription("");
@@ -82,15 +133,9 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
     setTitle("");
     setCompany("");
     setFileName(null);
-    setError(null);
-    setNeedsCv(false);
     setResult(null);
     setLetter(null);
-    setBusyAction(null);
-    setStillWaiting(false);
-    abortRef.current?.abort();
-    abortRef.current = null;
-  }, [open]);
+  }, [open, intent, initialJob]);
 
   useEffect(() => {
     if (step !== "loading") {
@@ -127,7 +172,7 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
 
   function requestClose() {
     if (step === "loading") return;
-    if (step === "input" && hasDraft()) {
+    if (intent === "create" && step === "input" && hasDraft()) {
       const ok = window.confirm("Vous avez saisi du contenu. Abandonner cette offre ?");
       if (!ok) return;
     }
@@ -234,7 +279,7 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
         body: JSON.stringify({ jobId: result.id, status: "TO_APPLY" }),
       });
       onClose();
-      navigate("/pipeline");
+      if (intent === "create") navigate("/pipeline");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'ajouter au pipeline");
     } finally {
@@ -260,15 +305,10 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
   }
 
   async function ignoreOffer() {
-    if (!result) {
-      onClose();
-      return;
-    }
     setBusyAction("ignore");
     try {
-      // Soft ignore: leave offer in DB for Offres list, just close
       onClose();
-      navigate("/");
+      if (intent === "create") navigate("/");
     } finally {
       setBusyAction(null);
     }
@@ -299,7 +339,9 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
               {step === "loading"
                 ? "Analyse en cours"
                 : step === "result"
-                  ? "Résultat de l’analyse"
+                  ? intent === "view"
+                    ? "Détail de l’offre"
+                    : "Résultat de l’analyse"
                   : step === "error"
                     ? "Analyse interrompue"
                     : "Analyser une nouvelle offre"}
@@ -384,10 +426,16 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
               letter={letter}
               error={error}
               busyAction={busyAction}
+              alreadyInPipeline={Boolean(result.application)}
               onPipeline={() => void addToPipeline()}
               onLetter={() => void generateLetter()}
               onIgnore={() => void ignoreOffer()}
             />
+          )}
+          {step === "result" && result && !result.analysis && (
+            <p className="text-sm text-[var(--ink-soft)]">
+              Cette offre n’a pas encore d’analyse. Relancez une analyse depuis « + Nouvelle offre ».
+            </p>
           )}
         </div>
 
@@ -612,6 +660,7 @@ function ResultStep({
   letter,
   error,
   busyAction,
+  alreadyInPipeline,
   onPipeline,
   onLetter,
   onIgnore,
@@ -620,6 +669,7 @@ function ResultStep({
   letter: string | null;
   error: string | null;
   busyAction: string | null;
+  alreadyInPipeline: boolean;
   onPipeline: () => void;
   onLetter: () => void;
   onIgnore: () => void;
@@ -714,14 +764,20 @@ function ResultStep({
       )}
 
       <div className="flex flex-col gap-2 border-t border-[var(--hairline)] pt-4">
-        <button
-          type="button"
-          className="btn btn-amber w-full"
-          disabled={!!busyAction}
-          onClick={onPipeline}
-        >
-          {busyAction === "pipeline" ? "Ajout…" : "Ajouter au pipeline"}
-        </button>
+        {alreadyInPipeline ? (
+          <p className="label text-center" style={{ color: "var(--match)" }}>
+            Déjà dans le pipeline
+          </p>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-amber w-full"
+            disabled={!!busyAction}
+            onClick={onPipeline}
+          >
+            {busyAction === "pipeline" ? "Ajout…" : "Ajouter au pipeline"}
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-ghost w-full"
@@ -730,14 +786,16 @@ function ResultStep({
         >
           {busyAction === "letter" ? "Génération…" : "Générer la lettre de motivation"}
         </button>
-        <button
-          type="button"
-          className="mt-1 text-center text-sm text-[var(--ink-soft)] underline underline-offset-4"
-          disabled={!!busyAction}
-          onClick={onIgnore}
-        >
-          Ignorer cette offre
-        </button>
+        {!alreadyInPipeline && (
+          <button
+            type="button"
+            className="mt-1 text-center text-sm text-[var(--ink-soft)] underline underline-offset-4"
+            disabled={!!busyAction}
+            onClick={onIgnore}
+          >
+            Ignorer cette offre
+          </button>
+        )}
       </div>
     </div>
   );

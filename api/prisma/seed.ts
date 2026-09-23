@@ -1,10 +1,22 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { prisma } from "../src/lib/prisma.js";
+import { analyzeJobHeuristic } from "../src/services/ai.js";
 
 async function main() {
   const email = "demo@jobradar.dev";
   const passwordHash = await bcrypt.hash("demo1234", 10);
+
+  const profileData = {
+    cvText: `Développeur full-stack avec 5 ans d'expérience.
+Stack: TypeScript, React, Node.js, PostgreSQL, Prisma, Tailwind.
+À l'aise avec les APIs REST, l'auth JWT et l'intégration d'IA.
+Recherche un poste Confirmé/Senior en remote ou Paris.`,
+    skills: ["TypeScript", "React", "Node.js", "PostgreSQL", "Prisma", "Tailwind"],
+    targetRoles: ["Full-stack Developer", "Backend Engineer"],
+    experienceYears: 5,
+    preferredLocations: ["Remote", "Paris"],
+  };
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -12,35 +24,20 @@ async function main() {
       email,
       passwordHash,
       name: "Demo User",
-      profile: {
-        create: {
-          cvText: `Développeur full-stack avec 5 ans d'expérience.
-Stack: TypeScript, React, Node.js, PostgreSQL, Prisma, Tailwind.
-À l'aise avec les APIs REST, l'auth JWT et l'intégration d'IA.
-Recherche un poste Confirmé/Senior en remote ou Paris.`,
-          skills: ["TypeScript", "React", "Node.js", "PostgreSQL", "Prisma", "Tailwind"],
-          targetRoles: ["Full-stack Developer", "Backend Engineer"],
-          experienceYears: 5,
-          preferredLocations: ["Remote", "Paris"],
-        },
-      },
+      profile: { create: profileData },
     },
     update: {
       passwordHash,
       name: "Demo User",
       profile: {
         upsert: {
-          create: {
-            cvText: "Développeur full-stack TypeScript/React/Node.",
-            skills: ["TypeScript", "React", "Node.js"],
-            targetRoles: ["Full-stack Developer"],
-            experienceYears: 5,
-            preferredLocations: ["Remote", "Paris"],
-          },
+          create: profileData,
           update: {
-            skills: ["TypeScript", "React", "Node.js", "PostgreSQL", "Prisma", "Tailwind"],
-            targetRoles: ["Full-stack Developer", "Backend Engineer"],
-            experienceYears: 5,
+            cvText: profileData.cvText,
+            skills: profileData.skills,
+            targetRoles: profileData.targetRoles,
+            experienceYears: profileData.experienceYears,
+            preferredLocations: profileData.preferredLocations,
           },
         },
       },
@@ -67,7 +64,7 @@ Recherche un poste Confirmé/Senior en remote ou Paris.`,
       title: "Senior Backend Engineer",
       company: "PulseAI",
       location: "Paris / Hybrid",
-      salaryRaw: null,
+      salaryRaw: null as string | null,
       description:
         "Urgent! Besoin immédiat d'un senior avec 10+ ans d'expérience en Node, Go, Kubernetes, Kafka, et IA générative. Salaire selon profil.",
       techStack: ["Node.js", "Go", "Kubernetes"],
@@ -89,19 +86,49 @@ Recherche un poste Confirmé/Senior en remote ou Paris.`,
     },
   ];
 
+  const profile = await prisma.profile.findUniqueOrThrow({ where: { userId: user.id } });
+
   for (const job of sampleJobs) {
-    await prisma.job.upsert({
+    const saved = await prisma.job.upsert({
       where: {
         source_externalId: { source: job.source, externalId: job.externalId },
       },
       create: job,
       update: job,
     });
+
+    const result = analyzeJobHeuristic(profile, saved);
+    await prisma.analysis.upsert({
+      where: { jobId_userId: { jobId: saved.id, userId: user.id } },
+      create: {
+        jobId: saved.id,
+        userId: user.id,
+        relevanceScore: Math.round(result.relevanceScore),
+        redFlags: result.redFlags,
+        strengths: result.strengths,
+        gaps: result.gaps,
+        summary: result.summary,
+        extractedSalary: result.extractedSalary ?? null,
+        extractedStack: result.extractedStack,
+        extractedSeniority: result.extractedSeniority ?? null,
+      },
+      update: {
+        relevanceScore: Math.round(result.relevanceScore),
+        redFlags: result.redFlags,
+        strengths: result.strengths,
+        gaps: result.gaps,
+        summary: result.summary,
+        extractedSalary: result.extractedSalary ?? null,
+        extractedStack: result.extractedStack,
+        extractedSeniority: result.extractedSeniority ?? null,
+      },
+    });
   }
 
   console.log("Seed OK");
   console.log(`  user: ${email} / demo1234`);
   console.log(`  userId: ${user.id}`);
+  console.log(`  analyses: ${sampleJobs.length} offres scorées`);
 }
 
 main()

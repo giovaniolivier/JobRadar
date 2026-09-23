@@ -56,13 +56,14 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
   const scoreBase = skills.length ? Math.round((matches.length / skills.length) * 80) : 50;
 
   const redFlags: string[] = [];
-  if (!job.salaryRaw && !/€|\$|salary|rémunération|salaire/i.test(job.description)) {
+  // Aligné avec l’UI : salaire absent en colonne → toujours un red flag, même si le texte mentionne « salaire ».
+  if (!job.salaryRaw?.trim()) {
     redFlags.push("Salaire non précisé");
   }
   if (/10\+?\s*ans|15\s*ans|senior\s*\+\+|expert\s*confirmé/i.test(job.description)) {
     redFlags.push("Expérience potentiellement irréaliste demandée");
   }
-  if (/urgent|immédiat|asap/i.test(job.description) && !job.salaryRaw) {
+  if (/urgent|immédiat|asap/i.test(job.description) && !job.salaryRaw?.trim()) {
     redFlags.push("Urgence affichée sans fourchette salariale");
   }
 
@@ -93,6 +94,14 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
     extractedStack: stackFromText,
     extractedSeniority: seniority,
   };
+}
+
+/** Score rapide sans appel LLM — démo, seed et backfill liste. */
+export function analyzeJobHeuristic(
+  profile: ProfileContext,
+  job: JobContext
+): AnalysisResult {
+  return heuristicAnalysis(profile, job);
 }
 
 export async function analyzeJobAgainstProfile(

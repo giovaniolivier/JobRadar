@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { paramId } from "../lib/params.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
-import { analyzeJobAgainstProfile, generateCoverLetter } from "../services/ai.js";
+import { analyzeJobAgainstProfile, analyzeJobHeuristic, generateCoverLetter } from "../services/ai.js";
 import {
   importManualJobs,
   parseJobsCsv,
@@ -76,6 +76,36 @@ offersRouter.get("/", async (req: AuthedRequest, res, next) => {
       orderBy: { fetchedAt: "desc" },
       take: 100,
     });
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+
+    // Backfill heuristique pour les offres jamais scorées (seed / Remotive / import)
+    // afin d’éviter des N/A en démo — sans appel LLM.
+    if (profile?.cvText?.trim()) {
+      const missing = jobs.filter((j) => !j.analyses[0]);
+      await Promise.all(
+        missing.map(async (job) => {
+          const result = analyzeJobHeuristic(profile, job);
+          const analysis = await prisma.analysis.upsert({
+            where: { jobId_userId: { jobId: job.id, userId } },
+            create: {
+              jobId: job.id,
+              userId,
+              relevanceScore: Math.round(result.relevanceScore),
+              redFlags: result.redFlags,
+              strengths: result.strengths,
+              gaps: result.gaps,
+              summary: result.summary,
+              extractedSalary: result.extractedSalary ?? null,
+              extractedStack: result.extractedStack,
+              extractedSeniority: result.extractedSeniority ?? null,
+            },
+            update: {},
+          });
+          job.analyses = [analysis];
+        })
+      );
+    }
 
     const mapped = jobs
       .map((job) => {
