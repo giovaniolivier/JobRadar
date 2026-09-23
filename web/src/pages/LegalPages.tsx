@@ -9,6 +9,7 @@ export function ForgotPasswordPage() {
   const [devLink, setDevLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,9 +27,21 @@ export function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
       setMessage(data.message);
+      setSent(true);
       if (data.devResetUrl) setDevLink(data.devResetUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur");
+      setSent(false);
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          setError("Aucun compte n'est associé à cet email.");
+        } else if (err.status === 400) {
+          setError(err.message);
+        } else {
+          setError(err.message || "Impossible d'envoyer l'email pour le moment.");
+        }
+      } else {
+        setError("Impossible d'envoyer l'email pour le moment.");
+      }
     } finally {
       setLoading(false);
     }
@@ -42,7 +55,8 @@ export function ForgotPasswordPage() {
       <p className="label mt-2">Récupération</p>
       <h1 className="mt-6 text-2xl">Mot de passe oublié</h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-        Entrez votre email. Si un compte existe, un lien de réinitialisation sera généré.
+        Indiquez l’email de votre compte. Nous vous enverrons un lien pour choisir un nouveau mot de
+        passe (valide 1 heure).
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-[var(--ink)] py-6">
         <label className="block">
@@ -50,13 +64,15 @@ export function ForgotPasswordPage() {
           <input
             type="email"
             required
+            autoComplete="email"
             className="field"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={sent && !devLink}
           />
         </label>
         {error && (
-          <p className="text-sm" style={{ color: "var(--brick)" }}>
+          <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
             {error}
           </p>
         )}
@@ -66,16 +82,34 @@ export function ForgotPasswordPage() {
           </p>
         )}
         {devLink && (
-          <p className="break-all text-xs text-[var(--ink-soft)]">
-            Lien dev :{" "}
-            <a href={devLink} className="underline decoration-[var(--amber)]">
+          <div className="rounded border border-[var(--ink)]/20 bg-[var(--ink)]/5 p-3 text-xs text-[var(--ink-soft)]">
+            <p className="mb-2">
+              L’email n’a pas pu être envoyé (SMTP non configuré). Utilisez ce lien de secours :
+            </p>
+            <a href={devLink} className="break-all underline decoration-[var(--amber)]">
               {devLink}
             </a>
+          </div>
+        )}
+        {!sent || error || devLink ? (
+          <button type="submit" disabled={loading || !email} className="btn btn-amber w-full">
+            {loading ? "Envoi…" : sent ? "Renvoyer l’email" : "Envoyer le lien par email"}
+          </button>
+        ) : (
+          <p className="text-sm text-[var(--ink-soft)]">
+            Pensez à vérifier vos courriers indésirables.{" "}
+            <button
+              type="button"
+              className="underline decoration-[var(--amber)]"
+              onClick={() => {
+                setSent(false);
+                setMessage(null);
+              }}
+            >
+              Renvoyer
+            </button>
           </p>
         )}
-        <button type="submit" disabled={loading} className="btn btn-amber w-full">
-          {loading ? "Envoi…" : "Envoyer le lien"}
-        </button>
       </form>
       <Link to="/login" className="mt-6 text-sm underline decoration-[var(--amber)] underline-offset-4">
         Retour à la connexion
@@ -89,6 +123,7 @@ export function ResetPasswordPage() {
   const navigate = useNavigate();
   const token = params.get("token") ?? "";
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -100,6 +135,10 @@ export function ResetPasswordPage() {
       setError("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
+    if (password !== confirm) {
+      setError("Les mots de passe ne correspondent pas.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -107,7 +146,7 @@ export function ResetPasswordPage() {
         method: "POST",
         body: JSON.stringify({ token, password }),
       });
-      navigate("/login");
+      navigate("/login?reset=ok");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Lien invalide ou expiré");
     } finally {
@@ -118,8 +157,8 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <div className="fade-in mx-auto max-w-md px-4 py-12">
-        <p style={{ color: "var(--brick)" }}>Token manquant.</p>
-        <Link to="/forgot-password" className="mt-4 inline-block underline">
+        <p style={{ color: "var(--brick)" }}>Lien invalide : token manquant.</p>
+        <Link to="/forgot-password" className="mt-4 inline-block underline decoration-[var(--amber)]">
           Demander un nouveau lien
         </Link>
       </div>
@@ -131,7 +170,11 @@ export function ResetPasswordPage() {
       <Link to="/login" className="brand text-3xl tracking-tight">
         JobRadar
       </Link>
+      <p className="label mt-2">Récupération</p>
       <h1 className="mt-6 text-2xl">Nouveau mot de passe</h1>
+      <p className="mt-3 text-sm text-[var(--ink-soft)]">
+        Choisissez un mot de passe d’au moins 8 caractères.
+      </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-[var(--ink)] py-6">
         <label className="block">
           <span className="label mb-1.5 block">Mot de passe</span>
@@ -140,8 +183,10 @@ export function ResetPasswordPage() {
               type={show ? "text" : "password"}
               className="field pr-20"
               value={password}
+              autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={8}
             />
             <button
               type="button"
@@ -152,16 +197,37 @@ export function ResetPasswordPage() {
             </button>
           </div>
         </label>
-        <p className="mono text-[0.7rem] text-[var(--ink-soft)]">Force : {strength.label}</p>
+        <label className="block">
+          <span className="label mb-1.5 block">Confirmer</span>
+          <input
+            type={show ? "text" : "password"}
+            className="field"
+            value={confirm}
+            autoComplete="new-password"
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            minLength={8}
+          />
+        </label>
+        {password.length > 0 && (
+          <p className="mono text-[0.7rem] text-[var(--ink-soft)]">Force : {strength.label}</p>
+        )}
         {error && (
-          <p className="text-sm" style={{ color: "var(--brick)" }}>
+          <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
             {error}
           </p>
         )}
-        <button type="submit" disabled={loading} className="btn btn-amber w-full">
-          {loading ? "Enregistrement…" : "Mettre à jour"}
+        <button
+          type="submit"
+          disabled={loading || password.length < 8 || password !== confirm}
+          className="btn btn-amber w-full"
+        >
+          {loading ? "Enregistrement…" : "Mettre à jour le mot de passe"}
         </button>
       </form>
+      <Link to="/login" className="mt-6 text-sm underline decoration-[var(--amber)] underline-offset-4">
+        Retour à la connexion
+      </Link>
     </div>
   );
 }

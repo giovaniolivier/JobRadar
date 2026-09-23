@@ -29,6 +29,9 @@ export function LoginPage() {
     if (params.get("oauth") === "error") {
       setError("Connexion sociale impossible. Réessayez ou utilisez email / mot de passe.");
     }
+    if (params.get("reset") === "ok") {
+      setInfo("Mot de passe mis à jour. Vous pouvez vous connecter.");
+    }
   }, [params]);
 
   if (authLoading) return null;

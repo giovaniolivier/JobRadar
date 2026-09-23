@@ -277,14 +277,14 @@ authRouter.post("/forgot-password", authLimiter, async (req, res, next) => {
     const email = body.email.toLowerCase();
     const user = await prisma.user.findUnique({ where: { email } });
 
-    // Always same response (no email enumeration)
-    const generic = {
-      ok: true,
-      message: "Si un compte existe, un lien de réinitialisation a été généré.",
-    };
-
-    if (!user?.passwordHash) {
-      return res.json(generic);
+    if (!user) {
+      throw new HttpError(404, "Aucun compte n'est associé à cet email.");
+    }
+    if (!user.passwordHash) {
+      throw new HttpError(
+        400,
+        "Ce compte n'a pas de mot de passe. Connectez-vous avec Google ou LinkedIn."
+      );
     }
 
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id, usedAt: null } });
@@ -298,17 +298,33 @@ authRouter.post("/forgot-password", authLimiter, async (req, res, next) => {
     });
 
     const webOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
-    const resetUrl = `${webOrigin}/reset-password?token=${raw}`;
+    const resetUrl = `${webOrigin}/reset-password?token=${encodeURIComponent(raw)}`;
 
-    await sendMail({
+    const mail = await sendMail({
       to: email,
       subject: "JobRadar — réinitialisation du mot de passe",
-      text: `Pour réinitialiser votre mot de passe, ouvrez ce lien (valide 1 h) :\n${resetUrl}\n\nSi vous n'avez pas fait cette demande, ignorez cet email.`,
+      text: `Bonjour,\n\nPour définir un nouveau mot de passe JobRadar, ouvrez ce lien (valide 1 heure) :\n${resetUrl}\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;line-height:1.5;color:#111">
+          <p>Bonjour,</p>
+          <p>Vous avez demandé à réinitialiser votre mot de passe <strong>JobRadar</strong>.</p>
+          <p style="margin:24px 0">
+            <a href="${resetUrl}"
+               style="display:inline-block;background:#e8a838;color:#111;text-decoration:none;padding:12px 20px;font-weight:600;border-radius:4px">
+              Choisir un nouveau mot de passe
+            </a>
+          </p>
+          <p style="color:#666;font-size:13px">Ce lien expire dans 1 heure.</p>
+          <p style="color:#666;font-size:13px">Si le bouton ne fonctionne pas, copiez cette URL :<br/>${resetUrl}</p>
+          <p style="color:#666;font-size:13px">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+        </div>
+      `,
     });
 
     res.json({
-      ...generic,
-      ...(process.env.NODE_ENV !== "production" ? { devResetUrl: resetUrl } : {}),
+      ok: true,
+      message: "Un email de réinitialisation a été envoyé. Vérifiez aussi vos spams.",
+      ...(!mail.delivered ? { devResetUrl: resetUrl } : {}),
     });
   } catch (err) {
     next(err);
