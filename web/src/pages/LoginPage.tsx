@@ -9,7 +9,7 @@ import { isValidEmail, passwordStrength } from "../lib/validation";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 const VALUE_PROP =
-  "Centralisez vos offres, scorez-les par rapport à votre CV, et gardez le contrôle de vos candidatures.";
+  "Centralisez vos offres, scorez-les par rapport à votre CV, et gardez le contrôle.";
 
 export function LoginPage() {
   const { token, setSession, loading: authLoading } = useAuth();
@@ -37,7 +37,7 @@ export function LoginPage() {
   }, [params]);
 
   if (authLoading) return null;
-  if (token) return <Navigate to="/" replace />;
+  if (token) return <Navigate to="/dashboard" replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -194,7 +194,7 @@ export function LoginPage() {
 
   return (
     <AuthShell title="Connexion" subtitle={VALUE_PROP}>
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <form onSubmit={onSubmit} className="space-y-3" noValidate>
         <Field
           label="Email"
           type="email"
@@ -248,7 +248,7 @@ export function LoginPage() {
 
       <SocialButtons onInfo={setInfo} onError={setError} />
 
-      <p className="mt-6 text-sm text-[var(--ink-soft)]">
+      <p className="mt-4 text-sm text-[var(--ink-soft)]">
         Pas encore de compte ?{" "}
         <Link
           to="/register"
@@ -279,7 +279,7 @@ export function RegisterPage() {
   const canSubmit = Boolean(name.trim() && isValidEmail(email) && passwordOk && acceptTerms && !loading);
 
   if (authLoading) return null;
-  if (token) return <Navigate to="/" replace />;
+  if (token) return <Navigate to="/dashboard" replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -308,14 +308,19 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthShell title="Créer mon compte" subtitle={VALUE_PROP}>
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+    <AuthShell
+      title="Créer mon compte"
+      subtitle="Email, mot de passe — puis votre CV. Gratuit."
+      compact
+    >
+      <form onSubmit={onSubmit} className="space-y-2.5" noValidate>
         <Field
           label="Prénom"
           value={name}
           onChange={setName}
           autoComplete="given-name"
           placeholder="Alex"
+          dense
         />
         <Field
           label="Email"
@@ -324,6 +329,7 @@ export function RegisterPage() {
           value={email}
           onChange={setEmail}
           hint={!emailOk ? "Format d'email invalide" : undefined}
+          dense
         />
         <PasswordField
           label="Mot de passe"
@@ -332,6 +338,7 @@ export function RegisterPage() {
           show={showPassword}
           onToggle={() => setShowPassword((v) => !v)}
           autoComplete="new-password"
+          dense
         />
         {password.length > 0 && (
           <div>
@@ -353,9 +360,9 @@ export function RegisterPage() {
                 />
               ))}
             </div>
-            <p className="mono mt-1.5 text-[0.7rem] text-[var(--ink-soft)]">
+            <p className="mono mt-1 text-[0.65rem] text-[var(--ink-soft)]">
               Force : {strength.label}
-              {!passwordOk ? " — 8 caractères minimum" : ""}
+              {!passwordOk ? " — min. 8 car." : ""}
             </p>
           </div>
         )}
@@ -365,7 +372,7 @@ export function RegisterPage() {
             type="checkbox"
             checked={acceptTerms}
             onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-1 accent-[var(--amber)]"
+            className="mt-0.5 accent-[var(--amber)]"
             required
           />
           <span>
@@ -378,16 +385,11 @@ export function RegisterPage() {
               to="/legal/privacy"
               className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
             >
-              politique de confidentialité
+              confidentialité
             </Link>
-            .
+            . CV et offres restent privés.
           </span>
         </label>
-
-        <p className="text-xs leading-relaxed text-[var(--ink-soft)]">
-          Votre CV et vos offres analysées restent privés : ils ne sont pas partagés avec des tiers.
-          Vous pourrez importer votre CV juste après l’inscription.
-        </p>
 
         {error && (
           <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
@@ -405,14 +407,14 @@ export function RegisterPage() {
           </p>
         )}
 
-        <button type="submit" disabled={!canSubmit} className="btn btn-amber w-full">
+        <button type="submit" disabled={!canSubmit} className="btn btn-amber w-full !py-2">
           {loading ? "Création…" : "Créer mon compte"}
         </button>
       </form>
 
       <SocialButtons onInfo={setInfo} onError={setError} />
 
-      <p className="mt-6 text-sm text-[var(--ink-soft)]">
+      <p className="mt-3 text-sm text-[var(--ink-soft)]">
         Déjà un compte ?{" "}
         <Link to="/login" className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4">
           Se connecter
@@ -426,18 +428,30 @@ function AuthShell({
   title,
   subtitle,
   children,
+  compact = false,
 }: {
   title: string;
   subtitle: string;
   children: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
-      <BrandLogo to="/login" size="lg" />
-      <p className="label mt-3">Tour de contrôle · candidatures</p>
-      <h1 className="mt-6 text-2xl">{title}</h1>
-      <p className="mt-2 mb-8 text-sm leading-relaxed text-[var(--ink-soft)]">{subtitle}</p>
-      <div className="border-y border-[var(--ink)] py-6">{children}</div>
+    <div
+      className={`mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 ${
+        compact ? "py-3 sm:py-4" : "py-6 sm:py-8"
+      }`}
+    >
+      <BrandLogo to="/" size={compact ? "lg" : "lg"} />
+      {!compact && <p className="label mt-2">Tour de contrôle · candidatures</p>}
+      <h1 className={`text-xl sm:text-2xl ${compact ? "mt-2" : "mt-3"}`}>{title}</h1>
+      <p
+        className={`text-sm leading-snug text-[var(--ink-soft)] ${
+          compact ? "mt-1 mb-3" : "mt-1.5 mb-4"
+        }`}
+      >
+        {subtitle}
+      </p>
+      <div className={`border-y border-[var(--ink)] ${compact ? "py-3" : "py-4"}`}>{children}</div>
     </div>
   );
 }
@@ -450,6 +464,7 @@ function Field({
   autoComplete,
   placeholder,
   hint,
+  dense = false,
 }: {
   label: string;
   value: string;
@@ -458,10 +473,11 @@ function Field({
   autoComplete?: string;
   placeholder?: string;
   hint?: string;
+  dense?: boolean;
 }) {
   return (
     <label className="block">
-      <span className="label mb-1.5 block">{label}</span>
+      <span className={`label block ${dense ? "mb-1" : "mb-1.5"}`}>{label}</span>
       <input
         type={type}
         required
@@ -469,7 +485,7 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)}
-        className="field"
+        className={`field ${dense ? "!py-2" : ""}`}
         aria-invalid={hint ? true : undefined}
       />
       {hint && (
@@ -488,6 +504,7 @@ function PasswordField({
   show,
   onToggle,
   autoComplete,
+  dense = false,
 }: {
   label: string;
   value: string;
@@ -495,10 +512,11 @@ function PasswordField({
   show: boolean;
   onToggle: () => void;
   autoComplete?: string;
+  dense?: boolean;
 }) {
   return (
     <label className="block">
-      <span className="label mb-1.5 block">{label}</span>
+      <span className={`label block ${dense ? "mb-1" : "mb-1.5"}`}>{label}</span>
       <div className="relative">
         <input
           type={show ? "text" : "password"}
@@ -506,7 +524,7 @@ function PasswordField({
           value={value}
           autoComplete={autoComplete}
           onChange={(e) => onChange(e.target.value)}
-          className="field pr-20"
+          className={`field pr-20 ${dense ? "!py-2" : ""}`}
         />
         <button
           type="button"
@@ -548,12 +566,12 @@ function SocialButtons({
   }
 
   return (
-    <div className="mt-5 space-y-2">
+    <div className="mt-2.5 space-y-1.5">
       <p className="label text-center">Ou continuer avec</p>
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          className="btn btn-ghost w-full !text-xs gap-2"
+          className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
           onClick={() => void start("google")}
         >
           <GoogleIcon />
@@ -561,7 +579,7 @@ function SocialButtons({
         </button>
         <button
           type="button"
-          className="btn btn-ghost w-full !text-xs gap-2"
+          className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
           onClick={() => void start("linkedin")}
         >
           <LinkedInIcon />

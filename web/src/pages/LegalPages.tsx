@@ -50,7 +50,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
-      <BrandLogo to="/login" size="lg" />
+      <BrandLogo to="/" size="lg" />
       <p className="label mt-3">Récupération</p>
       <h1 className="mt-6 text-2xl">Mot de passe oublié</h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
@@ -166,7 +166,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
-      <BrandLogo to="/login" size="lg" />
+      <BrandLogo to="/" size="lg" />
       <p className="label mt-3">Récupération</p>
       <h1 className="mt-6 text-2xl">Nouveau mot de passe</h1>
       <p className="mt-3 text-sm text-[var(--ink-soft)]">
@@ -277,7 +277,7 @@ export function LegalPrivacyPage() {
 function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="fade-in mx-auto min-h-screen max-w-2xl px-4 py-12">
-      <BrandLogo to="/login" size="md" />
+      <BrandLogo to="/" size="md" />
       <p className="label mt-3">Informations légales</p>
       <h1 className="mt-6 text-3xl">{title}</h1>
       <div className="mt-8 space-y-4 border-t border-[var(--ink)] pt-6 text-sm leading-relaxed text-[var(--ink)]/90">

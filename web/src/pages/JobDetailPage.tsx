@@ -63,7 +63,7 @@ export function JobDetailPage() {
 
   return (
     <div className="fade-in max-w-3xl">
-      <Link to="/" className="label hover:text-[var(--ink)]">
+      <Link to="/dashboard" className="label hover:text-[var(--ink)]">
         ← Tableau d'affichage
       </Link>
 

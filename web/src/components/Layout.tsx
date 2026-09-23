@@ -40,12 +40,12 @@ function LayoutShell() {
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-4 px-4 py-2 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-2">
           {/* Left — logo */}
           <div className="min-w-0">
-            <BrandLogo to="/" size="lg" onClick={() => setMobileOpen(false)} />
+            <BrandLogo to="/dashboard" size="lg" onClick={() => setMobileOpen(false)} />
           </div>
 
           {/* Center — main nav (desktop) */}
           <nav className="hidden items-center justify-center gap-x-7 lg:flex">
-            <NavLink to="/" end className={linkClass}>
+            <NavLink to="/dashboard" end className={linkClass}>
               {t("nav.dashboard")}
             </NavLink>
             <NavLink to="/offers" className={linkClass}>
@@ -97,7 +97,7 @@ function LayoutShell() {
         {mobileOpen && (
           <nav className="border-t border-[var(--hairline)] px-4 py-3 lg:hidden">
             <div className="flex flex-col gap-3">
-              <NavLink to="/" end className={linkClass} onClick={() => setMobileOpen(false)}>
+              <NavLink to="/dashboard" end className={linkClass} onClick={() => setMobileOpen(false)}>
                 {t("nav.dashboard")}
               </NavLink>
               <NavLink to="/offers" className={linkClass} onClick={() => setMobileOpen(false)}>

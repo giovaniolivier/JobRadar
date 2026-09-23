@@ -17,7 +17,7 @@ export function ImportPage() {
       </button>
       <p className="mt-6 text-sm text-[var(--ink-soft)]">
         Besoin du tableau de bord ?{" "}
-        <Link to="/" className="underline decoration-[var(--amber)] underline-offset-4">
+        <Link to="/dashboard" className="underline decoration-[var(--amber)] underline-offset-4">
           Y retourner
         </Link>
       </p>

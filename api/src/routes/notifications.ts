@@ -274,7 +274,7 @@ notificationsRouter.get("/", async (req: AuthedRequest, res, next) => {
         type: "digest",
         title: "Votre résumé hebdomadaire est prêt",
         body: "Pipeline, analyses et priorités de la semaine",
-        href: "/",
+        href: "/dashboard",
         createdAt: weekStart.toISOString(),
       });
     }

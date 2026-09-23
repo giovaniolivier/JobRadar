@@ -4,6 +4,7 @@ import { LocaleProvider } from "./lib/i18n";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { OffersPage } from "./pages/OffersPage";
 import { JobDetailPage } from "./pages/JobDetailPage";
@@ -28,8 +29,22 @@ function PrivateRoute() {
       </div>
     );
   }
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/" replace />;
   return <Outlet />;
+}
+
+/** `/` : landing publique, ou tableau de bord si déjà connecté. */
+function HomeRoute() {
+  const { token, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="label">Chargement de la session…</p>
+      </div>
+    );
+  }
+  if (!token) return <LandingPage />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 export default function App() {
@@ -37,6 +52,7 @@ export default function App() {
     <LocaleProvider>
       <AuthProvider>
         <Routes>
+          <Route path="/" element={<HomeRoute />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -46,7 +62,7 @@ export default function App() {
           <Route path="/continue" element={<ContinuePage />} />
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
-              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/offers" element={<OffersPage />} />
               <Route path="/offers/:id" element={<JobDetailPage />} />
               <Route path="/jobs/:id" element={<JobDetailPage />} />

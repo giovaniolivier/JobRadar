@@ -294,7 +294,7 @@ function AnalyzeOfferPanel({
     setBusyAction("ignore");
     try {
       onClose();
-      if (intent === "create") navigate("/");
+      if (intent === "create") navigate("/dashboard");
     } finally {
       setBusyAction(null);
     }

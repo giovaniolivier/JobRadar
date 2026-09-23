@@ -24,7 +24,7 @@ export function BrandLogo({
   const img = (
     <img
       src={logoUrl}
-      alt="JobRadar — Intelligent ATS & Job Scanner"
+      alt="JobRadar"
       className={`${HEIGHT[size]} w-auto max-w-[min(100%,16rem)] object-contain object-left ${className}`}
       decoding="async"
     />

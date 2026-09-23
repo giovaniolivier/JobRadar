@@ -40,8 +40,8 @@ export async function resolvePostAuthPath(): Promise<string> {
   try {
     const data = await fetchDashboard();
     if (data.needsOnboarding) return "/profile?onboarding=1";
-    return "/";
+    return "/dashboard";
   } catch {
-    return "/";
+    return "/dashboard";
   }
 }

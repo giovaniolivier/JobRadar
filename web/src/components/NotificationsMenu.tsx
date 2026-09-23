@@ -151,7 +151,7 @@ export function NotificationsMenu() {
       return;
     }
 
-    navigate(item.href || "/");
+    navigate(item.href || "/dashboard");
   }
 
   return (
