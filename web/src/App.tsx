@@ -10,6 +10,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { PipelinePage } from "./pages/PipelinePage";
 import { ImportPage } from "./pages/ImportPage";
 import { ContinuePage } from "./pages/ContinuePage";
+import { SettingsPage } from "./pages/SettingsPage";
 import {
   ForgotPasswordPage,
   LegalCguPage,
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/offers/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/pipeline" element={<PipelinePage />} />
             <Route path="/import" element={<ImportPage />} />
           </Route>

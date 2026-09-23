@@ -8,6 +8,7 @@ import { profileRouter } from "./routes/profile.js";
 import { offersRouter } from "./routes/offers.js";
 import { applicationsRouter } from "./routes/applications.js";
 import { dashboardRouter } from "./routes/dashboard.js";
+import { notificationsRouter } from "./routes/notifications.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { csrfProtect } from "./middleware/csrf.js";
 import { enforceHttps } from "./middleware/https.js";
@@ -47,6 +48,7 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/profile", profileRouter);
 app.use("/dashboard", dashboardRouter);
+app.use("/notifications", notificationsRouter);
 app.use("/offers", offersRouter);
 app.use("/applications", applicationsRouter);
 

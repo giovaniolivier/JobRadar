@@ -48,10 +48,10 @@ export function PipelinePage() {
 
   return (
     <div className="fade-in">
-      <p className="label">Registre</p>
-      <h1 className="mt-1 text-3xl sm:text-4xl">Pipeline candidatures</h1>
+      <p className="label">Suivi</p>
+      <h1 className="mt-1 text-3xl sm:text-4xl">Candidatures</h1>
       <p className="mt-2 text-[var(--ink-soft)]">
-        À postuler → candidaté → entretien → réponse.
+        Pipeline à quatre colonnes — à postuler → candidaté → entretien → réponse.
       </p>
 
       <div className="mt-8 grid gap-0 border-t border-[var(--ink)] lg:grid-cols-4">
