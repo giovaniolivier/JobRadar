@@ -37,7 +37,11 @@ export function Layout() {
 
           <div className="flex items-center gap-4 lg:justify-end lg:pb-0.5">
             <span className="mono text-xs text-[var(--ink-soft)]">{user?.name}</span>
-            <button type="button" onClick={logout} className="btn btn-ghost !py-1.5 !text-xs">
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="btn btn-ghost !py-1.5 !text-xs"
+            >
               Sortie
             </button>
           </div>

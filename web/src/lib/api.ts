@@ -9,19 +9,67 @@ export class ApiError extends Error {
   }
 }
 
+function readCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefresh(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const csrf = readCookie("csrf_token");
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        },
+      });
+      return res.ok;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+export async function ensureCsrf(): Promise<string | null> {
+  const existing = readCookie("csrf_token");
+  if (existing) return existing;
+  const res = await fetch(`${API_URL}/auth/csrf`, { credentials: "include" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { csrfToken?: string };
+  return data.csrfToken ?? readCookie("csrf_token");
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit & { token?: string | null } = {}
 ): Promise<T> {
-  const { token, headers, ...rest } = options;
-  const res = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
+  const { token: _ignoredToken, headers, ...rest } = options;
+  const method = (rest.method ?? "GET").toUpperCase();
+
+  const run = async () => {
+    const csrf = method === "GET" || method === "HEAD" ? null : await ensureCsrf();
+    return fetch(`${API_URL}${path}`, {
+      ...rest,
+      method,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        ...headers,
+      },
+    });
+  };
+
+  let res = await run();
+  if (res.status === 401 && path !== "/auth/login" && path !== "/auth/refresh") {
+    const ok = await tryRefresh();
+    if (ok) res = await run();
+  }
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

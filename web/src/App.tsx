@@ -8,9 +8,22 @@ import { JobDetailPage } from "./pages/JobDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { PipelinePage } from "./pages/PipelinePage";
 import { ImportPage } from "./pages/ImportPage";
+import {
+  ForgotPasswordPage,
+  LegalCguPage,
+  LegalPrivacyPage,
+  ResetPasswordPage,
+} from "./pages/LegalPages";
 
 function PrivateRoute() {
-  const { token } = useAuth();
+  const { token, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="label">Chargement de la session…</p>
+      </div>
+    );
+  }
   if (!token) return <Navigate to="/login" replace />;
   return <Outlet />;
 }
@@ -21,6 +34,10 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/legal/cgu" element={<LegalCguPage />} />
+        <Route path="/legal/privacy" element={<LegalPrivacyPage />} />
         <Route element={<PrivateRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<DashboardPage />} />
