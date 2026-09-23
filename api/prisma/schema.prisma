@@ -111,6 +111,8 @@ model Analysis {
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   relevanceScore     Int
   redFlags           String[] @default([])
+  strengths          String[] @default([])
+  gaps               String[] @default([])
   summary            String
   extractedSalary    String?
   extractedStack     String[] @default([])

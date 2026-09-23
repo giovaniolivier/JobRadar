@@ -98,6 +98,8 @@ export type Analysis = {
   id: string;
   relevanceScore: number;
   redFlags: string[];
+  strengths?: string[];
+  gaps?: string[];
   summary: string;
   extractedSalary: string | null;
   extractedStack: string[];

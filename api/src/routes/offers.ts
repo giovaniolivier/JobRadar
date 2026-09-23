@@ -146,6 +146,114 @@ offersRouter.post("/", async (req, res, next) => {
   }
 });
 
+const MIN_OFFER_TEXT = 80;
+
+/** POST /offers/analyze-new — créer + analyser une offre en une requête (panneau dashboard) */
+offersRouter.post("/analyze-new", async (req: AuthedRequest, res, next) => {
+  try {
+    const userId = req.user!.userId;
+    const body = z
+      .object({
+        description: z.string().min(1),
+        title: z.string().optional(),
+        company: z.string().optional(),
+        url: z.string().optional(),
+        location: z.string().optional(),
+      })
+      .parse(req.body ?? {});
+
+    const description = body.description.trim();
+    if (description.length < MIN_OFFER_TEXT) {
+      throw new HttpError(
+        400,
+        "Collez le texte complet de l'offre pour lancer l'analyse."
+      );
+    }
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile?.cvText?.trim()) {
+      throw new HttpError(
+        400,
+        "Importez votre CV pour comparer les offres à votre profil."
+      );
+    }
+
+    const parsed = parsePastedJob(description);
+    const title = body.title?.trim() || parsed.title;
+    const company = body.company?.trim() || parsed.company;
+    const url = body.url?.trim() || parsed.url;
+
+    const [job] = await importManualJobs([
+      {
+        title,
+        company,
+        description,
+        url,
+        location: body.location?.trim() || undefined,
+      },
+    ]);
+
+    try {
+      const result = await analyzeJobAgainstProfile(profile, job!);
+      const analysis = await prisma.analysis.upsert({
+        where: { jobId_userId: { jobId: job!.id, userId } },
+        create: {
+          jobId: job!.id,
+          userId,
+          relevanceScore: Math.round(result.relevanceScore),
+          redFlags: result.redFlags,
+          strengths: result.strengths ?? [],
+          gaps: result.gaps ?? [],
+          summary: result.summary,
+          extractedSalary: result.extractedSalary ?? null,
+          extractedStack: result.extractedStack,
+          extractedSeniority: result.extractedSeniority ?? null,
+        },
+        update: {
+          relevanceScore: Math.round(result.relevanceScore),
+          redFlags: result.redFlags,
+          strengths: result.strengths ?? [],
+          gaps: result.gaps ?? [],
+          summary: result.summary,
+          extractedSalary: result.extractedSalary ?? null,
+          extractedStack: result.extractedStack,
+          extractedSeniority: result.extractedSeniority ?? null,
+        },
+      });
+
+      if (result.extractedStack.length || result.extractedSalary || result.extractedSeniority) {
+        await prisma.job.update({
+          where: { id: job!.id },
+          data: {
+            ...(result.extractedStack.length ? { techStack: result.extractedStack } : {}),
+            ...(result.extractedSalary ? { salaryRaw: result.extractedSalary } : {}),
+            ...(result.extractedSeniority ? { seniority: result.extractedSeniority } : {}),
+          },
+        });
+      }
+
+      const fresh = await prisma.job.findUniqueOrThrow({
+        where: { id: job!.id },
+        include: {
+          analyses: { where: { userId }, take: 1 },
+          applications: { where: { userId }, take: 1 },
+        },
+      });
+      const { analyses, applications, ...rest } = fresh;
+      res.status(201).json({
+        ...rest,
+        analysis: analyses[0] ?? analysis,
+        application: applications[0] ?? null,
+      });
+    } catch (err) {
+      await prisma.job.delete({ where: { id: job!.id } }).catch(() => undefined);
+      throw new HttpError(502, "L'analyse a échoué. Réessayez dans un instant.");
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Bonus: sync Remotive (ingestion externe) */
 offersRouter.post("/sync", async (req, res, next) => {
   try {
@@ -200,6 +308,8 @@ offersRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
         userId,
         relevanceScore: Math.round(result.relevanceScore),
         redFlags: result.redFlags,
+        strengths: result.strengths ?? [],
+        gaps: result.gaps ?? [],
         summary: result.summary,
         extractedSalary: result.extractedSalary ?? null,
         extractedStack: result.extractedStack,
@@ -208,6 +318,8 @@ offersRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
       update: {
         relevanceScore: Math.round(result.relevanceScore),
         redFlags: result.redFlags,
+        strengths: result.strengths ?? [],
+        gaps: result.gaps ?? [],
         summary: result.summary,
         extractedSalary: result.extractedSalary ?? null,
         extractedStack: result.extractedStack,

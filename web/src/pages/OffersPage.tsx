@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Job } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 
 /** Full offers board (filters + list) — previously the home page. */
 export function OffersPage() {
   const { token } = useAuth();
+  const { openAnalyze } = useAnalyzeOffer();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [q, setQ] = useState("");
   const [source, setSource] = useState("");
@@ -73,9 +75,9 @@ export function OffersPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/import" className="btn btn-amber">
+          <button type="button" className="btn btn-amber" onClick={openAnalyze}>
             Analyser une nouvelle offre
-          </Link>
+          </button>
           <button
             type="button"
             onClick={() => void syncRemotive()}
@@ -145,9 +147,9 @@ export function OffersPage() {
           <p className="text-lg text-[var(--ink)]">
             Ajoutez votre première offre pour voir votre score de correspondance.
           </p>
-          <Link to="/import" className="btn btn-amber mt-5 inline-flex">
+          <button type="button" className="btn btn-amber mt-5 inline-flex" onClick={openAnalyze}>
             Analyser une nouvelle offre
-          </Link>
+          </button>
         </div>
       ) : (
         <div className="board mt-8">

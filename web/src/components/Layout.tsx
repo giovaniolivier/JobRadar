@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { AnalyzeOfferProvider, useAnalyzeOffer } from "./AnalyzeOfferPanel";
 
 type NotificationItem = {
   id: string;
@@ -43,8 +44,17 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export function Layout() {
+  return (
+    <AnalyzeOfferProvider>
+      <LayoutShell />
+    </AnalyzeOfferProvider>
+  );
+}
+
+function LayoutShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { openAnalyze } = useAnalyzeOffer();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -80,13 +90,16 @@ export function Layout() {
 
           {/* Right — actions */}
           <div className="flex items-center justify-end gap-2 sm:gap-3">
-            <Link
-              to="/import"
+            <button
+              type="button"
               className="btn btn-amber !hidden !py-2 !text-xs sm:!inline-flex sm:!text-sm"
-              onClick={() => setMobileOpen(false)}
+              onClick={() => {
+                setMobileOpen(false);
+                openAnalyze();
+              }}
             >
               + Nouvelle offre
-            </Link>
+            </button>
 
             <NotificationsMenu />
 
@@ -125,13 +138,16 @@ export function Layout() {
               <NavLink to="/profile" className={linkClass} onClick={() => setMobileOpen(false)}>
                 Mon profil
               </NavLink>
-              <Link
-                to="/import"
+              <button
+                type="button"
                 className="btn btn-amber mt-1 w-full sm:hidden"
-                onClick={() => setMobileOpen(false)}
+                onClick={() => {
+                  setMobileOpen(false);
+                  openAnalyze();
+                }}
               >
                 + Nouvelle offre
-              </Link>
+              </button>
             </div>
           </nav>
         )}

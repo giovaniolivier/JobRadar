@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchDashboard, type DashboardSummary } from "../lib/home";
+import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 
 export function DashboardPage() {
+  const { openAnalyze } = useAnalyzeOffer();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,9 +57,13 @@ export function DashboardPage() {
             </p>
           )}
         </div>
-        <Link to="/import" className="btn btn-amber self-start sm:self-auto">
+        <button
+          type="button"
+          className="btn btn-amber self-start sm:self-auto"
+          onClick={openAnalyze}
+        >
           Analyser une nouvelle offre
-        </Link>
+        </button>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -82,9 +88,9 @@ export function DashboardPage() {
             Ajoutez votre première offre pour voir votre score de correspondance et construire votre
             pipeline.
           </p>
-          <Link to="/import" className="btn btn-amber mt-6 inline-flex">
+          <button type="button" className="btn btn-amber mt-6 inline-flex" onClick={openAnalyze}>
             Analyser une nouvelle offre
-          </Link>
+          </button>
         </section>
       ) : (
         <>
@@ -104,9 +110,13 @@ export function DashboardPage() {
             {topOffers.length === 0 ? (
               <p className="text-[var(--ink-soft)]">
                 Aucune offre « à postuler » à fort score pour le moment.{" "}
-                <Link to="/import" className="underline decoration-[var(--amber)]">
+                <button
+                  type="button"
+                  className="underline decoration-[var(--amber)]"
+                  onClick={openAnalyze}
+                >
                   Analysez une offre
-                </Link>
+                </button>
                 .
               </p>
             ) : (

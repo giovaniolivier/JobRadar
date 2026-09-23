@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 
 function splitList(value: string) {
   return value
@@ -15,6 +16,7 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const onboarding = params.get("onboarding") === "1";
+  const { openAnalyze } = useAnalyzeOffer();
   const [name, setName] = useState("");
   const [cvText, setCvText] = useState("");
   const [skills, setSkills] = useState("");
@@ -173,7 +175,7 @@ export function ProfilePage() {
             <button
               type="button"
               className="text-sm text-[var(--ink-soft)] underline underline-offset-4"
-              onClick={() => navigate("/import")}
+              onClick={() => openAnalyze()}
             >
               Passer — analyser une offre
             </button>

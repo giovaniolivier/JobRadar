@@ -129,6 +129,30 @@ export function JobDetailPage() {
           <p className="label">Instrument · analyse</p>
           <h2 className="mt-1 text-xl">Lecture IA</h2>
           <p className="mt-3 leading-relaxed text-[var(--ink)]/90">{job.analysis.summary}</p>
+          {(job.analysis.strengths?.length || job.analysis.gaps?.length) && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="label" style={{ color: "var(--match)" }}>
+                  Points forts
+                </p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {(job.analysis.strengths ?? []).map((s) => (
+                    <li key={s}>• {s}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="label" style={{ color: "var(--amber)" }}>
+                  Écarts
+                </p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {(job.analysis.gaps ?? []).map((g) => (
+                    <li key={g}>• {g}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
           <RedFlagList flags={job.analysis.redFlags} />
           <dl className="mt-5 grid gap-4 border-t border-[var(--hairline)] pt-4 sm:grid-cols-3">
             <div>

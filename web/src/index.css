@@ -191,6 +191,11 @@ select {
   background: var(--field-focus);
 }
 
+.field::placeholder {
+  color: color-mix(in srgb, var(--ink) 48%, transparent);
+  opacity: 1;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -301,4 +306,18 @@ select {
 
 .fade-in {
   animation: dial-in 320ms ease both;
+}
+
+@keyframes analyze-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.analyze-progress {
+  width: 40%;
+  animation: analyze-bar 1.2s ease-in-out infinite;
 }

@@ -4,6 +4,8 @@ import { z } from "zod";
 const analysisSchema = z.object({
   relevanceScore: z.number().min(0).max(100),
   redFlags: z.array(z.string()).default([]),
+  strengths: z.array(z.string()).default([]),
+  gaps: z.array(z.string()).default([]),
   summary: z.string(),
   extractedSalary: z.string().nullable().optional(),
   extractedStack: z.array(z.string()).default([]),
@@ -77,6 +79,13 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
   return {
     relevanceScore: Math.min(100, scoreBase + (redFlags.length ? -5 : 10)),
     redFlags,
+    strengths: matches.length
+      ? matches.slice(0, 5).map((m) => `Compétence alignée : ${m}`)
+      : ["Profil partiellement comparable (mode démo)"],
+    gaps: skills
+      .filter((s) => !matches.includes(s))
+      .slice(0, 5)
+      .map((s) => `Écart possible : ${s}`),
     summary: matches.length
       ? `Correspondance partielle sur ${matches.join(", ")}. Score heuristique (mode démo sans clé Anthropic).`
       : "Analyse heuristique (mode démo) : complétez votre profil et configurez ANTHROPIC_API_KEY pour une analyse Claude.",
@@ -98,12 +107,16 @@ Réponds UNIQUEMENT avec un JSON valide (pas de markdown) de la forme:
 {
   "relevanceScore": number 0-100,
   "redFlags": string[],
-  "summary": string,
+  "strengths": string[],
+  "gaps": string[],
+  "summary": string (une phrase synthétique),
   "extractedSalary": string|null,
   "extractedStack": string[],
   "extractedSeniority": string|null
 }
 
+strengths = points forts du candidat pour cette offre (3 max).
+gaps = écarts à combler (3 max).
 Red flags typiques: salaire non précisé, expérience irréaliste, stack floue, remote "fake", culture toxique signalée dans le texte.
 
 PROFIL:
