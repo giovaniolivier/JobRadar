@@ -88,6 +88,7 @@ Recherche un poste Confirmé/Senior en remote ou Paris.`,
 
   const profile = await prisma.profile.findUniqueOrThrow({ where: { userId: user.id } });
 
+  const savedJobs = [];
   for (const job of sampleJobs) {
     const saved = await prisma.job.upsert({
       where: {
@@ -96,6 +97,7 @@ Recherche un poste Confirmé/Senior en remote ou Paris.`,
       create: job,
       update: job,
     });
+    savedJobs.push(saved);
 
     const result = analyzeJobHeuristic(profile, saved);
     await prisma.analysis.upsert({
@@ -125,10 +127,72 @@ Recherche un poste Confirmé/Senior en remote ou Paris.`,
     });
   }
 
+  // Pipeline démo : une carte par colonne (dont une relance en retard)
+  const ago = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const pipelineSeed: Array<{
+    job: (typeof savedJobs)[0];
+    status: "TO_APPLY" | "APPLIED" | "INTERVIEW" | "RESPONSE";
+    createdAt: Date;
+    history: { status: string; at: string }[];
+    notes?: string;
+    outcome?: string | null;
+  }> = [
+    {
+      job: savedJobs[0]!,
+      status: "TO_APPLY",
+      createdAt: ago(2),
+      history: [{ status: "TO_APPLY", at: ago(2).toISOString() }],
+      notes: "Priorité haute — stack très alignée.",
+    },
+    {
+      job: savedJobs[1]!,
+      status: "APPLIED",
+      createdAt: ago(20),
+      history: [
+        { status: "TO_APPLY", at: ago(20).toISOString() },
+        { status: "APPLIED", at: ago(18).toISOString() },
+      ],
+      notes: "Candidature envoyée via le site. Relancer si silence.",
+    },
+    {
+      job: savedJobs[2]!,
+      status: "INTERVIEW",
+      createdAt: ago(12),
+      history: [
+        { status: "TO_APPLY", at: ago(12).toISOString() },
+        { status: "APPLIED", at: ago(10).toISOString() },
+        { status: "INTERVIEW", at: ago(3).toISOString() },
+      ],
+      notes: "Entretien technique prévu — revoir Tailwind + design system.",
+    },
+  ];
+
+  for (const item of pipelineSeed) {
+    await prisma.application.upsert({
+      where: { jobId_userId: { jobId: item.job.id, userId: user.id } },
+      create: {
+        jobId: item.job.id,
+        userId: user.id,
+        status: item.status,
+        notes: item.notes,
+        outcome: item.outcome ?? null,
+        statusHistory: item.history,
+        createdAt: item.createdAt,
+      },
+      update: {
+        status: item.status,
+        notes: item.notes,
+        outcome: item.outcome ?? null,
+        statusHistory: item.history,
+      },
+    });
+  }
+
   console.log("Seed OK");
   console.log(`  user: ${email} / demo1234`);
   console.log(`  userId: ${user.id}`);
   console.log(`  analyses: ${sampleJobs.length} offres scorées`);
+  console.log(`  applications: ${pipelineSeed.length} dans le pipeline`);
 }
 
 main()

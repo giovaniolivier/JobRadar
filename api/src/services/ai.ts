@@ -2,7 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
 const analysisSchema = z.object({
-  relevanceScore: z.number().min(0).max(100),
+  relevanceScore: z
+    .number()
+    .transform((n) => Math.max(0, Math.min(100, Math.round(n)))),
   redFlags: z.array(z.string()).default([]),
   strengths: z.array(z.string()).default([]),
   gaps: z.array(z.string()).default([]),
@@ -10,6 +12,8 @@ const analysisSchema = z.object({
   extractedSalary: z.string().nullable().optional(),
   extractedStack: z.array(z.string()).default([]),
   extractedSeniority: z.string().nullable().optional(),
+  extractedTitle: z.string().nullable().optional(),
+  extractedCompany: z.string().nullable().optional(),
 });
 
 export type AnalysisResult = z.infer<typeof analysisSchema>;
@@ -49,14 +53,116 @@ function extractJson(text: string): unknown {
   return JSON.parse(raw.slice(start, end + 1));
 }
 
+function normalizeToken(s: string): string {
+  let t = s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\.js\b/g, "js")
+    .replace(/[^a-z0-9+#]/g, "");
+  if (t === "next" || t === "nextjs") return "nextjs";
+  if (t === "node" || t === "nodejs") return "nodejs";
+  if (t === "react" || t === "reactjs") return "react";
+  if (t === "vue" || t === "vuejs") return "vue";
+  if (t === "postgres" || t === "postgresql") return "postgresql";
+  if (t === "ts" || t === "typescript") return "typescript";
+  if (t === "js" || t === "javascript") return "javascript";
+  if (t === "k8s" || t === "kubernetes") return "kubernetes";
+  return t;
+}
+
+function displayTech(raw: string): string {
+  const t = raw.trim();
+  const known: Record<string, string> = {
+    js: "JavaScript",
+    ts: "TypeScript",
+    javascript: "JavaScript",
+    typescript: "TypeScript",
+    node: "Node.js",
+    nodejs: "Node.js",
+    "node.js": "Node.js",
+    react: "React",
+    next: "Next.js",
+    nextjs: "Next.js",
+    "next.js": "Next.js",
+    vue: "Vue.js",
+    angular: "Angular",
+    css: "CSS",
+    html: "HTML",
+    postgres: "PostgreSQL",
+    postgresql: "PostgreSQL",
+    mysql: "MySQL",
+    mongodb: "MongoDB",
+    prisma: "Prisma",
+    tailwind: "Tailwind CSS",
+    docker: "Docker",
+    kubernetes: "Kubernetes",
+    aws: "AWS",
+    graphql: "GraphQL",
+    python: "Python",
+    golang: "Go",
+    go: "Go",
+  };
+  const key = normalizeToken(t);
+  if (known[key]) return known[key]!;
+  if (/^[a-z]/.test(t)) return t.charAt(0).toUpperCase() + t.slice(1);
+  return t;
+}
+
+function extractJobTechs(job: JobContext): string[] {
+  const fromStack = job.techStack.map((t) => t.trim()).filter(Boolean);
+  const fromText = Array.from(
+    (job.description + " " + job.title).matchAll(
+      /\b(TypeScript|JavaScript|Python|Java|Go|Rust|PHP|Ruby|Swift|Kotlin|React(?:\.js)?|Next\.js|Nextjs|Vue(?:\.js)?|Angular|Node(?:\.js)?|Nodejs|NestJS|Express|Django|Flask|Spring|PostgreSQL|Postgres|MySQL|MongoDB|Redis|Prisma|GraphQL|REST|Docker|Kubernetes|AWS|GCP|Azure|Tailwind(?:\s*CSS)?|CSS|HTML|Sass|Webpack|Vite|CI\/CD)\b/gi
+    )
+  ).map((m) => m[1]!);
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of [...fromStack, ...fromText]) {
+    const key = normalizeToken(raw);
+    if (!key || key.length < 2 || seen.has(key)) continue;
+    seen.add(key);
+    out.push(displayTech(raw));
+  }
+  return out.slice(0, 14);
+}
+
+function profileHasTech(profile: ProfileContext, tech: string): boolean {
+  const needle = normalizeToken(tech);
+  if (!needle) return false;
+  const bag = [
+    ...profile.skills,
+    ...profile.targetRoles,
+    profile.cvText.slice(0, 8000),
+  ]
+    .join(" ")
+    .toLowerCase();
+  const bagNorm = normalizeToken(bag);
+  if (bagNorm.includes(needle)) return true;
+  // alias courts
+  if (needle === "nodejs" && /node/.test(bag)) return true;
+  if (needle === "nextjs" && /next/.test(bag)) return true;
+  if (needle === "react" && /react/.test(bag)) return true;
+  if (needle === "typescript" && /\bts\b|typescript/.test(bag)) return true;
+  if (needle === "javascript" && /\bjs\b|javascript/.test(bag)) return true;
+  if (needle === "postgresql" && /postgres/.test(bag)) return true;
+  return false;
+}
+
 function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisResult {
-  const haystack = `${job.title} ${job.description} ${job.techStack.join(" ")}`.toLowerCase();
-  const skills = profile.skills.map((s) => s.toLowerCase()).filter(Boolean);
-  const matches = skills.filter((s) => haystack.includes(s));
-  const scoreBase = skills.length ? Math.round((matches.length / skills.length) * 80) : 50;
+  const jobTechs = extractJobTechs(job);
+  const matchedTechs = jobTechs.filter((t) => profileHasTech(profile, t));
+  const missingTechs = jobTechs.filter((t) => !profileHasTech(profile, t));
+
+  // Couverture des technos exigées par l’offre (pas l’inverse)
+  const scoreBase = jobTechs.length
+    ? Math.round((matchedTechs.length / jobTechs.length) * 85)
+    : profile.skills.length
+      ? 45
+      : 40;
 
   const redFlags: string[] = [];
-  // Aligné avec l’UI : salaire absent en colonne → toujours un red flag, même si le texte mentionne « salaire ».
   if (!job.salaryRaw?.trim()) {
     redFlags.push("Salaire non précisé");
   }
@@ -70,29 +176,53 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
   const salaryMatch =
     job.salaryRaw ?? job.description.match(/(\d[\d\s]{2,}\s*(?:€|k€|EUR|\$))/i)?.[1] ?? null;
 
-  const stackFromText = Array.from(
-    new Set([...job.techStack, ...matches.map((m) => m)].filter(Boolean))
-  ).slice(0, 12);
-
   const seniority =
     job.seniority ?? (/(junior|confirmé|senior|lead|staff)/i.exec(job.description)?.[1] ?? null);
 
+  const strengths: string[] = matchedTechs
+    .slice(0, 4)
+    .map((t) => `${t} déjà présent dans votre profil`);
+
+  if (!strengths.length && profile.targetRoles.some((r) =>
+    job.title.toLowerCase().includes(r.toLowerCase().split(/\s+/)[0] ?? "")
+  )) {
+    strengths.push(`Intitulé proche de vos rôles cibles (${profile.targetRoles[0]})`);
+  }
+  if (!strengths.length && profile.experienceYears && profile.experienceYears >= 3) {
+    strengths.push(`${profile.experienceYears} ans d’expérience — base solide pour ce type de poste`);
+  }
+  if (!strengths.length) {
+    strengths.push("Peu d’alignement technique direct détecté sur cette offre");
+  }
+
+  const gaps: string[] = missingTechs
+    .slice(0, 4)
+    .map((t) => `${t} non mentionné dans votre CV`);
+
+  if (!gaps.length && matchedTechs.length && matchedTechs.length === jobTechs.length) {
+    // stack couverte : éventuel écart soft
+    if (seniority && /senior|lead|staff/i.test(seniority) && (profile.experienceYears ?? 0) < 5) {
+      gaps.push("Seniorité demandée potentiellement au-dessus de votre expérience affichée");
+    }
+  }
+
+  const coverage =
+    jobTechs.length === 0
+      ? "stack peu explicite"
+      : `${matchedTechs.length}/${jobTechs.length} techno${jobTechs.length > 1 ? "s" : ""} de l’offre couverte${matchedTechs.length > 1 ? "s" : ""}`;
+
+  const raw = scoreBase + (redFlags.length ? -8 : 5) - missingTechs.length * 3;
   return {
-    relevanceScore: Math.min(100, scoreBase + (redFlags.length ? -5 : 10)),
+    relevanceScore: Math.max(5, Math.min(100, raw)),
     redFlags,
-    strengths: matches.length
-      ? matches.slice(0, 5).map((m) => `Compétence alignée : ${m}`)
-      : ["Profil partiellement comparable (mode démo)"],
-    gaps: skills
-      .filter((s) => !matches.includes(s))
-      .slice(0, 5)
-      .map((s) => `Écart possible : ${s}`),
-    summary: matches.length
-      ? `Correspondance partielle sur ${matches.join(", ")}. Score heuristique (mode démo sans clé Anthropic).`
-      : "Analyse heuristique (mode démo) : complétez votre profil et configurez ANTHROPIC_API_KEY pour une analyse Claude.",
+    strengths: strengths.slice(0, 3),
+    gaps: gaps.slice(0, 3),
+    summary: `Correspondance ${coverage}${matchedTechs.length ? ` (${matchedTechs.slice(0, 3).join(", ")})` : ""}.`,
     extractedSalary: salaryMatch,
-    extractedStack: stackFromText,
+    extractedStack: jobTechs.length ? jobTechs : matchedTechs,
     extractedSeniority: seniority,
+    extractedTitle: null,
+    extractedCompany: null,
   };
 }
 
@@ -114,19 +244,25 @@ export async function analyzeJobAgainstProfile(
   const prompt = `Tu es un assistant de recrutement. Analyse cette offre par rapport au profil candidat.
 Réponds UNIQUEMENT avec un JSON valide (pas de markdown) de la forme:
 {
-  "relevanceScore": number 0-100,
+  "relevanceScore": number 0-100 (jamais négatif),
   "redFlags": string[],
   "strengths": string[],
   "gaps": string[],
-  "summary": string (une phrase synthétique),
+  "summary": string (une phrase synthétique en français),
   "extractedSalary": string|null,
   "extractedStack": string[],
-  "extractedSeniority": string|null
+  "extractedSeniority": string|null,
+  "extractedTitle": string|null (intitulé de poste court, pas un pitch entreprise),
+  "extractedCompany": string|null (nom de l'entreprise uniquement)
 }
 
-strengths = points forts du candidat pour cette offre (3 max).
-gaps = écarts à combler (3 max).
-Red flags typiques: salaire non précisé, expérience irréaliste, stack floue, remote "fake", culture toxique signalée dans le texte.
+Règles de rédaction (important) :
+- strengths (3 max) : constats concrets, ex. "React déjà maîtrisé selon votre CV", "Expérience Node.js alignée avec le stack".
+- gaps (3 max) : ce que L'OFFRE exige et que le candidat n'a pas (ou peu), ex. "Next.js non mentionné dans votre CV", "Pas d'expérience Kubernetes visible".
+- Ne jamais écrire de libellés génériques du type "Écart possible : X" ou "Compétence alignée : X".
+- Ne jamais mentionner "mode démo", "heuristique" ou "ANTHROPIC" dans summary/strengths/gaps.
+- relevanceScore doit refléter la couverture réelle des exigences de l'offre (beaucoup d'écarts → score bas).
+- Red flags typiques: salaire non précisé, expérience irréaliste, stack floue, remote "fake", culture toxique signalée dans le texte.
 
 PROFIL:
 - Rôles cibles: ${profile.targetRoles.join(", ") || "n/a"}

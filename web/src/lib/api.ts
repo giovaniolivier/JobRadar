@@ -104,14 +104,26 @@ export type Analysis = {
   extractedSalary: string | null;
   extractedStack: string[];
   extractedSeniority: string | null;
+  createdAt?: string;
+};
+
+export type ApplicationStatus = "TO_APPLY" | "APPLIED" | "INTERVIEW" | "RESPONSE";
+
+export type StatusEvent = {
+  status: ApplicationStatus;
+  at: string;
 };
 
 export type Application = {
   id: string;
   jobId: string;
-  status: "TO_APPLY" | "APPLIED" | "INTERVIEW" | "RESPONSE";
+  status: ApplicationStatus;
+  outcome?: "accepted" | "rejected" | null;
   notes: string | null;
   coverLetter: string | null;
+  statusHistory?: StatusEvent[];
+  followUpAt?: string | null;
+  createdAt: string;
   updatedAt: string;
   job?: Job;
 };

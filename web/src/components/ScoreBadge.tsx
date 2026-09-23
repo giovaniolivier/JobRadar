@@ -63,11 +63,11 @@ export function ScoreBadge({ score, size = 44 }: { score: number | null | undefi
     );
   }
 
-  const tone = toneFor(score);
+  const value = Math.max(0, Math.min(100, Math.round(score)));
+  const tone = toneFor(value);
   const color = TONE_COLOR[tone];
   const r = 14;
   const c = 2 * Math.PI * r;
-  const value = Math.max(0, Math.min(100, score));
   const offset = c - (value / 100) * c;
 
   const dialStyle = {
@@ -79,7 +79,7 @@ export function ScoreBadge({ score, size = 44 }: { score: number | null | undefi
     <span
       className="relative inline-flex shrink-0 items-center justify-center"
       style={{ width: size, height: size }}
-      title={`Pertinence ${score}/100`}
+      title={`Pertinence ${value}/100`}
     >
       <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden>
         <circle cx="20" cy="20" r={r} fill="none" stroke="var(--hairline)" strokeWidth="1.25" opacity="0.9" />
@@ -98,7 +98,7 @@ export function ScoreBadge({ score, size = 44 }: { score: number | null | undefi
         />
       </svg>
       <span className="mono absolute text-[0.7rem] font-medium leading-none" style={{ color }}>
-        {score}
+        {value}
       </span>
     </span>
   );

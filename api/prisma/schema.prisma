@@ -125,16 +125,21 @@ model Analysis {
 }
 
 model Application {
-  id          String            @id @default(cuid())
-  jobId       String
-  userId      String
-  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status      ApplicationStatus @default(TO_APPLY)
-  notes       String?
-  coverLetter String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id            String            @id @default(cuid())
+  jobId         String
+  userId        String
+  job           Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        ApplicationStatus @default(TO_APPLY)
+  /// accepted | rejected | null (pertinent quand status = RESPONSE)
+  outcome       String?
+  notes         String?
+  coverLetter   String?
+  /// [{ "status": "APPLIED", "at": "ISO" }, ...]
+  statusHistory Json              @default("[]")
+  followUpAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@unique([jobId, userId])
   @@index([status])

@@ -63,7 +63,7 @@ notificationsRouter.get("/", async (req: AuthedRequest, res, next) => {
         type: "followup",
         title: "Relance à faire",
         body: `${app.job.title} — ${app.job.company}`,
-        href: `/offers/${app.job.id}`,
+        href: `/pipeline`,
         createdAt: app.updatedAt.toISOString(),
       });
     }
@@ -73,7 +73,7 @@ notificationsRouter.get("/", async (req: AuthedRequest, res, next) => {
         type: "response",
         title: "Réponse reçue",
         body: `${app.job.title} — ${app.job.company}`,
-        href: `/offers/${app.job.id}`,
+        href: `/pipeline`,
         createdAt: app.updatedAt.toISOString(),
       });
     }
