@@ -22,6 +22,9 @@ export function Layout() {
 
           <nav className="flex flex-wrap items-center gap-x-7 gap-y-2 lg:justify-center lg:pb-0.5">
             <NavLink to="/" end className={linkClass}>
+              Dashboard
+            </NavLink>
+            <NavLink to="/offers" className={linkClass}>
               Offres
             </NavLink>
             <NavLink to="/pipeline" className={linkClass}>

@@ -487,7 +487,7 @@ authRouter.get("/google/callback", async (req, res, next) => {
     }
 
     await createSession(res, user.id, user.email);
-    res.redirect(`${webOrigin}/`);
+    res.redirect(`${webOrigin}/continue`);
   } catch (err) {
     next(err);
   }
@@ -569,7 +569,7 @@ authRouter.get("/linkedin/callback", async (req, res, next) => {
     }
 
     await createSession(res, user.id, user.email);
-    res.redirect(`${webOrigin}/`);
+    res.redirect(`${webOrigin}/continue`);
   } catch (err) {
     next(err);
   }

@@ -1,194 +1,202 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Job } from "../lib/api";
-import { useAuth } from "../lib/auth";
+import { fetchDashboard, type DashboardSummary } from "../lib/home";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 
 export function DashboardPage() {
-  const { token } = useAuth();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [q, setQ] = useState("");
-  const [source, setSource] = useState("");
-  const [minScore, setMinScore] = useState("");
-  const [location, setLocation] = useState("");
-  const [tech, setTech] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+  const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (q) params.set("q", q);
-      if (source) params.set("source", source);
-      if (minScore) params.set("minScore", minScore);
-      if (location) params.set("location", location);
-      if (tech) params.set("tech", tech);
-      const data = await api<Job[]>(`/offers?${params}`, { token });
-      setJobs(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur");
-    } finally {
-      setLoading(false);
-    }
-  }, [token, q, source, minScore, location, tech]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const summary = await fetchDashboard();
+        if (!cancelled) setData(summary);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Erreur");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  async function syncRemotive() {
-    if (!token) return;
-    setSyncing(true);
-    setInfo(null);
-    setError(null);
-    try {
-      const result = await api<{ count: number }>("/offers/sync", {
-        method: "POST",
-        token,
-        body: JSON.stringify({ search: q || "developer" }),
-      });
-      setInfo(`${result.count} offres Remotive synchronisées.`);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Sync échouée");
-    } finally {
-      setSyncing(false);
-    }
+  if (loading) {
+    return <p className="label">Chargement du tableau de bord…</p>;
   }
+  if (error) {
+    return (
+      <p className="text-sm" style={{ color: "var(--brick)" }}>
+        {error}
+      </p>
+    );
+  }
+  if (!data) return null;
+
+  const { stats, topOffers, pipelineFocus } = data;
+  const isEmpty = stats.totalAnalyses === 0 && topOffers.length === 0;
 
   return (
-    <div className="fade-in">
+    <div className="fade-in space-y-10">
       <div className="flex flex-col gap-4 border-b border-[var(--hairline)] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl">
-          <p className="label">Tableau d'affichage</p>
-          <h1 className="mt-1 text-3xl sm:text-4xl">Offres en approche</h1>
+          <p className="label">Tour de contrôle</p>
+          <h1 className="mt-1 text-3xl sm:text-4xl">Tableau de bord</h1>
           <p className="mt-2 text-[var(--ink-soft)]">
-            Score, red flags, extraction — gardez le contrôle sur le flux.
+            Où vous en êtes — et la prochaine action utile.
           </p>
+          {stats.activityHint && (
+            <p className="mt-3 text-sm" style={{ color: "var(--match)" }}>
+              {stats.activityHint}
+            </p>
+          )}
         </div>
-        <button
-          type="button"
-          onClick={() => void syncRemotive()}
-          disabled={syncing}
-          className="btn btn-amber self-start sm:self-auto"
-        >
-          {syncing ? "Sync…" : "Sync Remotive"}
-        </button>
+        <Link to="/import" className="btn btn-amber self-start sm:self-auto">
+          Analyser une nouvelle offre
+        </Link>
       </div>
 
-      <div className="mt-5 grid gap-3 border-b border-[var(--hairline)] pb-5 sm:grid-cols-2 lg:grid-cols-12">
-        <input
-          className="field lg:col-span-5"
-          placeholder="Recherche"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <StatCard
+          label="Analysées cette semaine"
+          value={String(stats.analyzedThisWeek)}
         />
-        <select
-          className="field lg:col-span-2"
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-        >
-          <option value="">Toutes sources</option>
-          <option value="remotive">Remotive</option>
-          <option value="manual">Manuel</option>
-        </select>
-        <input
-          className="field lg:col-span-2"
-          placeholder="Lieu"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
+        <StatCard
+          label="Score moyen"
+          value={stats.avgScore != null ? `${stats.avgScore}` : "—"}
         />
-        <input
-          className="field lg:col-span-2"
-          placeholder="Tech (exact)"
-          value={tech}
-          onChange={(e) => setTech(e.target.value)}
+        <StatCard
+          label="En attente de réponse"
+          value={String(stats.awaitingResponse)}
         />
-        <input
-          className="field mono lg:col-span-1"
-          type="number"
-          min={0}
-          max={100}
-          placeholder="Min"
-          title="Score minimum"
-          value={minScore}
-          onChange={(e) => setMinScore(e.target.value)}
-        />
-      </div>
+      </section>
 
-      {info && (
-        <p className="mt-4 mono text-sm" style={{ color: "var(--match)" }}>
-          {info}
-        </p>
-      )}
-      {error && (
-        <p className="mt-4 text-sm" style={{ color: "var(--brick)" }}>
-          {error}
-        </p>
-      )}
-
-      {loading ? (
-        <p className="mt-10 label">Chargement du tableau…</p>
-      ) : jobs.length === 0 ? (
-        <p className="mt-10 text-[var(--ink-soft)]">
-          Aucune offre. Sync Remotive, import CSV, ou seed la base.
-        </p>
+      {isEmpty ? (
+        <section className="border border-[var(--hairline)] px-5 py-10 sm:px-8">
+          <h2 className="text-2xl">Prêt à démarrer</h2>
+          <p className="mt-3 max-w-lg text-[var(--ink-soft)]">
+            Ajoutez votre première offre pour voir votre score de correspondance et construire votre
+            pipeline.
+          </p>
+          <Link to="/import" className="btn btn-amber mt-6 inline-flex">
+            Analyser une nouvelle offre
+          </Link>
+        </section>
       ) : (
-        <div className="board mt-8">
-          <div
-            className="board-head label hidden md:grid"
-            style={{ gridTemplateColumns: "52px 1fr 140px 110px 90px" }}
-          >
-            <span>Score</span>
-            <span>Offre / Société</span>
-            <span>Lieu</span>
-            <span>Salaire</span>
-            <span>Source</span>
-          </div>
-          <ul>
-            {jobs.map((job, i) => (
-              <li key={job.id} className="fade-in" style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}>
-                <Link
-                  to={`/offers/${job.id}`}
-                  className="board-row md:grid"
-                  style={{ gridTemplateColumns: "52px 1fr 140px 110px 90px" }}
-                >
-                  <ScoreBadge score={job.analysis?.relevanceScore} />
-                  <div className="min-w-0">
-                    <h2 className="display text-lg font-semibold leading-snug">
-                      {job.title}
-                    </h2>
-                    <p className="mt-0.5 text-sm text-[var(--ink-soft)]">{job.company}</p>
-                    {job.analysis?.summary && (
-                      <p className="mt-2 line-clamp-2 text-sm text-[var(--ink)]/80">
-                        {job.analysis.summary}
-                      </p>
-                    )}
-                    {job.analysis && <RedFlagList flags={job.analysis.redFlags} />}
-                    {!!job.techStack.length && (
-                      <p className="mono mt-2 text-[0.7rem] text-[var(--ink-soft)]">
-                        {job.techStack.slice(0, 8).join(" · ")}
-                      </p>
-                    )}
-                  </div>
-                  <p className="hidden text-sm text-[var(--ink-soft)] md:block">
-                    {job.location ?? "—"}
-                  </p>
-                  <p className="mono hidden text-sm md:block" style={{ color: job.salaryRaw ? "var(--ink)" : "var(--brick)" }}>
-                    {job.salaryRaw ?? "n/c"}
-                  </p>
-                  <p className="label hidden md:block">{job.source}</p>
+        <>
+          <section>
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <p className="label">Priorité</p>
+                <h2 className="mt-1 text-2xl">Offres qui méritent votre attention</h2>
+              </div>
+              <Link
+                to="/offers"
+                className="text-sm underline decoration-[var(--amber)] underline-offset-4"
+              >
+                Voir toutes
+              </Link>
+            </div>
+            {topOffers.length === 0 ? (
+              <p className="text-[var(--ink-soft)]">
+                Aucune offre « à postuler » à fort score pour le moment.{" "}
+                <Link to="/import" className="underline decoration-[var(--amber)]">
+                  Analysez une offre
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+                .
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--hairline)] border-y border-[var(--hairline)]">
+                {topOffers.map((offer, i) => (
+                  <li
+                    key={offer.id}
+                    className="fade-in flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"
+                    style={{ animationDelay: `${i * 40}ms` }}
+                  >
+                    <div className="flex min-w-0 items-start gap-4">
+                      <ScoreBadge score={offer.relevanceScore} />
+                      <div className="min-w-0">
+                        <h3 className="display text-lg font-semibold leading-snug">{offer.title}</h3>
+                        <p className="text-sm text-[var(--ink-soft)]">{offer.company}</p>
+                        {offer.summary && (
+                          <p className="mt-2 line-clamp-2 text-sm text-[var(--ink)]/80">
+                            {offer.summary}
+                          </p>
+                        )}
+                        <RedFlagList flags={offer.redFlags} />
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:items-stretch">
+                      <Link to={`/offers/${offer.id}`} className="btn btn-amber !text-xs">
+                        Générer la lettre
+                      </Link>
+                      <Link to={`/offers/${offer.id}`} className="btn btn-ghost !text-xs">
+                        Ouvrir
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section>
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <p className="label">Pipeline</p>
+                <h2 className="mt-1 text-2xl">En cours</h2>
+              </div>
+              <Link
+                to="/pipeline"
+                className="text-sm underline decoration-[var(--amber)] underline-offset-4"
+              >
+                Pipeline complet
+              </Link>
+            </div>
+            {pipelineFocus.length === 0 ? (
+              <p className="text-[var(--ink-soft)]">
+                Pas encore de candidature en mouvement. Passez une offre en « Candidaté » ou
+                « Entretien » depuis le pipeline.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {pipelineFocus.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      to={`/offers/${item.jobId}`}
+                      className="flex flex-col gap-1 border border-[var(--hairline)] px-4 py-3 transition-colors hover:bg-[var(--row-hover)] sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {item.title}
+                          <span className="text-[var(--ink-soft)]"> — {item.company}</span>
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--ink-soft)]">{item.hint}</p>
+                      </div>
+                      <span className="label shrink-0">
+                        {item.status === "INTERVIEW" ? "Entretien" : "Relance"}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
       )}
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-[var(--hairline)] px-4 py-4">
+      <p className="label">{label}</p>
+      <p className="display mt-2 text-3xl tabular-nums">{value}</p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
@@ -11,6 +12,9 @@ function splitList(value: string) {
 
 export function ProfilePage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const onboarding = params.get("onboarding") === "1";
   const [name, setName] = useState("");
   const [cvText, setCvText] = useState("");
   const [skills, setSkills] = useState("");
@@ -42,6 +46,10 @@ export function ProfilePage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!token) return;
+    if (onboarding && !cvText.trim()) {
+      setError("Ajoutez votre CV pour démarrer — c’est la base du scoring.");
+      return;
+    }
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -62,6 +70,10 @@ export function ProfilePage() {
           preferredLocations: splitList(preferredLocations),
         }),
       });
+      if (onboarding) {
+        navigate("/", { replace: true });
+        return;
+      }
       setMessage("Profil et CV enregistrés.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -74,10 +86,14 @@ export function ProfilePage() {
 
   return (
     <div className="fade-in max-w-3xl">
-      <p className="label">Référentiel candidat</p>
-      <h1 className="mt-1 text-3xl sm:text-4xl">Votre profil</h1>
+      <p className="label">{onboarding ? "Première connexion" : "Référentiel candidat"}</p>
+      <h1 className="mt-1 text-3xl sm:text-4xl">
+        {onboarding ? "Importez votre CV" : "Votre profil"}
+      </h1>
       <p className="mt-2 text-[var(--ink-soft)]">
-        L'IA compare chaque offre à ce référentiel (CV, skills, cibles).
+        {onboarding
+          ? "Sans CV, le tableau de bord reste vide. Collez votre CV pour que JobRadar puisse scorer les offres."
+          : "L'IA compare chaque offre à ce référentiel (CV, skills, cibles)."}
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-5 border-t border-[var(--ink)] pt-6">
@@ -86,13 +102,14 @@ export function ProfilePage() {
           <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label className="block">
-          <span className="label mb-1.5 block">CV (texte)</span>
+          <span className="label mb-1.5 block">CV (texte){onboarding ? " *" : ""}</span>
           <textarea
             className="field min-h-48"
             rows={10}
             value={cvText}
             onChange={(e) => setCvText(e.target.value)}
             placeholder="Collez votre CV ici…"
+            required={onboarding}
           />
         </label>
         <label className="block">
@@ -144,9 +161,24 @@ export function ProfilePage() {
           </p>
         )}
 
-        <button type="submit" disabled={saving} className="btn btn-amber">
-          {saving ? "Enregistrement…" : "Enregistrer"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={saving} className="btn btn-amber">
+            {saving
+              ? "Enregistrement…"
+              : onboarding
+                ? "Enregistrer et ouvrir le dashboard"
+                : "Enregistrer"}
+          </button>
+          {onboarding && (
+            <button
+              type="button"
+              className="text-sm text-[var(--ink-soft)] underline underline-offset-4"
+              onClick={() => navigate("/import")}
+            >
+              Passer — analyser une offre
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

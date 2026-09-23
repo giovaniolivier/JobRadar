@@ -4,10 +4,12 @@ import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { OffersPage } from "./pages/OffersPage";
 import { JobDetailPage } from "./pages/JobDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { PipelinePage } from "./pages/PipelinePage";
 import { ImportPage } from "./pages/ImportPage";
+import { ContinuePage } from "./pages/ContinuePage";
 import {
   ForgotPasswordPage,
   LegalCguPage,
@@ -38,9 +40,11 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/legal/cgu" element={<LegalCguPage />} />
         <Route path="/legal/privacy" element={<LegalPrivacyPage />} />
+        <Route path="/continue" element={<ContinuePage />} />
         <Route element={<PrivateRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/offers" element={<OffersPage />} />
             <Route path="/offers/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />

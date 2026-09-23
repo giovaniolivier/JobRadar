@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, api } from "../lib/api";
 import { useAuth, type AuthUser } from "../lib/auth";
+import { resolvePostAuthPath } from "../lib/home";
 import { isValidEmail, passwordStrength } from "../lib/validation";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
@@ -63,7 +64,7 @@ export function LoginPage() {
       }
       if (data.user) {
         setSession(data.user);
-        navigate("/");
+        navigate(await resolvePostAuthPath());
       }
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 400)) {
@@ -87,7 +88,7 @@ export function LoginPage() {
         body: JSON.stringify({ challengeId, code: otpCode.trim() }),
       });
       setSession(data.user);
-      navigate("/");
+      navigate(await resolvePostAuthPath());
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -291,7 +292,7 @@ export function RegisterPage() {
         body: JSON.stringify({ name: name.trim(), email, password, remember: true }),
       });
       setSession(data.user);
-      navigate("/profile");
+      navigate(await resolvePostAuthPath());
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setError("Un compte existe déjà avec cet email.");
