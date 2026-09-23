@@ -10,9 +10,9 @@ import {
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, type Job } from "../lib/api";
-import { RedFlagList, ScoreBadge } from "./ScoreBadge";
+import { RedFlagList, ScoreBadge, ScoreDialLoading } from "./ScoreBadge";
 
-type Step = "input" | "loading" | "result";
+type Step = "input" | "loading" | "result" | "error";
 type InputMode = "paste" | "link" | "file";
 
 type AnalyzeOfferContextValue = {
@@ -32,7 +32,7 @@ export function useAnalyzeOffer() {
 const LOADING_MESSAGES = [
   "Lecture de l'offre…",
   "Comparaison avec votre profil…",
-  "Calcul du score…",
+  "Calcul du score de correspondance…",
 ];
 
 const MIN_TEXT = 80;
@@ -70,6 +70,8 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]!);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [letter, setLetter] = useState<string | null>(null);
+  const [stillWaiting, setStillWaiting] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -85,17 +87,27 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
     setResult(null);
     setLetter(null);
     setBusyAction(null);
+    setStillWaiting(false);
+    abortRef.current?.abort();
+    abortRef.current = null;
   }, [open]);
 
   useEffect(() => {
-    if (step !== "loading") return;
+    if (step !== "loading") {
+      setStillWaiting(false);
+      return;
+    }
     let i = 0;
     setLoadingMsg(LOADING_MESSAGES[0]!);
-    const id = window.setInterval(() => {
+    const msgId = window.setInterval(() => {
       i = (i + 1) % LOADING_MESSAGES.length;
       setLoadingMsg(LOADING_MESSAGES[i]!);
-    }, 1800);
-    return () => window.clearInterval(id);
+    }, 1600);
+    const waitId = window.setTimeout(() => setStillWaiting(true), 3500);
+    return () => {
+      window.clearInterval(msgId);
+      window.clearTimeout(waitId);
+    };
   }, [step]);
 
   useEffect(() => {
@@ -167,6 +179,8 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
     }
 
     setStep("loading");
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const data = await api<Job>("/offers/analyze-new", {
         method: "POST",
@@ -176,26 +190,38 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
           company: company.trim() || undefined,
           url: url.trim() || undefined,
         }),
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       setResult(data);
       setStep("result");
     } catch (err) {
-      setStep("input");
-      if (err instanceof ApiError) {
-        if (err.message.toLowerCase().includes("cv")) {
-          setNeedsCv(true);
-          setError(err.message);
-        } else {
-          setError(
-            err.status >= 500
-              ? "L'analyse a échoué. Réessayez dans un instant."
-              : err.message
-          );
-        }
-      } else {
-        setError("L'analyse a échoué. Réessayez dans un instant.");
+      if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+        setStep("input");
+        return;
       }
+      if (err instanceof ApiError && err.message.toLowerCase().includes("cv")) {
+        setNeedsCv(true);
+        setError(err.message);
+        setStep("input");
+        return;
+      }
+      setError(
+        err instanceof ApiError && err.status < 500
+          ? err.message
+          : "L'analyse a échoué. Réessayez dans un instant."
+      );
+      setStep("error");
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
     }
+  }
+
+  function cancelAnalysis() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setStep("input");
+    setStillWaiting(false);
   }
 
   async function addToPipeline() {
@@ -270,17 +296,24 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
           <div>
             <p className="label">Action</p>
             <h2 id="analyze-offer-title" className="mt-1 text-xl sm:text-2xl">
-              Analyser une nouvelle offre
+              {step === "loading"
+                ? "Analyse en cours"
+                : step === "result"
+                  ? "Résultat de l’analyse"
+                  : step === "error"
+                    ? "Analyse interrompue"
+                    : "Analyser une nouvelle offre"}
             </h2>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost !px-2 !py-1 !text-xs"
-            disabled={step === "loading"}
-            onClick={requestClose}
-          >
-            Fermer
-          </button>
+          {step !== "loading" && (
+            <button
+              type="button"
+              className="btn btn-ghost !px-2 !py-1 !text-xs"
+              onClick={requestClose}
+            >
+              Fermer
+            </button>
+          )}
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -304,17 +337,44 @@ function AnalyzeOfferPanel({ open, onClose }: { open: boolean; onClose: () => vo
           )}
 
           {step === "loading" && (
-            <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
-              <ScoreBadge score={null} size={72} />
-              <div>
-                <p className="display text-xl">{loadingMsg}</p>
-                <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                  Quelques secondes — on croise l’offre avec votre CV.
+            <div className="flex min-h-[60%] flex-col items-center justify-center gap-6 py-12 text-center">
+              <ScoreDialLoading size={96} />
+              <div className="max-w-xs">
+                <p className="display text-xl" aria-live="polite">
+                  {loadingMsg}
                 </p>
+                {stillWaiting && (
+                  <p className="mt-3 text-sm text-[var(--ink-soft)]">Quelques secondes encore…</p>
+                )}
               </div>
-              <div className="h-1 w-48 overflow-hidden bg-[var(--hairline)]">
-                <div className="analyze-progress h-full bg-[var(--amber)]" />
-              </div>
+              <button
+                type="button"
+                className="text-xs text-[var(--ink-soft)] underline underline-offset-4"
+                onClick={cancelAnalysis}
+              >
+                Annuler l’analyse
+              </button>
+            </div>
+          )}
+
+          {step === "error" && (
+            <div className="flex min-h-[50%] flex-col items-center justify-center gap-4 py-12 text-center">
+              <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
+                {error ?? "L'analyse a échoué. Réessayez dans un instant."}
+              </p>
+              <button type="button" className="btn btn-amber" onClick={() => void runAnalyze()}>
+                Réessayer
+              </button>
+              <button
+                type="button"
+                className="text-sm text-[var(--ink-soft)] underline underline-offset-4"
+                onClick={() => {
+                  setError(null);
+                  setStep("input");
+                }}
+              >
+                Modifier la saisie
+              </button>
             </div>
           )}
 
@@ -567,55 +627,81 @@ function ResultStep({
   const a = job.analysis!;
   const strengths = a.strengths ?? [];
   const gaps = a.gaps ?? [];
+  const lowScore = a.relevanceScore < 45;
 
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-4 border-b border-[var(--hairline)] pb-5">
-        <ScoreBadge score={a.relevanceScore} size={72} />
-        <div className="min-w-0">
-          <p className="label">Correspondance</p>
-          <h3 className="mt-1 text-xl leading-snug">{job.title}</h3>
+        <ScoreBadge score={a.relevanceScore} size={80} />
+        <div className="min-w-0 pt-1">
+          <h3 className="text-xl leading-snug sm:text-2xl">{job.title}</h3>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">{job.company}</p>
+          <p className="mono mt-2 text-xs text-[var(--ink-soft)]">Score {a.relevanceScore}/100</p>
         </div>
       </div>
 
-      <p className="leading-relaxed text-[var(--ink)]/90">{a.summary}</p>
+      <blockquote className="border-l-2 border-[var(--amber)] pl-4 text-[0.95rem] leading-relaxed text-[var(--ink)]/90 italic">
+        {a.summary}
+      </blockquote>
 
-      {(strengths.length > 0 || gaps.length > 0) && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="label" style={{ color: "var(--match)" }}>
-              Points forts
-            </p>
-            <ul className="mt-2 space-y-1.5 text-sm">
-              {strengths.length ? (
-                strengths.map((s) => <li key={s}>• {s}</li>)
-              ) : (
-                <li className="text-[var(--ink-soft)]">—</li>
-              )}
-            </ul>
-          </div>
-          <div>
-            <p className="label" style={{ color: "var(--amber)" }}>
-              Écarts à combler
-            </p>
-            <ul className="mt-2 space-y-1.5 text-sm">
-              {gaps.length ? (
-                gaps.map((g) => <li key={g}>• {g}</li>)
-              ) : (
-                <li className="text-[var(--ink-soft)]">—</li>
-              )}
-            </ul>
-          </div>
+      {lowScore && (
+        <div
+          className="border px-3 py-3 text-sm leading-relaxed"
+          style={{ borderColor: "color-mix(in srgb, var(--brick) 45%, transparent)" }}
+        >
+          <p className="label mb-1.5" style={{ color: "var(--brick)" }}>
+            Écart important
+          </p>
+          <p>
+            {gaps[0] ??
+              "Cette offre correspond peu à votre profil actuel. Les écarts ci-dessous indiquent pourquoi — utile pour prioriser ou préparer un entretien ciblé."}
+          </p>
         </div>
       )}
 
-      <RedFlagList flags={a.redFlags} />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <p className="label" style={{ color: "var(--match)" }}>
+            Points forts
+          </p>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {strengths.length ? (
+              strengths.slice(0, 3).map((s) => <li key={s}>• {s}</li>)
+            ) : (
+              <li className="text-[var(--ink-soft)]">Aucun point fort net détecté</li>
+            )}
+          </ul>
+        </div>
+        <div>
+          <p className="label" style={{ color: "var(--amber)" }}>
+            Écarts à combler
+          </p>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {gaps.length ? (
+              gaps.slice(0, 3).map((g) => <li key={g}>• {g}</li>)
+            ) : (
+              <li className="text-[var(--ink-soft)]">Pas d’écart majeur signalé</li>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      {a.redFlags.length > 0 && (
+        <div
+          className="border px-3 py-3"
+          style={{ borderColor: "color-mix(in srgb, var(--brick) 50%, transparent)" }}
+        >
+          <p className="label" style={{ color: "var(--brick)" }}>
+            Red flags
+          </p>
+          <RedFlagList flags={a.redFlags} />
+        </div>
+      )}
 
       {letter && (
         <section className="border border-[var(--hairline)] px-3 py-3">
           <p className="label">Lettre de motivation</p>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed">
+          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed not-italic">
             {letter}
           </pre>
         </section>
@@ -627,7 +713,7 @@ function ResultStep({
         </p>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 border-t border-[var(--hairline)] pt-4">
         <button
           type="button"
           className="btn btn-amber w-full"
@@ -646,18 +732,12 @@ function ResultStep({
         </button>
         <button
           type="button"
-          className="text-sm text-[var(--ink-soft)] underline underline-offset-4"
+          className="mt-1 text-center text-sm text-[var(--ink-soft)] underline underline-offset-4"
           disabled={!!busyAction}
           onClick={onIgnore}
         >
           Ignorer cette offre
         </button>
-        <Link
-          to={`/offers/${job.id}`}
-          className="text-center text-sm underline decoration-[var(--amber)] underline-offset-4"
-        >
-          Voir la fiche complète
-        </Link>
       </div>
     </div>
   );

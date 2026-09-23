@@ -321,3 +321,13 @@ select {
   width: 40%;
   animation: analyze-bar 1.2s ease-in-out infinite;
 }
+
+@keyframes score-dial-spin {
+  to {
+    stroke-dashoffset: -88;
+  }
+}
+
+.score-dial-loading {
+  animation: score-dial-spin 1.4s linear infinite;
+}

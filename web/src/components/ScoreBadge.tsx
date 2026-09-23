@@ -14,6 +14,36 @@ const TONE_COLOR: Record<ScoreTone, string> = {
   high: "var(--match)",
 };
 
+/** Animated dial while analysis runs — arc fills in a continuous loop. */
+export function ScoreDialLoading({ size = 88 }: { size?: number }) {
+  const r = 14;
+  const c = 2 * Math.PI * r;
+  return (
+    <span
+      className="relative inline-flex shrink-0 items-center justify-center"
+      style={{ width: size, height: size }}
+      aria-hidden
+    >
+      <svg width={size} height={size} viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r={r} fill="none" stroke="var(--hairline)" strokeWidth="1.25" opacity="0.9" />
+        <circle
+          className="score-dial-loading"
+          cx="20"
+          cy="20"
+          r={r}
+          fill="none"
+          stroke="var(--amber)"
+          strokeWidth="2"
+          strokeLinecap="butt"
+          strokeDasharray={`${c * 0.35} ${c}`}
+          transform="rotate(-90 20 20)"
+        />
+      </svg>
+      <span className="mono absolute text-[0.65rem] tracking-wider text-[var(--ink-soft)]">…</span>
+    </span>
+  );
+}
+
 /** Instrument dial — empty state is a light N/A mark, not a hollow gauge. */
 export function ScoreBadge({ score, size = 44 }: { score: number | null | undefined; size?: number }) {
   if (score == null) {
