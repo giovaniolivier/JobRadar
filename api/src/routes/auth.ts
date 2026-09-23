@@ -366,6 +366,35 @@ authRouter.post("/reset-password", authLimiter, async (req, res, next) => {
   }
 });
 
+authRouter.post("/change-password", requireAuth, authLimiter, async (req: AuthedRequest, res, next) => {
+  try {
+    const userId = req.user!.userId;
+    const body = z
+      .object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8, "Le mot de passe doit faire au moins 8 caractères"),
+      })
+      .parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.passwordHash) {
+      throw new HttpError(400, "Ce compte n’a pas de mot de passe (connexion sociale)");
+    }
+
+    const ok = await bcrypt.compare(body.currentPassword, user.passwordHash);
+    if (!ok) throw new HttpError(401, "Mot de passe actuel incorrect");
+
+    const passwordHash = await bcrypt.hash(body.newPassword, 12);
+    await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    await revokeAllRefreshTokens(userId);
+    await createSession(res, userId, user.email, { remember: true });
+
+    res.json({ ok: true, message: "Mot de passe mis à jour" });
+  } catch (err) {
+    next(err);
+  }
+});
+
 authRouter.post(
   "/upload-cv",
   requireAuth,
@@ -374,6 +403,7 @@ authRouter.post(
     try {
       const userId = req.user!.userId;
       let cvText = "";
+      let cvFileName: string | null = null;
 
       if (req.file) {
         const name = (req.file.originalname || "").toLowerCase();
@@ -381,28 +411,77 @@ authRouter.post(
           throw new HttpError(400, "PDF non supporté pour l'instant — utilisez .txt ou collez le texte");
         }
         cvText = req.file.buffer.toString("utf8").trim();
+        cvFileName = req.file.originalname || "cv.txt";
       } else if (typeof req.body?.cvText === "string") {
         cvText = req.body.cvText.trim();
+        cvFileName =
+          typeof req.body?.cvFileName === "string" && req.body.cvFileName.trim()
+            ? req.body.cvFileName.trim().slice(0, 180)
+            : "cv-colle.txt";
       }
 
       if (!cvText) {
         throw new HttpError(400, "Provide a cv file or JSON { cvText }");
       }
 
+      const { extractSkillsFromCv, normalizeSkillLabel } = await import("../services/ai.js");
+      const extracted = extractSkillsFromCv(cvText);
+
+      const existing = await prisma.profile.findUnique({ where: { userId } });
+      const mergeSkills = (current: string[], incoming: string[]) => {
+        const seen = new Set(current.map((s) => normalizeSkillLabel(s).toLowerCase()));
+        const out = current.map(normalizeSkillLabel);
+        for (const s of incoming) {
+          const label = normalizeSkillLabel(s);
+          const key = label.toLowerCase();
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          out.push(label);
+        }
+        return out.slice(0, 60);
+      };
+
+      const skills = mergeSkills(existing?.skills ?? [], extracted.skills);
+      const softSkills = mergeSkills(existing?.softSkills ?? [], extracted.softSkills);
+
       const profile = await prisma.profile.upsert({
         where: { userId },
-        create: { userId, cvText },
-        update: { cvText },
+        create: {
+          userId,
+          cvText,
+          cvFileName,
+          cvImportedAt: new Date(),
+          skills,
+          softSkills,
+        },
+        update: {
+          cvText,
+          cvFileName,
+          cvImportedAt: new Date(),
+          skills,
+          softSkills,
+        },
       });
 
       res.json({
         ok: true,
+        message: "CV mis à jour — les nouvelles analyses utiliseront cette version",
         profile: {
           cvText: profile.cvText,
+          cvFileName: profile.cvFileName,
+          cvImportedAt: profile.cvImportedAt,
           skills: profile.skills,
+          softSkills: profile.softSkills,
           targetRoles: profile.targetRoles,
           experienceYears: profile.experienceYears,
           preferredLocations: profile.preferredLocations,
+          salaryMin: profile.salaryMin,
+          salaryMax: profile.salaryMax,
+          workModes: profile.workModes,
+          targetSeniority: profile.targetSeniority,
+          preferredSectors: profile.preferredSectors,
+          avoidedSectors: profile.avoidedSectors,
+          hasCv: true,
         },
       });
     } catch (err) {

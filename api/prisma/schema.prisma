@@ -70,15 +70,24 @@ model PasswordResetToken {
 }
 
 model Profile {
-  id                  String   @id @default(cuid())
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cvText              String   @default("")
-  skills              String[] @default([])
-  targetRoles         String[] @default([])
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cvText              String    @default("")
+  cvFileName          String?
+  cvImportedAt        DateTime?
+  skills              String[]  @default([])
+  softSkills          String[]  @default([])
+  targetRoles         String[]  @default([])
   experienceYears     Int?
-  preferredLocations  String[] @default([])
-  updatedAt           DateTime @updatedAt
+  preferredLocations  String[]  @default([])
+  salaryMin           Int?
+  salaryMax           Int?
+  workModes           String[]  @default([])
+  targetSeniority     String?
+  preferredSectors    String[]  @default([])
+  avoidedSectors      String[]  @default([])
+  updatedAt           DateTime  @updatedAt
 }
 
 model Job {

@@ -128,15 +128,57 @@ export type Application = {
   job?: Job;
 };
 
+export type ProfileData = {
+  cvText: string;
+  cvFileName: string | null;
+  cvImportedAt: string | null;
+  skills: string[];
+  softSkills: string[];
+  targetRoles: string[];
+  experienceYears: number | null;
+  preferredLocations: string[];
+  salaryMin: number | null;
+  salaryMax: number | null;
+  workModes: string[];
+  targetSeniority: string | null;
+  preferredSectors: string[];
+  avoidedSectors: string[];
+  hasCv?: boolean;
+  updatedAt?: string;
+};
+
 export type ProfileResponse = {
   id: string;
   email: string;
   name: string;
-  profile: {
-    cvText: string;
-    skills: string[];
-    targetRoles: string[];
-    experienceYears: number | null;
-    preferredLocations: string[];
-  } | null;
+  hasPassword: boolean;
+  profile: ProfileData | null;
 };
+
+/** Upload multipart (CV) — ne force pas Content-Type JSON. */
+export async function apiForm<T>(path: string, form: FormData): Promise<T> {
+  const method = "POST";
+  const run = async () => {
+    const csrf = await ensureCsrf();
+    return fetch(`${API_URL}${path}`, {
+      method,
+      credentials: "include",
+      headers: {
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+      },
+      body: form,
+    });
+  };
+
+  let res = await run();
+  if (res.status === 401) {
+    const ok = await tryRefresh();
+    if (ok) res = await run();
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText);
+  }
+  return data as T;
+}

@@ -251,7 +251,7 @@ export function ApplicationDetailPanel({
   }
 
   async function changeStatus(status: ApplicationStatus) {
-    if (status === local.status) return;
+    if (!local || status === local.status) return;
     const body: Record<string, unknown> = { status };
     if (status !== "RESPONSE") body.outcome = null;
     await patch(body, "status");

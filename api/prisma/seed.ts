@@ -11,11 +11,21 @@ async function main() {
     cvText: `Développeur full-stack avec 5 ans d'expérience.
 Stack: TypeScript, React, Node.js, PostgreSQL, Prisma, Tailwind.
 À l'aise avec les APIs REST, l'auth JWT et l'intégration d'IA.
+Communication, autonomie et travail d'équipe.
 Recherche un poste Confirmé/Senior en remote ou Paris.`,
+    cvFileName: "cv-demo.txt",
+    cvImportedAt: new Date(),
     skills: ["TypeScript", "React", "Node.js", "PostgreSQL", "Prisma", "Tailwind"],
+    softSkills: ["Communication", "Autonomie", "Travail d'équipe"],
     targetRoles: ["Full-stack Developer", "Backend Engineer"],
     experienceYears: 5,
     preferredLocations: ["Remote", "Paris"],
+    salaryMin: 50000,
+    salaryMax: 70000,
+    workModes: ["remote", "hybrid"],
+    targetSeniority: "confirme",
+    preferredSectors: ["SaaS", "Data"],
+    avoidedSectors: ["Crypto"],
   };
 
   const user = await prisma.user.upsert({
@@ -34,10 +44,19 @@ Recherche un poste Confirmé/Senior en remote ou Paris.`,
           create: profileData,
           update: {
             cvText: profileData.cvText,
+            cvFileName: profileData.cvFileName,
+            cvImportedAt: profileData.cvImportedAt,
             skills: profileData.skills,
+            softSkills: profileData.softSkills,
             targetRoles: profileData.targetRoles,
             experienceYears: profileData.experienceYears,
             preferredLocations: profileData.preferredLocations,
+            salaryMin: profileData.salaryMin,
+            salaryMax: profileData.salaryMax,
+            workModes: profileData.workModes,
+            targetSeniority: profileData.targetSeniority,
+            preferredSectors: profileData.preferredSectors,
+            avoidedSectors: profileData.avoidedSectors,
           },
         },
       },

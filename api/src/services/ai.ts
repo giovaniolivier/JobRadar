@@ -21,9 +21,16 @@ export type AnalysisResult = z.infer<typeof analysisSchema>;
 type ProfileContext = {
   cvText: string;
   skills: string[];
+  softSkills?: string[];
   targetRoles: string[];
   experienceYears: number | null;
   preferredLocations: string[];
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  workModes?: string[];
+  targetSeniority?: string | null;
+  preferredSectors?: string[];
+  avoidedSectors?: string[];
 };
 
 type JobContext = {
@@ -95,6 +102,7 @@ function displayTech(raw: string): string {
     mongodb: "MongoDB",
     prisma: "Prisma",
     tailwind: "Tailwind CSS",
+    tailwindcss: "Tailwind CSS",
     docker: "Docker",
     kubernetes: "Kubernetes",
     aws: "AWS",
@@ -102,11 +110,41 @@ function displayTech(raw: string): string {
     python: "Python",
     golang: "Go",
     go: "Go",
+    fullstack: "Full-stack",
+    "full-stack": "Full-stack",
+    "full stack": "Full-stack",
+    "dev fullstack": "Full-stack",
+    "dev full stack": "Full-stack",
+    "dev full-stack": "Full-stack",
+    backend: "Backend",
+    frontend: "Frontend",
+    nestjs: "NestJS",
+    express: "Express",
   };
   const key = normalizeToken(t);
+  const spacedKey = t
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (known[key]) return known[key]!;
-  if (/^[a-z]/.test(t)) return t.charAt(0).toUpperCase() + t.slice(1);
-  return t;
+  if (known[spacedKey]) return known[spacedKey]!;
+  if (/^[A-Z0-9.+#/-]+$/.test(t) && t.length <= 6) return t; // CSS, HTML, CI/CD
+  // Title-case multi-word labels (rôles, soft skills libres)
+  return t
+    .split(/(\s|-)/)
+    .map((part, i) => {
+      if (part === " " || part === "-") return part;
+      if (i > 0 && /^(et|de|du|des|la|le|les|d'|l')$/i.test(part)) return part.toLowerCase();
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join("");
+}
+
+/** Normalise un libellé de compétence / rôle pour l’affichage et le stockage. */
+export function normalizeSkillLabel(raw: string): string {
+  return displayTech(raw);
 }
 
 function extractJobTechs(job: JobContext): string[] {
@@ -128,19 +166,74 @@ function extractJobTechs(job: JobContext): string[] {
   return out.slice(0, 14);
 }
 
+const SOFT_SKILL_PATTERNS: { label: string; re: RegExp }[] = [
+  { label: "Communication", re: /\bcommunication\b/i },
+  { label: "Leadership", re: /\bleadership|encadrement|management\b/i },
+  { label: "Travail d'équipe", re: /\btravail\s+d['’]équipe|team\s*work|collaboratif\b/i },
+  { label: "Autonomie", re: /\bautonom(e|ie)\b/i },
+  { label: "Rigoureux", re: /\brigour(eux|euse)|rigueur\b/i },
+  { label: "Créativité", re: /\bcréativit[ée]|creativity\b/i },
+  { label: "Résolution de problèmes", re: /\br[ée]solution\s+de\s+probl[èe]mes|problem[- ]solving\b/i },
+  { label: "Pédagogie", re: /\bp[ée]dagogie|mentorat|mentoring\b/i },
+  { label: "Organisation", re: /\borganisation|organis[ée]\b/i },
+  { label: "Adaptabilité", re: /\badaptabilit[ée]|flexible\b/i },
+];
+
+/** Extraction heuristique des compétences techniques et soft skills depuis un CV texte. */
+export function extractSkillsFromCv(cvText: string): { skills: string[]; softSkills: string[] } {
+  const bag = cvText.slice(0, 12000);
+  const techMatches = Array.from(
+    bag.matchAll(
+      /\b(TypeScript|JavaScript|Python|Java|Go|Rust|PHP|Ruby|Swift|Kotlin|React(?:\.js)?|Next\.js|Nextjs|Vue(?:\.js)?|Angular|Node(?:\.js)?|Nodejs|NestJS|Express|Django|Flask|Spring|PostgreSQL|Postgres|MySQL|MongoDB|Redis|Prisma|GraphQL|Docker|Kubernetes|AWS|GCP|Azure|Tailwind(?:\s*CSS)?|CSS|HTML|Sass|Webpack|Vite|CI\/CD|Figma|Agile|Scrum)\b/gi
+    )
+  ).map((m) => m[1]!);
+
+  const seen = new Set<string>();
+  const skills: string[] = [];
+  for (const raw of techMatches) {
+    const key = normalizeToken(raw);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    skills.push(displayTech(raw));
+  }
+
+  const softSkills = SOFT_SKILL_PATTERNS.filter((p) => p.re.test(bag)).map((p) => p.label);
+  return { skills: skills.slice(0, 24), softSkills: softSkills.slice(0, 12) };
+}
+
+function parseSalaryK(raw: string | null): number | null {
+  if (!raw?.trim()) return null;
+  const nums = [...raw.matchAll(/(\d[\d\s]{0,5})\s*k/gi)].map((m) =>
+    Number(m[1]!.replace(/\s/g, ""))
+  );
+  if (nums.length) return Math.max(...nums) * 1000;
+  const plain = [...raw.matchAll(/(\d[\d\s]{2,})\s*(?:€|EUR)/gi)].map((m) =>
+    Number(m[1]!.replace(/\s/g, ""))
+  );
+  if (plain.length) return Math.max(...plain);
+  return null;
+}
+
+function detectJobWorkMode(job: JobContext): "remote" | "hybrid" | "onsite" {
+  const loc = `${job.location ?? ""} ${job.description}`.toLowerCase();
+  if (/hybrid|hybride/.test(loc)) return "hybrid";
+  if (/remote|télétravail|teletravail|full\s*remote|anywhere/.test(loc)) return "remote";
+  return "onsite";
+}
+
 function profileHasTech(profile: ProfileContext, tech: string): boolean {
   const needle = normalizeToken(tech);
   if (!needle) return false;
   const bag = [
     ...profile.skills,
+    ...(profile.softSkills ?? []),
     ...profile.targetRoles,
     profile.cvText.slice(0, 8000),
   ]
     .join(" ")
     .toLowerCase();
   const bagNorm = normalizeToken(bag);
-  if (bagNorm.includes(needle)) return true;
-  // alias courts
+  if (bag.includes(needle) || bagNorm.includes(needle)) return true;
   if (needle === "nodejs" && /node/.test(bag)) return true;
   if (needle === "nextjs" && /next/.test(bag)) return true;
   if (needle === "react" && /react/.test(bag)) return true;
@@ -155,8 +248,7 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
   const matchedTechs = jobTechs.filter((t) => profileHasTech(profile, t));
   const missingTechs = jobTechs.filter((t) => !profileHasTech(profile, t));
 
-  // Couverture des technos exigées par l’offre (pas l’inverse)
-  const scoreBase = jobTechs.length
+  let scoreBase = jobTechs.length
     ? Math.round((matchedTechs.length / jobTechs.length) * 85)
     : profile.skills.length
       ? 45
@@ -179,20 +271,78 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
   const seniority =
     job.seniority ?? (/(junior|confirmé|senior|lead|staff)/i.exec(job.description)?.[1] ?? null);
 
+  const jobSalary = parseSalaryK(job.salaryRaw);
+  if (jobSalary != null && profile.salaryMin != null && jobSalary < profile.salaryMin * 0.85) {
+    scoreBase = Math.max(5, scoreBase - 12);
+    redFlags.push("Salaire probablement sous votre fourchette");
+  }
+
+  const modes = profile.workModes ?? [];
+  if (modes.length) {
+    const jobMode = detectJobWorkMode(job);
+    if (!modes.includes(jobMode)) {
+      scoreBase = Math.max(5, scoreBase - 8);
+    } else {
+      scoreBase = Math.min(100, scoreBase + 4);
+    }
+  }
+
+  if (profile.targetSeniority && seniority) {
+    const want = normalizeToken(profile.targetSeniority);
+    const got = normalizeToken(seniority.replace(/é/g, "e"));
+    if (want && got && want !== got && !(want === "confirme" && /mid|confirm/.test(got))) {
+      scoreBase = Math.max(5, scoreBase - 6);
+    }
+  }
+
+  const locs = (profile.preferredLocations ?? []).filter(
+    (l) => !/^(remote|hybride?|hybrid|onsite|sur[\s-]?site|t[ée]l[ée]travail|teletravail|full\s*remote)$/i.test(l.trim())
+  );
+  if (locs.length && job.location) {
+    const locBag = normalizeToken(job.location);
+    const hit = locs.some((l) => {
+      const n = normalizeToken(l);
+      return n && (locBag.includes(n) || n.includes(locBag.slice(0, 6)));
+    });
+    if (hit) scoreBase = Math.min(100, scoreBase + 3);
+  }
+
+  const avoided = profile.avoidedSectors ?? [];
+  if (avoided.length) {
+    const hay = `${job.company} ${job.description}`.toLowerCase();
+    if (avoided.some((s) => s.trim() && hay.includes(s.toLowerCase()))) {
+      scoreBase = Math.max(5, scoreBase - 10);
+      redFlags.push("Secteur potentiellement à éviter selon vos préférences");
+    }
+  }
+
+  const preferred = profile.preferredSectors ?? [];
+  if (preferred.length) {
+    const hay = `${job.company} ${job.description}`.toLowerCase();
+    if (preferred.some((s) => s.trim() && hay.includes(s.toLowerCase()))) {
+      scoreBase = Math.min(100, scoreBase + 5);
+    }
+  }
+
   const strengths: string[] = matchedTechs
     .slice(0, 4)
     .map((t) => `${t} déjà présent dans votre profil`);
 
-  if (!strengths.length && profile.targetRoles.some((r) =>
-    job.title.toLowerCase().includes(r.toLowerCase().split(/\s+/)[0] ?? "")
-  )) {
+  if (
+    !strengths.length &&
+    profile.targetRoles.some((r) =>
+      job.title.toLowerCase().includes(r.toLowerCase().split(/\s+/)[0] ?? "")
+    )
+  ) {
     strengths.push(`Intitulé proche de vos rôles cibles (${profile.targetRoles[0]})`);
   }
   if (!strengths.length && profile.experienceYears && profile.experienceYears >= 3) {
-    strengths.push(`${profile.experienceYears} ans d’expérience — base solide pour ce type de poste`);
+    strengths.push(
+      `${profile.experienceYears} ans d'expérience — base solide pour ce type de poste`
+    );
   }
   if (!strengths.length) {
-    strengths.push("Peu d’alignement technique direct détecté sur cette offre");
+    strengths.push("Peu d'alignement technique direct détecté sur cette offre");
   }
 
   const gaps: string[] = missingTechs
@@ -200,7 +350,6 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
     .map((t) => `${t} non mentionné dans votre CV`);
 
   if (!gaps.length && matchedTechs.length && matchedTechs.length === jobTechs.length) {
-    // stack couverte : éventuel écart soft
     if (seniority && /senior|lead|staff/i.test(seniority) && (profile.experienceYears ?? 0) < 5) {
       gaps.push("Seniorité demandée potentiellement au-dessus de votre expérience affichée");
     }
@@ -209,7 +358,7 @@ function heuristicAnalysis(profile: ProfileContext, job: JobContext): AnalysisRe
   const coverage =
     jobTechs.length === 0
       ? "stack peu explicite"
-      : `${matchedTechs.length}/${jobTechs.length} techno${jobTechs.length > 1 ? "s" : ""} de l’offre couverte${matchedTechs.length > 1 ? "s" : ""}`;
+      : `${matchedTechs.length}/${jobTechs.length} techno${jobTechs.length > 1 ? "s" : ""} de l'offre couverte${matchedTechs.length > 1 ? "s" : ""}`;
 
   const raw = scoreBase + (redFlags.length ? -8 : 5) - missingTechs.length * 3;
   return {
@@ -267,8 +416,14 @@ Règles de rédaction (important) :
 PROFIL:
 - Rôles cibles: ${profile.targetRoles.join(", ") || "n/a"}
 - Skills: ${profile.skills.join(", ") || "n/a"}
+- Soft skills: ${(profile.softSkills ?? []).join(", ") || "n/a"}
 - Années d'expérience: ${profile.experienceYears ?? "n/a"}
 - Lieux préférés: ${profile.preferredLocations.join(", ") || "n/a"}
+- Salaire souhaité: ${profile.salaryMin ?? "?"}-${profile.salaryMax ?? "?"} €
+- Modes: ${(profile.workModes ?? []).join(", ") || "n/a"}
+- Séniorité visée: ${profile.targetSeniority ?? "n/a"}
+- Secteurs préférés: ${(profile.preferredSectors ?? []).join(", ") || "n/a"}
+- Secteurs à éviter: ${(profile.avoidedSectors ?? []).join(", ") || "n/a"}
 - CV:
 ${profile.cvText.slice(0, 6000)}
 
