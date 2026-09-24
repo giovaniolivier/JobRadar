@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { paramId } from "../lib/params.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
-import { analyzeJobAgainstProfile, analyzeJobHeuristic, generateCoverLetter } from "../services/ai.js";
+import { analyzeJobAgainstProfile, analyzeJobHeuristic, anthropicErrorMessage, generateCoverLetter } from "../services/ai.js";
 import { notifyHighScoreAnalysis } from "../services/emailNotifications.js";
 import {
   importManualJobs,
@@ -340,7 +340,8 @@ offersRouter.post("/analyze-new", async (req: AuthedRequest, res, next) => {
       });
     } catch (err) {
       await prisma.job.delete({ where: { id: job!.id } }).catch(() => undefined);
-      throw new HttpError(502, "L'analyse a échoué. Réessayez dans un instant.");
+      if (err instanceof HttpError) throw err;
+      throw new HttpError(502, anthropicErrorMessage(err));
     }
   } catch (err) {
     next(err);

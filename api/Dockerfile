@@ -16,10 +16,15 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npx prisma generate
-COPY --from=build /app/dist ./dist
 COPY prisma ./prisma
+# prisma CLI is a devDependency; install it for generate + migrate deploy
+RUN npm ci --omit=dev \
+  && npm install prisma@6.19.3 --no-save \
+  && npx prisma generate
+COPY --from=build /app/dist ./dist
+# Needed for `prisma db seed` (imports ../src/...)
+COPY src ./src
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
-
+# db push: simple for local Docker demo (évite l’historique migrate cassé sur volume neuf)
+CMD ["sh", "-c", "npx prisma db push && node dist/index.js"]
 

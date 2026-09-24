@@ -4,7 +4,7 @@ Assistant de veille et de tri d'offres d'emploi.
 
 ```
 JobRadar/
-├── api/   → backend (Express + Prisma + PostgreSQL + Claude)
+├── api/   → backend (Express + Prisma + PostgreSQL + Gemini/Claude)
 └── web/   → frontend (React + Vite + Tailwind)
 ```
 
@@ -14,7 +14,7 @@ Un seul repo GitHub ; web et API se déploient séparément (ou via Docker Compo
 
 - Node.js 20+
 - PostgreSQL
-- (Optionnel) clé Anthropic pour Claude
+- (Optionnel) clé Gemini (gratuit) et/ou Anthropic pour l’IA
 - (Optionnel) SMTP pour OTP, reset password et emails de notification
 
 ## Setup local
@@ -24,7 +24,7 @@ Un seul repo GitHub ; web et API se déploient séparément (ou via Docker Compo
 ```powershell
 cd api
 cp .env.example .env
-# Éditer DATABASE_URL, JWT_SECRET, CORS_ORIGIN, APP_ORIGIN, ANTHROPIC_API_KEY, SMTP_*
+# Éditer DATABASE_URL, JWT_SECRET, CORS_ORIGIN, APP_ORIGIN, GEMINI_API_KEY, SMTP_*
 npm install
 npm run db:migrate:deploy   # ou npm run db:push en démo locale
 npm run db:seed

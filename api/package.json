@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.5.0",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
@@ -47,6 +48,6 @@
     "typescript": "^5.8.2"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts"
   }
 }

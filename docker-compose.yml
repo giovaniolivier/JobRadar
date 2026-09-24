@@ -29,6 +29,11 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      AI_PROVIDER: ${AI_PROVIDER:-auto}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}

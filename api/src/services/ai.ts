@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 
 const analysisSchema = z.object({
@@ -43,12 +44,220 @@ type JobContext = {
   seniority: string | null;
 };
 
-function getClient() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey.includes("your-key")) {
-    return null;
+type AiProvider = "gemini" | "groq" | "anthropic";
+
+function hasGeminiKey(): boolean {
+  const k = process.env.GEMINI_API_KEY?.trim();
+  return Boolean(k && !k.includes("your-key") && k.length > 10);
+}
+
+function hasGroqKey(): boolean {
+  const k = process.env.GROQ_API_KEY?.trim();
+  return Boolean(k && !k.includes("your-key") && k.length > 10);
+}
+
+function hasAnthropicKey(): boolean {
+  const k = process.env.ANTHROPIC_API_KEY?.trim();
+  return Boolean(k && !k.includes("your-key") && k.length > 10);
+}
+
+/** Ordre auto : Gemini → Groq → Claude (selon clés présentes). */
+function providerChain(): AiProvider[] {
+  const forced = (process.env.AI_PROVIDER ?? "auto").trim().toLowerCase();
+  if (forced === "none" || forced === "off" || forced === "heuristic") return [];
+  if (forced === "gemini") return hasGeminiKey() ? ["gemini"] : [];
+  if (forced === "groq") return hasGroqKey() ? ["groq"] : [];
+  if (forced === "anthropic" || forced === "claude") return hasAnthropicKey() ? ["anthropic"] : [];
+
+  const chain: AiProvider[] = [];
+  if (hasGeminiKey()) chain.push("gemini");
+  if (hasGroqKey()) chain.push("groq");
+  if (hasAnthropicKey()) chain.push("anthropic");
+  return chain;
+}
+
+function resolveProvider(): AiProvider | null {
+  return providerChain()[0] ?? null;
+}
+
+export const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
+export const GROQ_MODEL = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
+export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-6";
+
+/** @deprecated use aiProviderErrorMessage */
+export function anthropicErrorMessage(err: unknown): string {
+  return aiProviderErrorMessage(err);
+}
+
+function errText(err: unknown): string {
+  return err && typeof err === "object" && "message" in err
+    ? String((err as { message?: string }).message)
+    : String(err ?? "");
+}
+
+function isRetryableProviderError(err: unknown): boolean {
+  const lower = errText(err).toLowerCase();
+  return (
+    lower.includes("rate") ||
+    lower.includes("429") ||
+    lower.includes("503") ||
+    lower.includes("quota") ||
+    lower.includes("resource_exhausted") ||
+    lower.includes("too many") ||
+    lower.includes("credit balance") ||
+    lower.includes("too low") ||
+    lower.includes("service unavailab") ||
+    lower.includes("does not exist") ||
+    lower.includes("no longer available") ||
+    lower.includes("decommissioned") ||
+    lower.includes("not found") ||
+    lower.includes("empty groq") ||
+    lower.includes("empty gemini") ||
+    lower.includes("empty anthropic") ||
+    (lower.includes("404") && lower.includes("model"))
+  );
+}
+
+/** Message utilisateur lisible pour les erreurs LLM. */
+export function aiProviderErrorMessage(err: unknown): string {
+  const lower = errText(err).toLowerCase();
+  if (lower.includes("credit balance") || lower.includes("too low") || lower.includes("billing")) {
+    return "Crédits IA insuffisants. Configurez GROQ_API_KEY ou GEMINI_API_KEY (gratuits) dans api/.env.";
   }
-  return new Anthropic({ apiKey });
+  if (
+    (lower.includes("api_key") || lower.includes("api key") || lower.includes("invalid")) &&
+    lower.includes("key")
+  ) {
+    return "Clé API IA invalide. Vérifiez GEMINI_API_KEY, GROQ_API_KEY ou ANTHROPIC_API_KEY.";
+  }
+  if (
+    lower.includes("401") ||
+    lower.includes("403") ||
+    lower.includes("permission") ||
+    lower.includes("authentication") ||
+    lower.includes("unauthorized")
+  ) {
+    return "Accès IA refusé. Vérifiez la clé API et les quotas.";
+  }
+  if (
+    lower.includes("rate") ||
+    lower.includes("429") ||
+    lower.includes("quota") ||
+    lower.includes("resource_exhausted") ||
+    lower.includes("too many")
+  ) {
+    return "Quota IA dépassé temporairement. Réessayez dans une minute, ou ajoutez une autre clé (Gemini / Groq).";
+  }
+  if (
+    lower.includes("does not exist") ||
+    lower.includes("no longer available") ||
+    lower.includes("decommissioned") ||
+    (lower.includes("404") && lower.includes("model"))
+  ) {
+    return "Modèle IA indisponible. Vérifiez GEMINI_MODEL / GROQ_MODEL / ANTHROPIC_MODEL.";
+  }
+  return "L'analyse IA a échoué. Réessayez dans un instant.";
+}
+
+async function completeWithProvider(
+  provider: AiProvider,
+  prompt: string,
+  maxTokens: number
+): Promise<string> {
+  if (provider === "gemini") {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!.trim());
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      generationConfig: { maxOutputTokens: maxTokens },
+    });
+    const result = await model.generateContent(prompt);
+    const text = result.response.text()?.trim() ?? "";
+    if (!text) throw new Error("Empty Gemini response");
+    return text;
+  }
+
+  if (provider === "groq") {
+    // gpt-oss consomme des tokens en "reasoning" — prévoir de la marge
+    const isOss = GROQ_MODEL.includes("gpt-oss");
+    const tokenBudget = isOss ? Math.max(maxTokens * 3, 2048) : maxTokens;
+    const body: Record<string, unknown> = {
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: tokenBudget,
+      temperature: 0.4,
+    };
+    if (isOss) {
+      body.reasoning_effort = "low";
+    }
+
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY!.trim()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const raw = await res.text();
+    if (!res.ok) {
+      throw new Error(`Groq ${res.status}: ${raw.slice(0, 400)}`);
+    }
+    const data = JSON.parse(raw) as {
+      choices?: Array<{
+        message?: { content?: string | null; reasoning?: string | null };
+        finish_reason?: string;
+      }>;
+    };
+    const choice = data.choices?.[0];
+    let text = (choice?.message?.content ?? "").trim();
+    // Certains modèles mettent le texte utile après un bloc reasoning vide
+    if (!text && choice?.message?.reasoning) {
+      text = String(choice.message.reasoning).trim();
+    }
+    if (!text) {
+      throw new Error(
+        `Empty Groq response (finish=${choice?.finish_reason ?? "n/a"}, model=${GROQ_MODEL})`
+      );
+    }
+    return text;
+  }
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!.trim() });
+  const message = await client.messages.create({
+    model: CLAUDE_MODEL,
+    max_tokens: maxTokens,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const text = message.content
+    .filter((b) => b.type === "text")
+    .map((b) => (b.type === "text" ? b.text : ""))
+    .join("\n")
+    .trim();
+  if (!text) throw new Error("Empty Anthropic response");
+  return text;
+}
+
+/** Essaie les fournisseurs dans l’ordre ; bascule si quota / rate limit. */
+async function completeText(prompt: string, maxTokens: number): Promise<string> {
+  const chain = providerChain();
+  if (!chain.length) throw new Error("No AI provider configured");
+
+  let lastErr: unknown;
+  for (let i = 0; i < chain.length; i++) {
+    const provider = chain[i]!;
+    try {
+      return await completeWithProvider(provider, prompt, maxTokens);
+    } catch (err) {
+      lastErr = err;
+      const canFallback = i < chain.length - 1 && isRetryableProviderError(err);
+      if (canFallback) {
+        console.warn(`[ai] ${provider} failed, trying next provider…`, errText(err).slice(0, 160));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 function extractJson(text: string): unknown {
@@ -387,8 +596,7 @@ export async function analyzeJobAgainstProfile(
   profile: ProfileContext,
   job: JobContext
 ): Promise<AnalysisResult> {
-  const client = getClient();
-  if (!client) return heuristicAnalysis(profile, job);
+  if (!resolveProvider()) return heuristicAnalysis(profile, job);
 
   const prompt = `Tu es un assistant de recrutement. Analyse cette offre par rapport au profil candidat.
 Réponds UNIQUEMENT avec un JSON valide (pas de markdown) de la forme:
@@ -409,7 +617,7 @@ Règles de rédaction (important) :
 - strengths (3 max) : constats concrets, ex. "React déjà maîtrisé selon votre CV", "Expérience Node.js alignée avec le stack".
 - gaps (3 max) : ce que L'OFFRE exige et que le candidat n'a pas (ou peu), ex. "Next.js non mentionné dans votre CV", "Pas d'expérience Kubernetes visible".
 - Ne jamais écrire de libellés génériques du type "Écart possible : X" ou "Compétence alignée : X".
-- Ne jamais mentionner "mode démo", "heuristique" ou "ANTHROPIC" dans summary/strengths/gaps.
+- Ne jamais mentionner "mode démo", "heuristique", "Gemini" ou "ANTHROPIC" dans summary/strengths/gaps.
 - relevanceScore doit refléter la couverture réelle des exigences de l'offre (beaucoup d'écarts → score bas).
 - Red flags typiques: salaire non précisé, expérience irréaliste, stack floue, remote "fake", culture toxique signalée dans le texte.
 
@@ -437,17 +645,7 @@ OFFRE:
 - Description:
 ${job.description.slice(0, 8000)}`;
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const text = message.content
-    .filter((b) => b.type === "text")
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("\n");
-
+  const text = await completeText(prompt, 1024);
   return analysisSchema.parse(extractJson(text));
 }
 
@@ -576,8 +774,8 @@ export async function generateCoverLetter(
         ? "détaillée (280-380 mots, plusieurs paragraphes)"
         : "standard (180-260 mots)";
 
-  const client = getClient();
-  if (!client) {
+  const clientMissing = !resolveProvider();
+  if (clientMissing) {
     return {
       coverLetter: demoCoverLetter(profile, job, tone, length, highlight),
       demo: true,
@@ -598,19 +796,18 @@ Rôles cibles: ${profile.targetRoles.join(", ") || "n/a"}
 OFFRE: ${job.title} chez ${job.company}
 ${job.description.slice(0, 4000)}`;
 
-  const maxTokens = length === "detailed" ? 1200 : length === "short" ? 600 : 900;
-
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: maxTokens,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const coverLetter = message.content
-    .filter((b) => b.type === "text")
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("\n")
-    .trim();
-
-  return { coverLetter, demo: false };
+  const maxTokens = length === "detailed" ? 1200 : length === "short" ? 800 : 1000;
+  try {
+    const coverLetter = (await completeText(prompt, maxTokens)).trim();
+    if (coverLetter.length < 80) {
+      throw new Error("Cover letter too short");
+    }
+    return { coverLetter, demo: false };
+  } catch (err) {
+    console.warn("[ai] cover letter LLM failed, using template:", errText(err).slice(0, 200));
+    return {
+      coverLetter: demoCoverLetter(profile, job, tone, length, highlight),
+      demo: true,
+    };
+  }
 }

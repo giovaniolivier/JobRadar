@@ -255,7 +255,7 @@ function AnalyzeOfferPanel({
         return;
       }
       setError(
-        err instanceof ApiError && err.status < 500
+        err instanceof ApiError && err.message
           ? err.message
           : "L'analyse a échoué. Réessayez dans un instant."
       );

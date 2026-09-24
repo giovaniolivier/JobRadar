@@ -267,7 +267,7 @@ export function LegalCguPage() {
         Les scores, red flags, résumés et lettres générés sont des aides à la décision. Ils ne
         constituent ni un conseil juridique, ni une garantie d’embauche. Vous restez seul·e
         responsable des candidatures et documents transmis aux employeurs. Les fonctionnalités
-        connectées à des API tierces (ex. Anthropic, sources d’offres) dépendent de leur
+        connectées à des API tierces (ex. Google Gemini, Anthropic, sources d’offres) dépendent de leur
         disponibilité et de leurs conditions.
       </p>
 
@@ -340,7 +340,7 @@ export function LegalPrivacyPage() {
         Vos données ne sont pas vendues ni partagées avec des recruteurs. Elles restent dans votre
         compte. Des sous-traitants techniques (hébergeur, SMTP, fournisseur d’IA) traitent des
         extraits strictement nécessaires : par exemple, des passages de CV et d’annonce envoyés à
-        Anthropic uniquement pour produire une analyse ou une lettre demandée.
+        Anthropic ou Google Gemini uniquement pour produire une analyse ou une lettre demandée.
       </p>
 
       <h2 className="text-base font-semibold text-[var(--ink)]">5. Durées de conservation</h2>

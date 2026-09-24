@@ -168,7 +168,10 @@ profileRouter.get("/", requireAuth, async (req: AuthedRequest, res, next) => {
   }
 });
 
-profileRouter.put("/", requireAuth, async (req: AuthedRequest, res, next) => {
+profileRouter.put("/", requireAuth, upsertProfile);
+profileRouter.patch("/", requireAuth, upsertProfile);
+
+async function upsertProfile(req: AuthedRequest, res: import("express").Response, next: import("express").NextFunction) {
   try {
     const userId = req.user!.userId;
     const body = updateSchema.parse(req.body);
@@ -266,7 +269,7 @@ profileRouter.put("/", requireAuth, async (req: AuthedRequest, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
 
 profileRouter.delete("/", requireAuth, async (req: AuthedRequest, res, next) => {
   try {
