@@ -80,6 +80,8 @@ const messages = {
     "settings.themeSystem": "Système",
 
     "settings.localeRegion": "Langue et région",
+    "settings.tabLocale": "Langue",
+    "settings.tabPrivacy": "Données",
     "settings.localeRegionHint":
       "Formats d’affichage — utile aussi pour les offres à l’international.",
     "settings.uiLanguage": "Langue de l’interface",
@@ -182,6 +184,8 @@ const messages = {
     "settings.themeSystem": "System",
 
     "settings.localeRegion": "Language & region",
+    "settings.tabLocale": "Language",
+    "settings.tabPrivacy": "Data",
     "settings.localeRegionHint": "Display formats — also useful for international roles.",
     "settings.uiLanguage": "Interface language",
     "settings.language": "Language",

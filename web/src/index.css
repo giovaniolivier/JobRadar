@@ -10,6 +10,8 @@
   --paper-lift: #f2efe6;
   --paper-deep: #d5d0c2;
   --amber: #c08a2e;
+  /* Contrôle ON (toggles) — ≥ 3:1 sur fond papier clair */
+  --amber-ui: #966818;
   --match: #4b6650;
   --brick: #9c4a3b;
   --hairline: #b4ad9c;
@@ -44,6 +46,7 @@
   --paper-lift: #1b2430;
   --paper-deep: #0e1319;
   --amber: #c08a2e;
+  --amber-ui: #c08a2e;
   --match: #7a9a82;
   --brick: #c46a5a;
   --hairline: #3a4452;
@@ -74,6 +77,7 @@
     --paper-lift: #1b2430;
     --paper-deep: #0e1319;
     --amber: #c08a2e;
+    --amber-ui: #c08a2e;
     --match: #7a9a82;
     --brick: #c46a5a;
     --hairline: #3a4452;

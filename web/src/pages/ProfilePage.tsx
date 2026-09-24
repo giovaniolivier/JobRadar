@@ -388,8 +388,8 @@ export function ProfilePage() {
   if (loading) return <p className="label">Chargement du profil…</p>;
 
   return (
-    <div className="fade-in max-w-3xl space-y-10 pb-16">
-      <header className="border-b border-[var(--hairline)] pb-6">
+    <div className="fade-in max-w-3xl pb-16">
+      <header className="border-b border-[var(--hairline)] pb-4">
         <p className="label">{onboarding ? "Première connexion" : "Profil"}</p>
         <h1 className="mt-1 text-3xl sm:text-4xl">
           {onboarding ? "Importez votre CV" : "Mon profil"}
@@ -445,10 +445,11 @@ export function ProfilePage() {
         })}
       </div>
 
+      <div className="mt-5 space-y-8 lg:mt-8 lg:space-y-10">
       {/* ——— CV ——— */}
       <section
         role="tabpanel"
-        className={`${tabPanelClass("cv")} space-y-4 border-b border-[var(--hairline)] pb-10`}
+        className={`${tabPanelClass("cv")} space-y-4 border-b border-[var(--hairline)] pb-8 lg:pb-10`}
       >
         <div>
           <h2 className="text-xl">CV</h2>
@@ -910,6 +911,7 @@ export function ProfilePage() {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }
