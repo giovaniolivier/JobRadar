@@ -5,6 +5,7 @@ import { paramId } from "../lib/params.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { analyzeJobAgainstProfile, analyzeJobHeuristic, generateCoverLetter } from "../services/ai.js";
+import { notifyHighScoreAnalysis } from "../services/emailNotifications.js";
 import {
   importManualJobs,
   parseJobsCsv,
@@ -14,6 +15,10 @@ import {
   syncRemotive,
   type ManualJobInput,
 } from "../services/ingestion.js";
+
+async function findOwnedJob(id: string, userId: string) {
+  return prisma.job.findFirst({ where: { id, userId } });
+}
 
 export const offersRouter = Router();
 
@@ -54,6 +59,7 @@ offersRouter.get("/", async (req: AuthedRequest, res, next) => {
 
     const jobs = await prisma.job.findMany({
       where: {
+        userId,
         AND: [
           ...(source ? [{ source }] : []),
           ...(location ? [{ location: { contains: location, mode: "insensitive" as const } }] : []),
@@ -162,8 +168,9 @@ offersRouter.get("/", async (req: AuthedRequest, res, next) => {
 });
 
 /** POST /offers — ajouter une offre (manuel / CSV / texte) */
-offersRouter.post("/", async (req, res, next) => {
+offersRouter.post("/", async (req: AuthedRequest, res, next) => {
   try {
+    const userId = req.user!.userId;
     const body = z
       .object({
         csv: z.string().optional(),
@@ -203,7 +210,7 @@ offersRouter.post("/", async (req, res, next) => {
       throw new HttpError(400, "Provide csv, text, a single offer, or offers[]");
     }
 
-    const created = await importManualJobs(toImport);
+    const created = await importManualJobs(userId, toImport);
     res.status(201).json({ count: created.length, offers: created });
   } catch (err) {
     next(err);
@@ -247,7 +254,7 @@ offersRouter.post("/analyze-new", async (req: AuthedRequest, res, next) => {
     const company = body.company?.trim() || parsed.company;
     const url = body.url?.trim() || parsed.url;
 
-    const [job] = await importManualJobs([
+    const [job] = await importManualJobs(userId, [
       {
         title,
         company,
@@ -310,14 +317,22 @@ offersRouter.post("/analyze-new", async (req: AuthedRequest, res, next) => {
         await prisma.job.update({ where: { id: job!.id }, data: jobPatch });
       }
 
-      const fresh = await prisma.job.findUniqueOrThrow({
-        where: { id: job!.id },
+      const fresh = await prisma.job.findFirstOrThrow({
+        where: { id: job!.id, userId },
         include: {
           analyses: { where: { userId }, take: 1 },
           applications: { where: { userId }, take: 1 },
         },
       });
       const { analyses, applications, ...rest } = fresh;
+      void notifyHighScoreAnalysis({
+        userId,
+        analysisId: analysis.id,
+        score,
+        jobTitle: rest.title,
+        company: rest.company,
+        jobId: rest.id,
+      }).catch(() => undefined);
       res.status(201).json({
         ...rest,
         analysis: analyses[0] ?? analysis,
@@ -332,11 +347,12 @@ offersRouter.post("/analyze-new", async (req: AuthedRequest, res, next) => {
   }
 });
 
-/** Bonus: sync Remotive (ingestion externe) */
-offersRouter.post("/sync", async (req, res, next) => {
+/** Bonus: sync Remotive (ingestion externe) — scoped à l’utilisateur */
+offersRouter.post("/sync", async (req: AuthedRequest, res, next) => {
   try {
+    const userId = req.user!.userId;
     const body = z.object({ search: z.string().optional() }).parse(req.body ?? {});
-    const result = await syncRemotive(body.search);
+    const result = await syncRemotive(userId, body.search);
     res.json(result);
   } catch (err) {
     next(err);
@@ -347,8 +363,8 @@ offersRouter.get("/:id", async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
-    const job = await prisma.job.findUnique({
-      where: { id },
+    const job = await prisma.job.findFirst({
+      where: { id, userId },
       include: {
         analyses: { where: { userId }, take: 1 },
         applications: { where: { userId }, take: 1 },
@@ -371,7 +387,7 @@ offersRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
-    const job = await prisma.job.findUnique({ where: { id } });
+    const job = await findOwnedJob(id, userId);
     if (!job) throw new HttpError(404, "Offer not found");
 
     const profile = await prisma.profile.findUnique({ where: { userId } });
@@ -425,6 +441,15 @@ offersRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
       });
     }
 
+    void notifyHighScoreAnalysis({
+      userId,
+      analysisId: analysis.id,
+      score,
+      jobTitle: nextTitle || job.title,
+      company: nextCompany || job.company,
+      jobId: job.id,
+    }).catch(() => undefined);
+
     res.json(analysis);
   } catch (err) {
     next(err);
@@ -445,7 +470,7 @@ offersRouter.post("/:id/generate-letter", async (req: AuthedRequest, res, next) 
       })
       .parse(req.body ?? {});
 
-    const job = await prisma.job.findUnique({ where: { id } });
+    const job = await findOwnedJob(id, userId);
     if (!job) throw new HttpError(404, "Offer not found");
 
     const profile = await prisma.profile.findUnique({ where: { userId } });

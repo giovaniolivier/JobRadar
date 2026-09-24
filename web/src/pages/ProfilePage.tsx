@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { TagInput } from "../components/TagInput";
-import { api, type ProfileData, type ProfileResponse } from "../lib/api";
+import { api, apiForm, type ProfileData, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import {
   dedupeNormalize,
@@ -302,12 +302,52 @@ export function ProfilePage() {
     }
   }
 
+  async function uploadCvFile(file: File) {
+    setCvBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("cv", file);
+      const res = await apiForm<{ ok: boolean; message: string; profile: ProfileData }>(
+        "/auth/upload-cv",
+        form
+      );
+      setProfile((prev) => ({ ...(prev ?? ({} as ProfileData)), ...res.profile, hasCv: true }));
+      setSkills(res.profile.skills);
+      setSoftSkills(res.profile.softSkills);
+      setReplacingCv(false);
+      setCvPaste("");
+      showToast(res.message || "CV mis à jour — les nouvelles analyses utiliseront cette version");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import impossible");
+    } finally {
+      setCvBusy(false);
+    }
+  }
+
   async function onFileSelected(file: File | null) {
     if (!file) return;
-    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      setError("PDF non supporté pour l'instant — utilisez un .txt ou collez le texte");
+    const name = file.name.toLowerCase();
+    const isPdf = file.type === "application/pdf" || name.endsWith(".pdf");
+    const isDocx =
+      name.endsWith(".docx") ||
+      file.type.includes("wordprocessingml");
+    const isDoc = name.endsWith(".doc") || file.type === "application/msword";
+
+    if (isDoc && !isDocx) {
+      setError("Le format .doc n’est pas supporté. Enregistrez en .docx, .pdf ou .txt.");
       return;
     }
+
+    if (isPdf || isDocx) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Fichier trop volumineux. Maximum 5 Mo.");
+        return;
+      }
+      await uploadCvFile(file);
+      return;
+    }
+
     const text = (await file.text()).trim();
     if (text.length < 40) {
       setError("Le fichier semble trop court pour être un CV");
@@ -464,8 +504,7 @@ export function ProfilePage() {
               C’est bloquant pour le scoring : sans CV, aucune offre ne peut être évaluée sérieusement.
             </p>
             <p className="mt-2 text-xs text-[var(--ink)]/70">
-              Lecture automatique : fichier .txt pour l’instant (PDF / DOCX bientôt) — ou collez le
-              texte.
+              Formats : PDF, DOCX ou .txt — ou collez le texte.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
@@ -531,7 +570,7 @@ export function ProfilePage() {
                   Remplace la version actuelle — une seule version est utilisée pour l’analyse.
                 </p>
                 <p className="text-xs text-[var(--ink)]/70">
-                  Formats lus automatiquement : .txt (PDF / DOCX bientôt).
+                  Formats lus automatiquement : PDF, DOCX, .txt.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -580,7 +619,7 @@ export function ProfilePage() {
         <input
           ref={fileRef}
           type="file"
-          accept=".txt,text/plain"
+          accept=".txt,.md,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="hidden"
           onChange={(e) => {
             void onFileSelected(e.target.files?.[0] ?? null);

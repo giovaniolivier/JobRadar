@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { TagInput } from "../components/TagInput";
-import { ApiError, api, type ProfileData } from "../lib/api";
+import { ApiError, api, apiForm, type ProfileData } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
 type Step = "upload" | "loading" | "preview" | "manual";
@@ -49,21 +49,24 @@ function parseExperienceYears(raw: string): { ok: true; value: number | null } |
   return { ok: true, value: n };
 }
 
-function isAllowedExt(name: string) {
+function isTextExt(name: string) {
   const n = name.toLowerCase();
   return n.endsWith(".txt") || n.endsWith(".md") || n.endsWith(".text");
 }
 
-function isPdfOrDocx(name: string, type: string) {
+function isBinaryCv(name: string, type: string) {
   const n = name.toLowerCase();
   return (
     n.endsWith(".pdf") ||
     n.endsWith(".docx") ||
-    n.endsWith(".doc") ||
     type === "application/pdf" ||
-    type.includes("wordprocessingml") ||
-    type === "application/msword"
+    type.includes("wordprocessingml")
   );
+}
+
+function isLegacyDoc(name: string, type: string) {
+  const n = name.toLowerCase();
+  return n.endsWith(".doc") || type === "application/msword";
 }
 
 export function OnboardingCvPage() {
@@ -155,6 +158,31 @@ export function OnboardingCvPage() {
     }
   }
 
+  async function processFileUpload(file: File) {
+    setStep("loading");
+    setError(null);
+    setFileName(file.name);
+    try {
+      const form = new FormData();
+      form.append("cv", file);
+      const res = await apiForm<{ ok: boolean; profile: ProfileData }>("/auth/upload-cv", form);
+      setSkills(res.profile.skills ?? []);
+      setSoftSkills(res.profile.softSkills ?? []);
+      const years =
+        res.profile.experienceYears ??
+        (res.profile.cvText ? guessExperienceYears(res.profile.cvText) : null);
+      setExperienceYears(years != null ? String(years) : "");
+      setStep("preview");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Impossible de lire ce fichier. Vous pouvez coller le texte ou continuer manuellement."
+      );
+      setStep("manual");
+    }
+  }
+
   async function onFile(file: File | null) {
     if (!file) return;
     setError(null);
@@ -164,17 +192,20 @@ export function OnboardingCvPage() {
       return;
     }
 
-    if (isPdfOrDocx(file.name, file.type)) {
+    if (isLegacyDoc(file.name, file.type)) {
       setError(
-        "PDF et DOCX ne sont pas encore lus automatiquement. Exportez en .txt, ou collez le texte ci-dessous."
+        "Le format .doc (Word ancien) n’est pas supporté. Enregistrez en .docx, .pdf ou .txt."
       );
-      setStep("manual");
-      setFileName(file.name);
       return;
     }
 
-    if (!isAllowedExt(file.name) && !file.type.startsWith("text/")) {
-      setError("Ce format n’est pas pris en charge. Utilisez un PDF, un DOCX (bientôt), ou un .txt.");
+    if (isBinaryCv(file.name, file.type)) {
+      await processFileUpload(file);
+      return;
+    }
+
+    if (!isTextExt(file.name) && !file.type.startsWith("text/")) {
+      setError("Ce format n’est pas pris en charge. Utilisez un PDF, un DOCX ou un .txt.");
       return;
     }
 

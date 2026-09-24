@@ -14,6 +14,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { csrfProtect } from "./middleware/csrf.js";
 import { enforceHttps } from "./middleware/https.js";
 import { assertJwtSecret } from "./lib/authTokens.js";
+import { startEmailNotificationScheduler } from "./services/emailNotifications.js";
 
 assertJwtSecret();
 
@@ -58,4 +59,5 @@ app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`JobRadar API listening on http://localhost:${port}`);
+  startEmailNotificationScheduler();
 });

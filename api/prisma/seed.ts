@@ -111,9 +111,13 @@ Recherche un poste Confirmé/Senior en remote ou Paris.`,
   for (const job of sampleJobs) {
     const saved = await prisma.job.upsert({
       where: {
-        source_externalId: { source: job.source, externalId: job.externalId },
+        userId_source_externalId: {
+          userId: user.id,
+          source: job.source,
+          externalId: job.externalId,
+        },
       },
-      create: job,
+      create: { ...job, userId: user.id },
       update: job,
     });
     savedJobs.push(saved);

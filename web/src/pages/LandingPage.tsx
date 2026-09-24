@@ -187,6 +187,12 @@ export function LandingPage() {
           >
             Confidentialité
           </Link>
+          <Link
+            to="/legal/mentions"
+            className="hover:text-[var(--ink)] hover:underline underline-offset-4"
+          >
+            Mentions légales
+          </Link>
           <a
             href="mailto:hello@jobradar.app"
             className="hover:text-[var(--ink)] hover:underline underline-offset-4"

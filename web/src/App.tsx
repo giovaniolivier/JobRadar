@@ -17,6 +17,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import {
   ForgotPasswordPage,
   LegalCguPage,
+  LegalMentionsPage,
   LegalPrivacyPage,
   ResetPasswordPage,
 } from "./pages/LegalPages";
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/legal/cgu" element={<LegalCguPage />} />
           <Route path="/legal/privacy" element={<LegalPrivacyPage />} />
+          <Route path="/legal/mentions" element={<LegalMentionsPage />} />
           <Route path="/continue" element={<ContinuePage />} />
           <Route element={<PrivateRoute />}>
             <Route path="/onboarding" element={<OnboardingCvPage />} />

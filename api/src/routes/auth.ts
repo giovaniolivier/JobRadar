@@ -19,6 +19,7 @@ import {
 import { generateOtpCode, maskEmail, sendMail } from "../lib/mail.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
+import { extractCvText } from "../services/cvExtract.js";
 
 export const authRouter = Router();
 
@@ -406,11 +407,11 @@ authRouter.post(
       let cvFileName: string | null = null;
 
       if (req.file) {
-        const name = (req.file.originalname || "").toLowerCase();
-        if (name.endsWith(".pdf") || req.file.mimetype === "application/pdf") {
-          throw new HttpError(400, "PDF non supporté pour l'instant — utilisez .txt ou collez le texte");
-        }
-        cvText = req.file.buffer.toString("utf8").trim();
+        cvText = await extractCvText(
+          req.file.buffer,
+          req.file.originalname || "cv.txt",
+          req.file.mimetype
+        );
         cvFileName = req.file.originalname || "cv.txt";
       } else if (typeof req.body?.cvText === "string") {
         cvText = req.body.cvText.trim();
@@ -420,8 +421,8 @@ authRouter.post(
             : "cv-colle.txt";
       }
 
-      if (!cvText) {
-        throw new HttpError(400, "Provide a cv file or JSON { cvText }");
+      if (!cvText || cvText.length < 40) {
+        throw new HttpError(400, "Provide a cv file or JSON { cvText } (min. 40 caractères)");
       }
 
       const { extractSkillsFromCv, normalizeSkillLabel } = await import("../services/ai.js");

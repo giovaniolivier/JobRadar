@@ -8,24 +8,25 @@ JobRadar/
 └── web/   → frontend (React + Vite + Tailwind)
 ```
 
-Un seul repo GitHub ; web et API se déploient séparément.
+Un seul repo GitHub ; web et API se déploient séparément (ou via Docker Compose).
 
 ## Prérequis
 
 - Node.js 20+
 - PostgreSQL
 - (Optionnel) clé Anthropic pour Claude
+- (Optionnel) SMTP pour OTP, reset password et emails de notification
 
-## Setup
+## Setup local
 
 ### API
 
 ```powershell
 cd api
 cp .env.example .env
-# Éditer DATABASE_URL, JWT_SECRET, CORS_ORIGIN, ANTHROPIC_API_KEY
+# Éditer DATABASE_URL, JWT_SECRET, CORS_ORIGIN, APP_ORIGIN, ANTHROPIC_API_KEY, SMTP_*
 npm install
-npm run db:push
+npm run db:migrate:deploy   # ou npm run db:push en démo locale
 npm run db:seed
 npm run dev
 ```
@@ -44,3 +45,21 @@ npm run dev
 ```
 
 → http://localhost:5173
+
+## Docker (stack complète)
+
+```powershell
+# À la racine du repo
+$env:JWT_SECRET="un-secret-d-au-moins-32-caracteres"
+docker compose up --build
+```
+
+- Web : http://localhost:8080  
+- API : http://localhost:4000  
+- Postgres : localhost:5432
+
+## Notes produit
+
+- Les offres sont **isolées par utilisateur** (pas de fuite entre comptes).
+- CV : import **PDF / DOCX / .txt**.
+- Prefs email (Paramètres) : envoi réel si SMTP est configuré (score élevé, relance, entretien, digest).

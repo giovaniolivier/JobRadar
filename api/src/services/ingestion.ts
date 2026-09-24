@@ -30,7 +30,7 @@ function guessSeniority(title: string, description: string): string | null {
   return match?.[1] ?? null;
 }
 
-export async function syncRemotive(search?: string) {
+export async function syncRemotive(userId: string, search?: string) {
   const url = new URL("https://remotive.com/api/remote-jobs");
   if (search) url.searchParams.set("search", search);
   url.searchParams.set("limit", "50");
@@ -45,12 +45,14 @@ export async function syncRemotive(search?: string) {
     const description = stripHtml(job.description ?? "");
     await prisma.job.upsert({
       where: {
-        source_externalId: {
+        userId_source_externalId: {
+          userId,
           source: "remotive",
           externalId: String(job.id),
         },
       },
       create: {
+        userId,
         source: "remotive",
         externalId: String(job.id),
         title: job.title,
@@ -91,11 +93,12 @@ export type ManualJobInput = {
   url?: string;
 };
 
-export async function importManualJobs(jobs: ManualJobInput[]) {
+export async function importManualJobs(userId: string, jobs: ManualJobInput[]) {
   const created = [];
   for (const job of jobs) {
     const row = await prisma.job.create({
       data: {
+        userId,
         source: "manual",
         externalId: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         title: job.title,

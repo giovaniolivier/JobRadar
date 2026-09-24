@@ -222,7 +222,7 @@ applicationsRouter.post("/", async (req: AuthedRequest, res, next) => {
       })
       .parse(req.body);
 
-    const job = await prisma.job.findUnique({ where: { id: body.jobId } });
+    const job = await prisma.job.findFirst({ where: { id: body.jobId, userId } });
     if (!job) throw new HttpError(404, "Job not found");
 
     const status = body.status ?? "TO_APPLY";

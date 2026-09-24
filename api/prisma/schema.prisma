@@ -25,11 +25,13 @@ model User {
   updatedAt      DateTime          @updatedAt
   profile        Profile?
   settings       UserSettings?
+  jobs           Job[]
   analyses       Analysis[]
   applications   Application[]
   refreshTokens  RefreshToken[]
   passwordResets PasswordResetToken[]
   loginOtps      LoginOtp[]
+  emailDispatchLogs EmailDispatchLog[]
 }
 
 model LoginOtp {
@@ -106,11 +108,27 @@ model UserSettings {
   locale              String   @default("fr")
   dateFormat          String   @default("fr-FR")
   currency            String   @default("EUR")
+  lastDigestEmailAt   DateTime?
   updatedAt           DateTime @updatedAt
+}
+
+/// Déduplique les emails transactionnels (score, relance, entretien).
+model EmailDispatchLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// ex. high:{analysisId} | followup:{appId} | interview:{appId}:{day}
+  key       String
+  sentAt    DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([userId])
 }
 
 model Job {
   id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   source       String
   externalId   String?
   title        String
@@ -126,7 +144,8 @@ model Job {
   analyses     Analysis[]
   applications Application[]
 
-  @@unique([source, externalId])
+  @@unique([userId, source, externalId])
+  @@index([userId])
   @@index([title])
   @@index([company])
 }
