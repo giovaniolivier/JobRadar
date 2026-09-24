@@ -8,8 +8,9 @@ type BrandLogoProps = {
   /**
    * `full` — logo + tagline (landing publique).
    * `wordmark` — marque seule, tagline rognée (parcours produit / auth).
+   * `mark` — icône JR seule (header mobile).
    */
-  lockup?: "full" | "wordmark";
+  lockup?: "full" | "wordmark" | "mark";
   className?: string;
   onClick?: () => void;
 };
@@ -27,6 +28,13 @@ const WORDMARK_CLIP: Record<NonNullable<BrandLogoProps["size"]>, string> = {
   lg: "h-11",
 };
 
+/** Cadre carré pour le monogramme (partie gauche du PNG). */
+const MARK_CLIP: Record<NonNullable<BrandLogoProps["size"]>, string> = {
+  sm: "h-8 w-8",
+  md: "h-9 w-9",
+  lg: "h-11 w-11",
+};
+
 export function BrandLogo({
   to = "/",
   size = "md",
@@ -42,6 +50,15 @@ export function BrandLogo({
         className={`${HEIGHT[size]} w-auto max-w-[min(100%,16rem)] object-contain object-left ${className}`}
         decoding="async"
       />
+    ) : lockup === "mark" ? (
+      <span className={`inline-flex shrink-0 overflow-hidden ${MARK_CLIP[size]} ${className}`}>
+        <img
+          src={logoUrl}
+          alt="JobRadar"
+          className={`${WORDMARK_CLIP[size]} w-auto max-w-none object-contain object-left object-top`}
+          decoding="async"
+        />
+      </span>
     ) : (
       <span
         className={`inline-flex ${WORDMARK_CLIP[size]} max-w-[min(100%,14rem)] overflow-hidden ${className}`}

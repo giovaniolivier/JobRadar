@@ -159,7 +159,7 @@ export function NotificationsMenu() {
       <button
         ref={triggerRef}
         type="button"
-        className="relative inline-flex h-9 w-9 items-center justify-center border border-[var(--ink)] bg-transparent text-[var(--ink)] transition-colors hover:bg-[var(--ghost-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+        className="relative inline-flex h-11 w-11 items-center justify-center border border-[var(--ink)] bg-transparent text-[var(--ink)] transition-colors hover:bg-[var(--ghost-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)] lg:h-9 lg:w-9"
         aria-expanded={open}
         aria-controls={panelId}
         aria-haspopup="menu"

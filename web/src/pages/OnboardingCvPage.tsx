@@ -210,6 +210,7 @@ export function OnboardingCvPage() {
       });
       try {
         sessionStorage.removeItem(SKIP_KEY);
+        localStorage.removeItem("jobradar_cv_reminder_dismissed");
       } catch {
         /* ignore */
       }
@@ -257,6 +258,7 @@ export function OnboardingCvPage() {
       });
       try {
         sessionStorage.removeItem(SKIP_KEY);
+        localStorage.removeItem("jobradar_cv_reminder_dismissed");
       } catch {
         /* ignore */
       }
@@ -271,6 +273,7 @@ export function OnboardingCvPage() {
   function skip() {
     try {
       sessionStorage.setItem(SKIP_KEY, "1");
+      localStorage.setItem("jobradar_cv_reminder_dismissed", "1");
     } catch {
       /* ignore */
     }

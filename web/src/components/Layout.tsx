@@ -19,6 +19,18 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? "text-[var(--ink)] border-b border-[var(--amber)]" : "hover:text-[var(--ink)]"
   }`;
 
+const tabClass = ({ isActive }: { isActive: boolean }) =>
+  `flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.65rem] font-medium tracking-wide transition-colors ${
+    isActive ? "!text-[var(--amber)]" : "!text-[var(--ink-soft)]"
+  }`;
+
+const TABS = [
+  { to: "/dashboard", end: true, labelKey: "nav.dashboardShort" as const, icon: DashboardIcon },
+  { to: "/offers", end: false, labelKey: "nav.offersShort" as const, icon: OffersIcon },
+  { to: "/pipeline", end: false, labelKey: "nav.pipelineShort" as const, icon: PipelineIcon },
+  { to: "/profile", end: false, labelKey: "nav.profileShort" as const, icon: ProfileIcon },
+];
+
 export function Layout() {
   return (
     <AnalyzeOfferProvider>
@@ -32,19 +44,23 @@ function LayoutShell() {
   const { t } = useLocale();
   const navigate = useNavigate();
   const { openAnalyze } = useAnalyzeOffer();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px]">
-        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-4 px-4 py-2 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-2">
-          {/* Left — logo */}
+        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-3 px-4 py-2 sm:gap-x-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-2">
+          {/* Left — wordmark compact on mobile, full on desktop */}
           <div className="min-w-0">
-            <BrandLogo to="/dashboard" size="lg" onClick={() => setMobileOpen(false)} />
+            <span className="lg:hidden">
+              <BrandLogo to="/dashboard" size="sm" lockup="wordmark" />
+            </span>
+            <span className="hidden lg:inline-flex">
+              <BrandLogo to="/dashboard" size="lg" lockup="wordmark" />
+            </span>
           </div>
 
           {/* Center — main nav (desktop) */}
-          <nav className="hidden items-center justify-center gap-x-7 lg:flex">
+          <nav className="hidden items-center justify-center gap-x-7 lg:flex" aria-label={t("nav.primary")}>
             <NavLink to="/dashboard" end className={linkClass}>
               {t("nav.dashboard")}
             </NavLink>
@@ -63,11 +79,8 @@ function LayoutShell() {
           <div className="flex items-center justify-end gap-2 sm:gap-3">
             <button
               type="button"
-              className="btn btn-amber !hidden !py-2 !text-xs sm:!inline-flex sm:!text-sm"
-              onClick={() => {
-                setMobileOpen(false);
-                openAnalyze();
-              }}
+              className="btn btn-amber !hidden !py-2 !text-xs lg:!inline-flex lg:!text-sm"
+              onClick={() => openAnalyze()}
             >
               {t("nav.newOffer")}
             </button>
@@ -81,51 +94,47 @@ function LayoutShell() {
               onSettings={() => navigate("/settings")}
               onLogout={() => void logout()}
             />
-
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center border border-[var(--ink)] bg-transparent text-[var(--ink)] lg:hidden"
-              aria-expanded={mobileOpen}
-              aria-label={t("nav.openMenu")}
-              onClick={() => setMobileOpen((v) => !v)}
-            >
-              <MenuIcon open={mobileOpen} />
-            </button>
           </div>
         </div>
-
-        {mobileOpen && (
-          <nav className="border-t border-[var(--hairline)] px-4 py-3 lg:hidden">
-            <div className="flex flex-col gap-3">
-              <NavLink to="/dashboard" end className={linkClass} onClick={() => setMobileOpen(false)}>
-                {t("nav.dashboard")}
-              </NavLink>
-              <NavLink to="/offers" className={linkClass} onClick={() => setMobileOpen(false)}>
-                {t("nav.offers")}
-              </NavLink>
-              <NavLink to="/pipeline" className={linkClass} onClick={() => setMobileOpen(false)}>
-                {t("nav.pipeline")}
-              </NavLink>
-              <NavLink to="/profile" className={linkClass} onClick={() => setMobileOpen(false)}>
-                {t("nav.profile")}
-              </NavLink>
-              <button
-                type="button"
-                className="btn btn-amber mt-1 w-full sm:hidden"
-                onClick={() => {
-                  setMobileOpen(false);
-                  openAnalyze();
-                }}
-              >
-                {t("nav.newOffer")}
-              </button>
-            </div>
-          </nav>
-        )}
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+
+      <main className="mx-auto max-w-6xl px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-8 lg:py-10 lg:pb-10">
         <Outlet />
       </main>
+
+      {/* FAB — nouvelle offre (mobile) */}
+      <button
+        type="button"
+        className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--ink)] bg-[var(--amber)] text-[var(--amber-fg)] shadow-lg transition-transform active:scale-95 lg:hidden"
+        style={{
+          right: "max(1rem, env(safe-area-inset-right, 0px))",
+          bottom: "calc(4.75rem + env(safe-area-inset-bottom, 0px))",
+        }}
+        aria-label={t("nav.newOfferShort")}
+        onClick={() => openAnalyze()}
+      >
+        <PlusIcon />
+      </button>
+
+      {/* Tab bar (mobile) */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px] lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        aria-label={t("nav.primary")}
+      >
+        <div className="mx-auto flex max-w-6xl items-stretch">
+          {TABS.map(({ to, end, labelKey, icon: Icon }) => (
+            <NavLink key={to} to={to} end={end} className={tabClass}>
+              {({ isActive }) => (
+                <>
+                  <Icon active={isActive} />
+                  <span className="max-w-full truncate">{t(labelKey)}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
@@ -169,18 +178,54 @@ function UserMenu({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    // Lock scroll only when mobile sheet is likely shown
+    const mq = window.matchMedia("(max-width: 1023px)");
+    if (mq.matches) document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   function closeAnd(action: () => void) {
     setOpen(false);
     action();
     triggerRef.current?.focus();
   }
 
+  const identity = (
+    <div className="border-b border-[var(--hairline)] px-4 py-3 lg:px-3 lg:py-2.5">
+      <p className="truncate text-sm font-medium" title={name}>
+        {name}
+      </p>
+      <p className="truncate text-xs text-[var(--ink-soft)]" title={email}>
+        {email}
+      </p>
+    </div>
+  );
+
+  const items = (
+    <>
+      <div className="py-1">
+        <MenuItem onClick={() => closeAnd(onAccount)}>{t("nav.myAccount")}</MenuItem>
+        <MenuItem onClick={() => closeAnd(onSettings)}>{t("nav.settings")}</MenuItem>
+      </div>
+      <div className="border-t border-[var(--hairline)] py-1">
+        <MenuItem onClick={() => closeAnd(onLogout)} tone="danger">
+          {t("nav.logout")}
+        </MenuItem>
+      </div>
+    </>
+  );
+
   return (
     <div className="relative" ref={rootRef}>
       <button
         ref={triggerRef}
         type="button"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--paper-lift)] text-xs font-semibold tracking-wide text-[var(--ink)] transition-colors hover:border-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--paper-lift)] text-xs font-semibold tracking-wide text-[var(--ink)] transition-colors hover:border-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)] lg:h-9 lg:w-9"
         aria-expanded={open}
         aria-controls={panelId}
         aria-haspopup="menu"
@@ -195,31 +240,40 @@ function UserMenu({
       >
         <span aria-hidden="true">{initials(name, email)}</span>
       </button>
+
       {open && (
-        <div
-          id={panelId}
-          role="menu"
-          aria-label={t("nav.accountMenu")}
-          className="absolute right-0 z-40 mt-2 w-56 border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
-        >
-          <div className="border-b border-[var(--hairline)] px-3 py-2.5">
-            <p className="truncate text-sm font-medium" title={name}>
-              {name}
-            </p>
-            <p className="truncate text-xs text-[var(--ink-soft)]" title={email}>
-              {email}
-            </p>
+        <>
+          {/* Mobile — bottom sheet */}
+          <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
+            <button
+              type="button"
+              className="absolute inset-0 bg-[var(--paper-deep)]/70"
+              aria-label={t("nav.closeMenu")}
+              onClick={() => setOpen(false)}
+            />
+            <div
+              id={panelId}
+              role="menu"
+              aria-label={t("nav.accountMenu")}
+              className="absolute inset-x-0 bottom-0 border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
+              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+            >
+              <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[var(--hairline)]" aria-hidden />
+              {identity}
+              {items}
+            </div>
           </div>
-          <div className="py-1">
-            <MenuItem onClick={() => closeAnd(onAccount)}>{t("nav.myAccount")}</MenuItem>
-            <MenuItem onClick={() => closeAnd(onSettings)}>{t("nav.settings")}</MenuItem>
+
+          {/* Desktop — anchored dropdown */}
+          <div
+            role="menu"
+            aria-label={t("nav.accountMenu")}
+            className="absolute right-0 z-40 mt-2 hidden w-56 border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg lg:block"
+          >
+            {identity}
+            {items}
           </div>
-          <div className="border-t border-[var(--hairline)] py-1">
-            <MenuItem onClick={() => closeAnd(onLogout)} tone="danger">
-              {t("nav.logout")}
-            </MenuItem>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -238,7 +292,7 @@ function MenuItem({
     <button
       type="button"
       role="menuitem"
-      className={`block w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--row-hover)] focus-visible:bg-[var(--row-hover)] focus-visible:outline-none ${
+      className={`block w-full px-4 py-3.5 text-left text-sm transition-colors hover:bg-[var(--row-hover)] focus-visible:bg-[var(--row-hover)] focus-visible:outline-none lg:px-3 lg:py-2.5 ${
         tone === "danger" ? "text-[var(--brick)]" : ""
       }`}
       onClick={onClick}
@@ -248,14 +302,79 @@ function MenuItem({
   );
 }
 
-function MenuIcon({ open }: { open: boolean }) {
+function PlusIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      {open ? (
-        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      ) : (
-        <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      )}
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DashboardIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-8.5Z"
+        stroke="currentColor"
+        strokeWidth={active ? "1.8" : "1.5"}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function OffersIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7"
+        stroke="currentColor"
+        strokeWidth={active ? "1.8" : "1.5"}
+        strokeLinecap="round"
+      />
+      <rect
+        x="4"
+        y="7"
+        width="16"
+        height="14"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth={active ? "1.8" : "1.5"}
+      />
+      <path d="M4 12h16" stroke="currentColor" strokeWidth={active ? "1.8" : "1.5"} />
+    </svg>
+  );
+}
+
+function PipelineIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+        stroke="currentColor"
+        strokeWidth={active ? "1.8" : "1.5"}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ProfileIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle
+        cx="12"
+        cy="8"
+        r="3.5"
+        stroke="currentColor"
+        strokeWidth={active ? "1.8" : "1.5"}
+      />
+      <path
+        d="M5 19.5c1.8-3.2 4.2-4.8 7-4.8s5.2 1.6 7 4.8"
+        stroke="currentColor"
+        strokeWidth={active ? "1.8" : "1.5"}
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

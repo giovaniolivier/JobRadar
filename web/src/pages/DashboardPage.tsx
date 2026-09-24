@@ -4,18 +4,39 @@ import { fetchDashboard, type DashboardSummary } from "../lib/home";
 import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 
+const CV_BANNER_DISMISS_KEY = "jobradar_cv_reminder_dismissed";
+
+function readCvBannerDismissed(): boolean {
+  try {
+    return localStorage.getItem(CV_BANNER_DISMISS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function DashboardPage() {
   const { openAnalyze } = useAnalyzeOffer();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cvBannerDismissed, setCvBannerDismissed] = useState(readCvBannerDismissed);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const summary = await fetchDashboard();
-        if (!cancelled) setData(summary);
+        if (!cancelled) {
+          setData(summary);
+          if (summary.hasCv) {
+            try {
+              localStorage.removeItem(CV_BANNER_DISMISS_KEY);
+            } catch {
+              // ignore
+            }
+            setCvBannerDismissed(false);
+          }
+        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Erreur");
       } finally {
@@ -41,13 +62,22 @@ export function DashboardPage() {
 
   const { stats, topOffers, pipelineFocus } = data;
   const isEmpty = stats.totalAnalyses === 0 && topOffers.length === 0;
-  const needsCv = !data.hasCv;
+  const showCvBanner = !data.hasCv && !cvBannerDismissed;
+
+  function dismissCvBanner() {
+    try {
+      localStorage.setItem(CV_BANNER_DISMISS_KEY, "1");
+    } catch {
+      // ignore
+    }
+    setCvBannerDismissed(true);
+  }
 
   return (
     <div className="fade-in space-y-10">
-      {needsCv && (
-        <div className="border border-[var(--amber)]/50 bg-[var(--row-hover)] px-4 py-3 sm:px-5">
-          <p className="text-sm text-[var(--ink)]">
+      {showCvBanner && (
+        <div className="flex items-start gap-3 border border-[var(--amber)]/50 bg-[var(--row-hover)] px-4 py-3 sm:px-5">
+          <p className="min-w-0 flex-1 text-sm text-[var(--ink)]">
             Importez votre CV pour débloquer des scores fiables.{" "}
             <Link
               to="/onboarding"
@@ -56,6 +86,13 @@ export function DashboardPage() {
               Continuer l’import
             </Link>
           </p>
+          <button
+            type="button"
+            className="shrink-0 text-xs text-[var(--ink)]/70 underline underline-offset-4 hover:text-[var(--ink)]"
+            onClick={dismissCvBanner}
+          >
+            Plus tard
+          </button>
         </div>
       )}
 
@@ -63,7 +100,7 @@ export function DashboardPage() {
         <div className="max-w-xl">
           <p className="label">Tour de contrôle</p>
           <h1 className="mt-1 text-3xl sm:text-4xl">Tableau de bord</h1>
-          <p className="mt-2 text-[var(--ink-soft)]">
+          <p className="mt-2 text-[var(--ink)]/75">
             Où vous en êtes — et la prochaine action utile.
           </p>
           {stats.activityHint && (
@@ -74,7 +111,7 @@ export function DashboardPage() {
         </div>
         <button
           type="button"
-          className="btn btn-amber self-start sm:self-auto"
+          className="btn btn-amber hidden self-start lg:inline-flex"
           onClick={openAnalyze}
         >
           Analyser une nouvelle offre
@@ -97,9 +134,9 @@ export function DashboardPage() {
       </section>
 
       {isEmpty ? (
-        <section className="border border-[var(--hairline)] px-5 py-10 sm:px-8">
+        <section className="border border-[var(--hairline)] px-5 py-10 max-lg:pr-20 sm:px-8">
           <h2 className="text-2xl">Prêt à démarrer</h2>
-          <p className="mt-3 max-w-lg text-[var(--ink-soft)]">
+          <p className="mt-3 max-w-lg text-[var(--ink)]/75">
             Ajoutez votre première offre pour voir votre score de correspondance et construire votre
             pipeline.
           </p>
@@ -123,7 +160,7 @@ export function DashboardPage() {
               </Link>
             </div>
             {topOffers.length === 0 ? (
-              <p className="text-[var(--ink-soft)]">
+              <p className="text-[var(--ink)]/75">
                 Aucune offre « à postuler » à fort score pour le moment.{" "}
                 <button
                   type="button"
@@ -146,7 +183,7 @@ export function DashboardPage() {
                       <ScoreBadge score={offer.relevanceScore} />
                       <div className="min-w-0">
                         <h3 className="display text-lg font-semibold leading-snug">{offer.title}</h3>
-                        <p className="text-sm text-[var(--ink-soft)]">{offer.company}</p>
+                        <p className="text-sm text-[var(--ink)]/70">{offer.company}</p>
                         {offer.summary && (
                           <p className="mt-2 line-clamp-2 text-sm text-[var(--ink)]/80">
                             {offer.summary}
@@ -183,7 +220,7 @@ export function DashboardPage() {
               </Link>
             </div>
             {pipelineFocus.length === 0 ? (
-              <p className="text-[var(--ink-soft)]">
+              <p className="text-[var(--ink)]/75">
                 Pas encore de candidature en mouvement. Passez une offre en « Candidaté » ou
                 « Entretien » depuis le pipeline.
               </p>
@@ -198,9 +235,9 @@ export function DashboardPage() {
                       <div>
                         <p className="font-medium">
                           {item.title}
-                          <span className="text-[var(--ink-soft)]"> — {item.company}</span>
+                          <span className="text-[var(--ink)]/70"> — {item.company}</span>
                         </p>
-                        <p className="mt-1 text-sm text-[var(--ink-soft)]">{item.hint}</p>
+                        <p className="mt-1 text-sm text-[var(--ink)]/70">{item.hint}</p>
                       </div>
                       <span className="label shrink-0">
                         {item.status === "INTERVIEW" ? "Entretien" : "Relance"}

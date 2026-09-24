@@ -181,7 +181,11 @@ export function OffersPage() {
             </p>
           )}
         </div>
-        <button type="button" className="btn btn-amber self-start sm:self-auto" onClick={openAnalyze}>
+        <button
+          type="button"
+          className="btn btn-amber hidden self-start lg:inline-flex"
+          onClick={openAnalyze}
+        >
           + Nouvelle offre
         </button>
       </div>
@@ -306,7 +310,7 @@ export function OffersPage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    className="board-row cursor-pointer !flex flex-col gap-2 md:!grid md:items-center"
+                    className="board-row cursor-pointer flex flex-col gap-2 md:grid md:items-center"
                     style={{ gridTemplateColumns: "52px minmax(0,1fr) 100px minmax(120px,0.9fr) 128px" }}
                     onClick={() => openOfferDetail(job)}
                     onKeyDown={(e) => {
