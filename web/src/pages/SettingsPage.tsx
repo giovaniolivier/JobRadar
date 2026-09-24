@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { api, downloadDataExport, type UserSettings } from "../lib/api";
+import { Link, useSearchParams } from "react-router-dom";
+import { DeleteAccountPanel } from "../components/DeleteAccountPanel";
+import { api, downloadDataExport, type ProfileResponse, type UserSettings } from "../lib/api";
 import { useLocale, type AppLocale } from "../lib/i18n";
 import { applyTheme, type ThemePreference } from "../lib/theme";
 
@@ -145,12 +146,23 @@ function SettingRow({
 
 export function SettingsPage() {
   const { t, setLocale } = useLocale();
+  const [params] = useSearchParams();
   const [settings, setSettings] = useState<UserSettings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savedHint, setSavedHint] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("notifications");
+  const [hasPassword, setHasPassword] = useState(true);
+  const tabFromUrl = params.get("tab");
+  const initialTab: SettingsTab =
+    tabFromUrl === "notifications" ||
+    tabFromUrl === "appearance" ||
+    tabFromUrl === "locale" ||
+    tabFromUrl === "privacy" ||
+    tabFromUrl === "integrations"
+      ? tabFromUrl
+      : "notifications";
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>(initialTab);
   const ready = useRef(false);
   const saveTimer = useRef<number | null>(null);
   /** Uniquement les champs modifiés — un changement de thème n’écrase jamais les notifs. */
@@ -192,10 +204,16 @@ export function SettingsPage() {
     let cancelled = false;
     void (async () => {
       try {
-        const data = await api<UserSettings>("/settings");
+        const [data, profileRes] = await Promise.all([
+          api<UserSettings>("/settings"),
+          api<ProfileResponse>("/profile").catch(() => null),
+        ]);
         if (cancelled) return;
         const next = coerceSettings(data);
         setSettings(next);
+        if (profileRes && typeof profileRes.hasPassword === "boolean") {
+          setHasPassword(profileRes.hasPassword);
+        }
         if (next.theme === "light" || next.theme === "dark" || next.theme === "system") {
           applyTheme(next.theme);
         }
@@ -475,7 +493,7 @@ export function SettingsPage() {
 
       <section
         role="tabpanel"
-        className={`${tabPanelClass("privacy")} space-y-4 border-b border-[var(--hairline)] pb-10`}
+        className={`${tabPanelClass("privacy")} space-y-6 border-b border-[var(--hairline)] pb-10`}
       >
         <div>
           <h2 className="text-xl">{t("settings.privacy")}</h2>
@@ -499,13 +517,9 @@ export function SettingsPage() {
             {t("settings.privacyPolicy")}
           </Link>
         </div>
-        <p className="text-xs text-[var(--ink)]/70">
-          {t("settings.exportHintBefore")}{" "}
-          <Link to="/profile" className="underline underline-offset-2">
-            {t("settings.exportHintLink")}
-          </Link>
-          {t("settings.exportHintAfter")}
-        </p>
+        <p className="text-xs text-[var(--ink)]/70">{t("settings.exportHint")}</p>
+
+        <DeleteAccountPanel hasPassword={hasPassword} onError={setError} />
       </section>
 
       <section role="tabpanel" className={`${tabPanelClass("integrations")} space-y-4`}>

@@ -12,7 +12,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "mail:test": "tsx scripts/mail-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

@@ -54,11 +54,11 @@ function LayoutShell() {
       <header className="sticky top-0 z-30 border-b border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px]">
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-3 px-4 py-2 sm:gap-x-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-2">
           {/* Left — wordmark compact on mobile, full on desktop */}
-          <div className="min-w-0">
-            <span className="lg:hidden">
+          <div className="flex min-w-0 items-center">
+            <span className="inline-flex items-center lg:hidden">
               <BrandLogo to="/dashboard" size="sm" lockup="wordmark" />
             </span>
-            <span className="hidden lg:inline-flex">
+            <span className="hidden items-center lg:inline-flex">
               <BrandLogo to="/dashboard" size="lg" lockup="wordmark" />
             </span>
           </div>

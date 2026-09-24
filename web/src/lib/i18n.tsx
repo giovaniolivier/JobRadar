@@ -96,10 +96,8 @@ const messages = {
     "settings.export": "Exporter mes données",
     "settings.exporting": "Export…",
     "settings.privacyPolicy": "Politique de confidentialité",
-    "settings.exportHintBefore":
-      "L’export JSON contient profil, CV, analyses et candidatures. Le compte et le CV se gèrent dans",
-    "settings.exportHintLink": "Mon profil",
-    "settings.exportHintAfter": ".",
+    "settings.exportHint":
+      "L’export JSON contient profil, CV, analyses et candidatures. La suppression du compte est définitive.",
 
     "settings.integrations": "Intégrations",
     "settings.integrationsHint":
@@ -199,10 +197,8 @@ const messages = {
     "settings.export": "Export my data",
     "settings.exporting": "Exporting…",
     "settings.privacyPolicy": "Privacy policy",
-    "settings.exportHintBefore":
-      "The JSON export includes profile, CV, analyses, and applications. Account and CV are managed in",
-    "settings.exportHintLink": "My profile",
-    "settings.exportHintAfter": ".",
+    "settings.exportHint":
+      "The JSON export includes profile, CV, analyses, and applications. Account deletion is permanent.",
 
     "settings.integrations": "Integrations",
     "settings.integrationsHint":

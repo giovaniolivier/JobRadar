@@ -1,10 +1,9 @@
 import { prisma } from "../lib/prisma.js";
-import { isSmtpConfigured, sendMail } from "../lib/mail.js";
+import { appOrigin, isSmtpConfigured, sendMail } from "../lib/mail.js";
 
 const HIGH_SCORE_MIN = 70;
 const FOLLOWUP_DAYS = 7;
-const APP_ORIGIN = () =>
-  (process.env.APP_ORIGIN ?? process.env.CORS_ORIGIN ?? "http://localhost:5173").replace(/\/$/, "");
+const APP_ORIGIN = () => appOrigin();
 
 function daysBetween(from: Date, to: Date) {
   return Math.max(0, Math.floor((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)));

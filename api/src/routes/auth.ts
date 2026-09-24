@@ -16,7 +16,7 @@ import {
   signAccessToken,
   setAuthCookies,
 } from "../lib/authTokens.js";
-import { generateOtpCode, maskEmail, sendMail } from "../lib/mail.js";
+import { appOrigin, generateOtpCode, isSmtpConfigured, maskEmail, sendMail } from "../lib/mail.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { extractCvText } from "../services/cvExtract.js";
@@ -74,11 +74,13 @@ async function issueLoginOtp(user: { id: string; email: string }, remember: bool
     },
   });
 
-  const mail = await sendMail({
-    to: user.email,
-    subject: "JobRadar — code de connexion",
-    text: `Votre code de vérification JobRadar est : ${code}\n\nIl expire dans 10 minutes.\nSi vous n'êtes pas à l'origine de cette connexion, ignorez cet email.`,
-    html: `
+  let mail: { delivered: boolean };
+  try {
+    mail = await sendMail({
+      to: user.email,
+      subject: "JobRadar — code de connexion",
+      text: `Votre code de vérification JobRadar est : ${code}\n\nIl expire dans 10 minutes.\nSi vous n'êtes pas à l'origine de cette connexion, ignorez cet email.`,
+      html: `
       <div style="font-family:sans-serif;max-width:420px;line-height:1.5">
         <p>Votre code de vérification <strong>JobRadar</strong> :</p>
         <p style="font-size:28px;letter-spacing:6px;font-weight:700">${code}</p>
@@ -86,7 +88,16 @@ async function issueLoginOtp(user: { id: string; email: string }, remember: bool
         <p style="color:#666;font-size:13px">Si vous n'êtes pas à l'origine de cette connexion, ignorez cet email.</p>
       </div>
     `,
-  });
+    });
+  } catch (err) {
+    await prisma.loginOtp.deleteMany({ where: { userId: user.id, consumedAt: null } });
+    throw new HttpError(
+      503,
+      err instanceof Error
+        ? err.message
+        : "Impossible d’envoyer le code de connexion. Réessayez dans un instant."
+    );
+  }
 
   return {
     requires2fa: true as const,
@@ -94,7 +105,7 @@ async function issueLoginOtp(user: { id: string; email: string }, remember: bool
     emailHint: maskEmail(user.email),
     expiresInSec: Math.floor(OTP_TTL_MS / 1000),
     // Only expose the code in API when SMTP is not configured (local fallback)
-    ...(!mail.delivered ? { devCode: code } : {}),
+    ...(!mail.delivered && !isSmtpConfigured() ? { devCode: code } : {}),
   };
 }
 
@@ -298,14 +309,15 @@ authRouter.post("/forgot-password", authLimiter, async (req, res, next) => {
       },
     });
 
-    const webOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
-    const resetUrl = `${webOrigin}/reset-password?token=${encodeURIComponent(raw)}`;
+    const resetUrl = `${appOrigin()}/reset-password?token=${encodeURIComponent(raw)}`;
 
-    const mail = await sendMail({
-      to: email,
-      subject: "JobRadar — réinitialisation du mot de passe",
-      text: `Bonjour,\n\nPour définir un nouveau mot de passe JobRadar, ouvrez ce lien (valide 1 heure) :\n${resetUrl}\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.`,
-      html: `
+    let mail: { delivered: boolean };
+    try {
+      mail = await sendMail({
+        to: email,
+        subject: "JobRadar — réinitialisation du mot de passe",
+        text: `Bonjour,\n\nPour définir un nouveau mot de passe JobRadar, ouvrez ce lien (valide 1 heure) :\n${resetUrl}\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.`,
+        html: `
         <div style="font-family:sans-serif;max-width:480px;line-height:1.5;color:#111">
           <p>Bonjour,</p>
           <p>Vous avez demandé à réinitialiser votre mot de passe <strong>JobRadar</strong>.</p>
@@ -320,12 +332,20 @@ authRouter.post("/forgot-password", authLimiter, async (req, res, next) => {
           <p style="color:#666;font-size:13px">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
         </div>
       `,
-    });
+      });
+    } catch (err) {
+      throw new HttpError(
+        503,
+        err instanceof Error
+          ? err.message
+          : "Impossible d’envoyer l’email de réinitialisation. Réessayez plus tard."
+      );
+    }
 
     res.json({
       ok: true,
       message: "Un email de réinitialisation a été envoyé. Vérifiez aussi vos spams.",
-      ...(!mail.delivered ? { devResetUrl: resetUrl } : {}),
+      ...(!mail.delivered && !isSmtpConfigured() ? { devResetUrl: resetUrl } : {}),
     });
   } catch (err) {
     next(err);

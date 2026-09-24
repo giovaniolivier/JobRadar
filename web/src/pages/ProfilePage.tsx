@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { TagInput } from "../components/TagInput";
+import { DeleteAccountPanel } from "../components/DeleteAccountPanel";
 import { api, apiForm, type ProfileData, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import {
@@ -83,7 +84,7 @@ function SalaryField({
 }
 
 export function ProfilePage() {
-  const { token, setSession, logout, refreshSession } = useAuth();
+  const { token, setSession, refreshSession } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const onboarding = params.get("onboarding") === "1";
@@ -121,10 +122,15 @@ export function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [dangerConfirm, setDangerConfirm] = useState("");
-  const [dangerPassword, setDangerPassword] = useState("");
-  const [dangerBusy, setDangerBusy] = useState(false);
-  const [profileTab, setProfileTab] = useState<ProfileTab>("cv");
+  const tabFromUrl = params.get("tab");
+  const initialTab: ProfileTab =
+    tabFromUrl === "account" ||
+    tabFromUrl === "cv" ||
+    tabFromUrl === "skills" ||
+    tabFromUrl === "prefs"
+      ? tabFromUrl
+      : "cv";
+  const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
 
   const prefsTimer = useRef<number | null>(null);
   const prefsReady = useRef(false);
@@ -382,30 +388,6 @@ export function ProfilePage() {
       setError(err instanceof Error ? err.message : "Changement impossible");
     } finally {
       setAccountBusy(false);
-    }
-  }
-
-  async function onDeleteAccount(e: FormEvent) {
-    e.preventDefault();
-    if (dangerConfirm !== "SUPPRIMER") {
-      setError('Tapez SUPPRIMER pour confirmer');
-      return;
-    }
-    setDangerBusy(true);
-    setError(null);
-    try {
-      await api("/profile", {
-        method: "DELETE",
-        body: JSON.stringify({
-          confirm: "SUPPRIMER",
-          ...(hasPassword ? { password: dangerPassword } : {}),
-        }),
-      });
-      await logout();
-      navigate("/login", { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Suppression impossible");
-      setDangerBusy(false);
     }
   }
 
@@ -803,13 +785,13 @@ export function ProfilePage() {
         </div>
 
         <Link
-          to="/settings"
+          to="/settings?tab=privacy"
           className="flex items-center justify-between gap-3 border border-[var(--ink)] px-4 py-3.5 transition-colors hover:bg-[var(--row-hover)]"
         >
           <span>
             <span className="block text-sm font-medium">Paramètres</span>
             <span className="mt-0.5 block text-xs text-[var(--ink)]/70">
-              Thème, notifications, langue, export des données
+              Thème, notifications, langue, export et suppression du compte
             </span>
           </span>
           <span className="text-[var(--amber)]" aria-hidden>
@@ -893,50 +875,7 @@ export function ProfilePage() {
           </p>
         )}
 
-        <div className="space-y-4 border border-[var(--brick)] p-5">
-          <div>
-            <p className="label" style={{ color: "var(--brick)" }}>
-              Zone danger
-            </p>
-            <h2 className="mt-1 text-xl" style={{ color: "var(--brick)" }}>
-              Supprimer le compte
-            </h2>
-            <p className="mt-2 text-sm text-[var(--ink)]/75">
-              Irréversible : profil, analyses, candidatures et lettres seront effacés.
-            </p>
-          </div>
-          <form onSubmit={onDeleteAccount} className="space-y-3">
-            <label className="block">
-              <span className="label mb-1.5 block">Tapez SUPPRIMER pour confirmer</span>
-              <input
-                className="field"
-                value={dangerConfirm}
-                onChange={(e) => setDangerConfirm(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            {hasPassword && (
-              <label className="block">
-                <span className="label mb-1.5 block">Mot de passe</span>
-                <input
-                  className="field"
-                  type="password"
-                  value={dangerPassword}
-                  onChange={(e) => setDangerPassword(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </label>
-            )}
-            <button
-              type="submit"
-              className="btn"
-              style={{ background: "var(--brick)", borderColor: "var(--brick)", color: "#fff" }}
-              disabled={dangerBusy || dangerConfirm !== "SUPPRIMER"}
-            >
-              {dangerBusy ? "Suppression…" : "Supprimer définitivement mon compte"}
-            </button>
-          </form>
-        </div>
+        <DeleteAccountPanel hasPassword={hasPassword} onError={setError} />
       </section>
 
       {onboarding && hasCv && (

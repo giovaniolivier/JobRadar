@@ -14,6 +14,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { csrfProtect } from "./middleware/csrf.js";
 import { enforceHttps } from "./middleware/https.js";
 import { assertJwtSecret } from "./lib/authTokens.js";
+import { assertMailReadyForBoot, getMailStatus } from "./lib/mail.js";
 import { startEmailNotificationScheduler } from "./services/emailNotifications.js";
 
 assertJwtSecret();
@@ -44,7 +45,18 @@ app.use(cookieParser());
 app.use(csrfProtect);
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "jobradar-api" });
+  const mail = getMailStatus();
+  const mailOk = !mail.configured || mail.verified !== false;
+  res.status(mailOk ? 200 : 503).json({
+    ok: mailOk,
+    service: "jobradar-api",
+    mail: {
+      configured: mail.configured,
+      verified: mail.verified,
+      from: mail.from || undefined,
+      error: mail.error ?? undefined,
+    },
+  });
 });
 
 app.use("/auth", authRouter);
@@ -57,7 +69,15 @@ app.use("/applications", applicationsRouter);
 
 app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`JobRadar API listening on http://localhost:${port}`);
-  startEmailNotificationScheduler();
+async function boot() {
+  await assertMailReadyForBoot();
+  app.listen(port, () => {
+    console.log(`JobRadar API listening on http://localhost:${port}`);
+    startEmailNotificationScheduler();
+  });
+}
+
+boot().catch((err) => {
+  console.error("[boot]", err instanceof Error ? err.message : err);
+  process.exit(1);
 });

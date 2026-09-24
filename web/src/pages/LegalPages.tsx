@@ -290,7 +290,8 @@ export function LegalCguPage() {
 
       <h2 className="text-base font-semibold text-[var(--ink)]">7. Résiliation</h2>
       <p>
-        Vous pouvez supprimer votre compte à tout moment depuis Profil → Compte. Nous pouvons
+        Vous pouvez supprimer votre compte à tout moment depuis Paramètres → Données, ou Profil →
+        Compte. Nous pouvons
         clôturer un compte en cas de manquement grave aux présentes CGU, après notification lorsque
         cela est possible.
       </p>
@@ -354,8 +355,9 @@ export function LegalPrivacyPage() {
       <h2 className="text-base font-semibold text-[var(--ink)]">6. Vos droits (RGPD)</h2>
       <p>
         Vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation, de
-        portabilité et d’opposition. Dans l’application : export des données (Paramètres → Données)
-        et suppression du compte (Profil → Compte). Vous pouvez aussi écrire à{" "}
+        portabilité et d’opposition. Dans l’application : export des données et suppression du
+        compte (Paramètres → Données ou Profil → Compte), gestion du CV (Profil). Vous pouvez aussi
+        écrire à{" "}
         <a className="underline decoration-[var(--amber)]" href="mailto:contact@jobradar.dev">
           contact@jobradar.dev
         </a>

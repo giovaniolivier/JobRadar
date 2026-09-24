@@ -1,14 +1,17 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import logoUrl from "../assets/logo/logo.png";
+import logoClair from "../assets/logo/logo-clair.png";
+import logoSombre from "../assets/logo/logo-sombre.png";
+import { isResolvedDark, subscribeResolvedTheme } from "../lib/theme";
 
 type BrandLogoProps = {
   to?: string;
   /** Hauteur visuelle du lockup (le fichier inclut déjà le wordmark). */
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   /**
-   * `full` — logo + tagline (landing publique).
-   * `wordmark` — marque seule, tagline rognée (parcours produit / auth).
-   * `mark` — icône JR seule (header mobile).
+   * `full` — logo entier (landing publique).
+   * `wordmark` — même asset, taille header / auth.
+   * `mark` — icône JR seule (crop de la partie gauche).
    */
   lockup?: "full" | "wordmark" | "mark";
   className?: string;
@@ -16,16 +19,10 @@ type BrandLogoProps = {
 };
 
 const HEIGHT: Record<NonNullable<BrandLogoProps["size"]>, string> = {
-  sm: "h-9",
-  md: "h-11",
-  lg: "h-16",
-};
-
-/** Hauteur visible sans la ligne de tagline du PNG. */
-const WORDMARK_CLIP: Record<NonNullable<BrandLogoProps["size"]>, string> = {
-  sm: "h-7",
-  md: "h-8",
-  lg: "h-11",
+  sm: "h-8",
+  md: "h-10",
+  lg: "h-12",
+  xl: "h-16",
 };
 
 /** Cadre carré pour le monogramme (partie gauche du PNG). */
@@ -33,7 +30,23 @@ const MARK_CLIP: Record<NonNullable<BrandLogoProps["size"]>, string> = {
   sm: "h-8 w-8",
   md: "h-9 w-9",
   lg: "h-11 w-11",
+  xl: "h-14 w-14",
 };
+
+function useThemeLogoUrl() {
+  const [dark, setDark] = useState(() =>
+    typeof document !== "undefined" ? isResolvedDark() : false
+  );
+
+  useEffect(() => {
+    const sync = () => setDark(isResolvedDark());
+    sync();
+    return subscribeResolvedTheme(sync);
+  }, []);
+
+  // Mode sombre → logo-sombre ; mode clair → logo-clair
+  return dark ? logoSombre : logoClair;
+}
 
 export function BrandLogo({
   to = "/",
@@ -42,34 +55,27 @@ export function BrandLogo({
   className = "",
   onClick,
 }: BrandLogoProps) {
+  const logoUrl = useThemeLogoUrl();
+
   const img =
-    lockup === "full" ? (
-      <img
-        src={logoUrl}
-        alt="JobRadar"
-        className={`${HEIGHT[size]} w-auto max-w-[min(100%,16rem)] object-contain object-left ${className}`}
-        decoding="async"
-      />
-    ) : lockup === "mark" ? (
-      <span className={`inline-flex shrink-0 overflow-hidden ${MARK_CLIP[size]} ${className}`}>
-        <img
-          src={logoUrl}
-          alt="JobRadar"
-          className={`${WORDMARK_CLIP[size]} w-auto max-w-none object-contain object-left object-top`}
-          decoding="async"
-        />
-      </span>
-    ) : (
+    lockup === "mark" ? (
       <span
-        className={`inline-flex ${WORDMARK_CLIP[size]} max-w-[min(100%,14rem)] overflow-hidden ${className}`}
+        className={`inline-flex shrink-0 items-center justify-start overflow-hidden ${MARK_CLIP[size]} ${className}`}
       >
         <img
           src={logoUrl}
           alt="JobRadar"
-          className={`${HEIGHT[size]} w-auto max-w-none object-contain object-left object-top`}
+          className="block h-full w-auto max-w-none object-cover object-left"
           decoding="async"
         />
       </span>
+    ) : (
+      <img
+        src={logoUrl}
+        alt="JobRadar"
+        className={`block ${HEIGHT[size]} w-auto max-w-[min(100%,16rem)] object-contain object-left ${className}`}
+        decoding="async"
+      />
     );
 
   if (!to) return img;
@@ -78,7 +84,7 @@ export function BrandLogo({
     <Link
       to={to}
       onClick={onClick}
-      className="inline-flex items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+      className="inline-flex items-center leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
       aria-label="JobRadar — accueil"
     >
       {img}
