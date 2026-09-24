@@ -25,6 +25,18 @@ const FOLLOWUP_MS = 14 * 24 * 60 * 60 * 1000;
 /** Surlignage discret après 21 jours sans nouvelles */
 const STALE_MS = 21 * 24 * 60 * 60 * 1000;
 
+function useDesktopDrag() {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setEnabled(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return enabled;
+}
+
 function daysInStatus(app: Application, status: ApplicationStatus): number {
   const history = app.statusHistory?.length
     ? app.statusHistory
@@ -94,6 +106,7 @@ export function PipelinePage() {
   const [selected, setSelected] = useState<Application | null>(null);
   const [dragOver, setDragOver] = useState<ApplicationStatus | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const desktopDrag = useDesktopDrag();
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -170,17 +183,23 @@ export function PipelinePage() {
   }
 
   function onDragStart(e: DragEvent, app: Application) {
+    if (!desktopDrag) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData("text/app-id", app.id);
     e.dataTransfer.effectAllowed = "move";
   }
 
   function onDragOverColumn(e: DragEvent, status: ApplicationStatus) {
+    if (!desktopDrag) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOver(status);
   }
 
   function onDropColumn(e: DragEvent, status: ApplicationStatus) {
+    if (!desktopDrag) return;
     e.preventDefault();
     setDragOver(null);
     const id = e.dataTransfer.getData("text/app-id");
@@ -197,11 +216,11 @@ export function PipelinePage() {
       <div className="border-b border-[var(--hairline)] pb-6">
         <p className="label">Pipeline</p>
         <h1 className="mt-1 text-3xl sm:text-4xl">Candidatures</h1>
-        <p className="mt-2 max-w-xl text-[var(--ink-soft)]">
+        <p className="mt-2 max-w-xl text-[var(--ink)]/75">
           Suivez chaque candidature du dépôt à la réponse
         </p>
         {!loading && (
-          <p className="mono mt-3 text-sm text-[var(--ink-soft)]">
+          <p className="mono mt-3 text-sm text-[var(--ink)]/70">
             {activeCount} candidature{activeCount !== 1 ? "s" : ""} active
             {activeCount !== 1 ? "s" : ""}
           </p>
@@ -229,7 +248,7 @@ export function PipelinePage() {
         <div className="mt-8 grid gap-0 border-t border-[var(--ink)] lg:grid-cols-4">
           {STATUSES.map((status, colIdx) => {
             const column = apps.filter((a) => a.status === status);
-            const isTarget = dragOver === status;
+            const isTarget = desktopDrag && dragOver === status;
             return (
               <section
                 key={status}
@@ -246,7 +265,7 @@ export function PipelinePage() {
                   <h2 className="label !normal-case !tracking-wide" style={{ color: "var(--ink)" }}>
                     {LABELS[status]}
                   </h2>
-                  <span className="mono text-xs text-[var(--ink-soft)]">{column.length}</span>
+                  <span className="mono text-xs text-[var(--ink)]/70">{column.length}</span>
                 </div>
 
                 <ul className="min-h-[4.5rem] space-y-0">
@@ -261,7 +280,7 @@ export function PipelinePage() {
                         <div
                           role="button"
                           tabIndex={0}
-                          draggable
+                          draggable={desktopDrag}
                           onDragStart={(e) => onDragStart(e, app)}
                           onClick={() => setSelected(app)}
                           onKeyDown={(e) => {
@@ -270,7 +289,9 @@ export function PipelinePage() {
                               setSelected(app);
                             }
                           }}
-                          className={`group cursor-grab border-b border-[var(--hairline)] py-3 active:cursor-grabbing last:border-b-0 hover:bg-[var(--row-hover)]`}
+                          className={`group border-b border-[var(--hairline)] py-3 last:border-b-0 hover:bg-[var(--row-hover)] ${
+                            desktopDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+                          }`}
                           style={
                             stale
                               ? {
@@ -286,10 +307,10 @@ export function PipelinePage() {
                               <p className="display truncate text-sm font-semibold leading-snug">
                                 {app.job?.title ?? "Offre"}
                               </p>
-                              <p className="truncate text-xs text-[var(--ink-soft)]">
+                              <p className="truncate text-xs text-[var(--ink)]/70">
                                 {app.job?.company}
                               </p>
-                              <p className="mono mt-1.5 text-[0.65rem] text-[var(--ink-soft)]">
+                              <p className="mono mt-1.5 text-[0.65rem] text-[var(--ink)]/70">
                                 {date.label} {formatShort(date.iso)}
                                 {status === "APPLIED" && days > 0 ? ` · ${days}j` : ""}
                               </p>
@@ -321,7 +342,7 @@ export function PipelinePage() {
                                 value={app.status}
                                 disabled={busyId === app.id}
                                 aria-label="Changer le statut"
-                                className="field mt-2 !py-1 text-xs opacity-70 transition-opacity group-hover:opacity-100"
+                                className="field mt-2 !py-1 text-xs opacity-100 transition-opacity lg:opacity-70 lg:group-hover:opacity-100"
                                 onClick={(e) => e.stopPropagation()}
                                 onChange={(e) => {
                                   e.stopPropagation();
@@ -344,7 +365,7 @@ export function PipelinePage() {
                     );
                   })}
                   {!column.length && (
-                    <li className="py-8 text-center text-xs text-[var(--ink-soft)]">
+                    <li className="py-8 text-center text-xs text-[var(--ink)]/70">
                       Aucune candidature ici pour l’instant
                     </li>
                   )}
