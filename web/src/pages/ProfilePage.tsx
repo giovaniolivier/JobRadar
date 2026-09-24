@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { TagInput } from "../components/TagInput";
 import { api, type ProfileData, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -26,6 +26,15 @@ const SENIORITIES = [
   { id: "senior", label: "Senior" },
   { id: "lead", label: "Lead" },
 ] as const;
+
+const PROFILE_TABS = [
+  { id: "cv", label: "CV" },
+  { id: "skills", label: "Compét." },
+  { id: "prefs", label: "Préfér." },
+  { id: "account", label: "Compte" },
+] as const;
+
+type ProfileTab = (typeof PROFILE_TABS)[number]["id"];
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return null;
@@ -115,6 +124,7 @@ export function ProfilePage() {
   const [dangerConfirm, setDangerConfirm] = useState("");
   const [dangerPassword, setDangerPassword] = useState("");
   const [dangerBusy, setDangerBusy] = useState(false);
+  const [profileTab, setProfileTab] = useState<ProfileTab>("cv");
 
   const prefsTimer = useRef<number | null>(null);
   const prefsReady = useRef(false);
@@ -371,6 +381,10 @@ export function ProfilePage() {
   const canPreviewCv = Boolean(profile?.cvText?.trim());
   const strength = passwordStrength(newPassword);
 
+  function tabPanelClass(id: ProfileTab) {
+    return profileTab === id ? "block" : "hidden lg:block";
+  }
+
   if (loading) return <p className="label">Chargement du profil…</p>;
 
   return (
@@ -380,7 +394,7 @@ export function ProfilePage() {
         <h1 className="mt-1 text-3xl sm:text-4xl">
           {onboarding ? "Importez votre CV" : "Mon profil"}
         </h1>
-        <p className="mt-2 max-w-xl text-[var(--ink-soft)]">
+        <p className="mt-2 max-w-xl text-[var(--ink)]/75">
           {onboarding
             ? "Sans CV, JobRadar ne peut pas scorer les offres. Importez-le pour activer l’analyse."
             : "Ce que JobRadar utilise pour évaluer chaque offre"}
@@ -397,8 +411,45 @@ export function ProfilePage() {
         )}
       </header>
 
+      {/* Onglets mobile — une section à la fois */}
+      <div
+        className="sticky top-[3.25rem] z-20 -mx-4 grid grid-cols-4 gap-1 border-b border-[var(--hairline)] bg-[var(--paper)]/95 px-4 py-2 backdrop-blur-[2px] lg:hidden"
+        role="tablist"
+        aria-label="Sections du profil"
+      >
+        {PROFILE_TABS.map((s) => {
+          const active = profileTab === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              title={
+                s.id === "skills"
+                  ? "Compétences"
+                  : s.id === "prefs"
+                    ? "Préférences"
+                    : s.label
+              }
+              className={`min-h-10 px-1 py-2 text-center text-[0.7rem] font-medium tracking-wide transition-colors ${
+                active
+                  ? "border border-[var(--amber)] text-[var(--amber)]"
+                  : "border border-[var(--hairline)] text-[var(--ink)]/70"
+              }`}
+              onClick={() => setProfileTab(s.id)}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ——— CV ——— */}
-      <section className="space-y-4 border-b border-[var(--hairline)] pb-10">
+      <section
+        role="tabpanel"
+        className={`${tabPanelClass("cv")} space-y-4 border-b border-[var(--hairline)] pb-10`}
+      >
         <div>
           <h2 className="text-xl">CV</h2>
         </div>
@@ -408,8 +459,12 @@ export function ProfilePage() {
             <p className="text-lg text-[var(--ink)]">
               Importez votre CV pour activer l’analyse des offres
             </p>
-            <p className="mt-2 text-sm text-[var(--ink-soft)]">
+            <p className="mt-2 text-sm text-[var(--ink)]/75">
               C’est bloquant pour le scoring : sans CV, aucune offre ne peut être évaluée sérieusement.
+            </p>
+            <p className="mt-2 text-xs text-[var(--ink)]/70">
+              Lecture automatique : fichier .txt pour l’instant (PDF / DOCX bientôt) — ou collez le
+              texte.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
@@ -417,7 +472,7 @@ export function ProfilePage() {
                 className="btn btn-amber"
                 onClick={() => fileRef.current?.click()}
               >
-                Importer un fichier .txt
+                Importer un fichier
               </button>
               <button
                 type="button"
@@ -436,7 +491,7 @@ export function ProfilePage() {
                   <p className="font-medium truncate">
                     {profile?.cvFileName || "CV importé"}
                   </p>
-                  <p className="mono mt-1 text-xs text-[var(--ink-soft)]">
+                  <p className="mono mt-1 text-xs text-[var(--ink)]/70">
                     {importDate ? `Importé le ${importDate}` : "Date d’import inconnue"}
                   </p>
                 </div>
@@ -471,8 +526,11 @@ export function ProfilePage() {
 
             {replacingCv && (
               <div className="space-y-3 border border-[var(--ink)] p-4">
-                <p className="text-sm text-[var(--ink-soft)]">
+                <p className="text-sm text-[var(--ink)]/75">
                   Remplace la version actuelle — une seule version est utilisée pour l’analyse.
+                </p>
+                <p className="text-xs text-[var(--ink)]/70">
+                  Formats lus automatiquement : .txt (PDF / DOCX bientôt).
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -481,7 +539,7 @@ export function ProfilePage() {
                     disabled={cvBusy}
                     onClick={() => fileRef.current?.click()}
                   >
-                    Choisir un fichier .txt
+                    Choisir un fichier
                   </button>
                   <button
                     type="button"
@@ -532,13 +590,19 @@ export function ProfilePage() {
 
       {/* ——— Compétences ——— */}
       <section
-        className={`space-y-5 border-b border-[var(--hairline)] pb-10 ${!hasCv ? "opacity-50" : ""}`}
+        role="tabpanel"
+        className={`${tabPanelClass("skills")} space-y-5 border-b border-[var(--hairline)] pb-10`}
       >
         <div>
           <h2 className="text-xl">Compétences extraites</h2>
-          <p className="mt-1 text-sm text-[var(--ink-soft)]">
+          <p className="mt-1 text-sm text-[var(--ink)]/75">
             Corrigez ou complétez ce que l’import a détecté — le score s’appuie dessus.
           </p>
+          {!hasCv && (
+            <p className="mt-2 text-xs text-[var(--amber)]">
+              Sans CV, vous pouvez déjà saisir vos compétences manuellement — l’import les complétera.
+            </p>
+          )}
         </div>
         <TagInput
           label="Techniques"
@@ -562,11 +626,14 @@ export function ProfilePage() {
       </section>
 
       {/* ——— Préférences ——— */}
-      <section className="space-y-5 border-b border-[var(--hairline)] pb-10">
+      <section
+        role="tabpanel"
+        className={`${tabPanelClass("prefs")} space-y-5 border-b border-[var(--hairline)] pb-10`}
+      >
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-xl">Préférences de recherche</h2>
-            <p className="mt-1 text-sm text-[var(--ink-soft)]">
+            <p className="mt-1 text-sm text-[var(--ink)]/75">
               Affine le scoring au-delà du matching CV / offre.
             </p>
           </div>
@@ -594,7 +661,7 @@ export function ProfilePage() {
 
         <div>
           <span className="label mb-1.5 block">Type de poste</span>
-          <p className="mb-2 text-xs text-[var(--ink-soft)]">
+          <p className="mb-2 text-xs text-[var(--ink)]/70">
             Modalités de travail — indépendant des villes ci-dessous.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -683,14 +750,32 @@ export function ProfilePage() {
         />
       </section>
 
-      {/* ——— Compte ——— */}
-      <section className="space-y-5 border-b border-[var(--hairline)] pb-10">
+      {/* ——— Compte (+ zone danger) ——— */}
+      <section
+        role="tabpanel"
+        className={`${tabPanelClass("account")} space-y-8 border-b border-[var(--hairline)] pb-10 lg:border-b-0`}
+      >
         <div>
           <h2 className="text-xl">Informations du compte</h2>
-          <p className="mt-1 text-sm text-[var(--ink-soft)]">
+          <p className="mt-1 text-sm text-[var(--ink)]/75">
             Nom et email se sauvegardent automatiquement.
           </p>
         </div>
+
+        <Link
+          to="/settings"
+          className="flex items-center justify-between gap-3 border border-[var(--ink)] px-4 py-3.5 transition-colors hover:bg-[var(--row-hover)]"
+        >
+          <span>
+            <span className="block text-sm font-medium">Paramètres</span>
+            <span className="mt-0.5 block text-xs text-[var(--ink)]/70">
+              Thème, notifications, langue, export des données
+            </span>
+          </span>
+          <span className="text-[var(--amber)]" aria-hidden>
+            →
+          </span>
+        </Link>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
@@ -763,56 +848,55 @@ export function ProfilePage() {
             </button>
           </form>
         ) : (
-          <p className="text-sm text-[var(--ink-soft)]">
+          <p className="text-sm text-[var(--ink)]/75">
             Compte connecté via un fournisseur social — pas de mot de passe local.
           </p>
         )}
-      </section>
 
-      {/* ——— Danger ——— */}
-      <section className="space-y-4 border border-[var(--brick)] p-5">
-        <div>
-          <p className="label" style={{ color: "var(--brick)" }}>
-            Zone danger
-          </p>
-          <h2 className="mt-1 text-xl" style={{ color: "var(--brick)" }}>
-            Supprimer le compte
-          </h2>
-          <p className="mt-2 text-sm text-[var(--ink-soft)]">
-            Irréversible : profil, analyses, candidatures et lettres seront effacés.
-          </p>
-        </div>
-        <form onSubmit={onDeleteAccount} className="space-y-3">
-          <label className="block">
-            <span className="label mb-1.5 block">Tapez SUPPRIMER pour confirmer</span>
-            <input
-              className="field"
-              value={dangerConfirm}
-              onChange={(e) => setDangerConfirm(e.target.value)}
-              autoComplete="off"
-            />
-          </label>
-          {hasPassword && (
+        <div className="space-y-4 border border-[var(--brick)] p-5">
+          <div>
+            <p className="label" style={{ color: "var(--brick)" }}>
+              Zone danger
+            </p>
+            <h2 className="mt-1 text-xl" style={{ color: "var(--brick)" }}>
+              Supprimer le compte
+            </h2>
+            <p className="mt-2 text-sm text-[var(--ink)]/75">
+              Irréversible : profil, analyses, candidatures et lettres seront effacés.
+            </p>
+          </div>
+          <form onSubmit={onDeleteAccount} className="space-y-3">
             <label className="block">
-              <span className="label mb-1.5 block">Mot de passe</span>
+              <span className="label mb-1.5 block">Tapez SUPPRIMER pour confirmer</span>
               <input
                 className="field"
-                type="password"
-                value={dangerPassword}
-                onChange={(e) => setDangerPassword(e.target.value)}
-                autoComplete="current-password"
+                value={dangerConfirm}
+                onChange={(e) => setDangerConfirm(e.target.value)}
+                autoComplete="off"
               />
             </label>
-          )}
-          <button
-            type="submit"
-            className="btn"
-            style={{ background: "var(--brick)", borderColor: "var(--brick)", color: "#fff" }}
-            disabled={dangerBusy || dangerConfirm !== "SUPPRIMER"}
-          >
-            {dangerBusy ? "Suppression…" : "Supprimer définitivement mon compte"}
-          </button>
-        </form>
+            {hasPassword && (
+              <label className="block">
+                <span className="label mb-1.5 block">Mot de passe</span>
+                <input
+                  className="field"
+                  type="password"
+                  value={dangerPassword}
+                  onChange={(e) => setDangerPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </label>
+            )}
+            <button
+              type="submit"
+              className="btn"
+              style={{ background: "var(--brick)", borderColor: "var(--brick)", color: "#fff" }}
+              disabled={dangerBusy || dangerConfirm !== "SUPPRIMER"}
+            >
+              {dangerBusy ? "Suppression…" : "Supprimer définitivement mon compte"}
+            </button>
+          </form>
+        </div>
       </section>
 
       {onboarding && hasCv && (

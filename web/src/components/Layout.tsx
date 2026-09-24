@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLocale } from "../lib/i18n";
 import { AnalyzeOfferProvider, useAnalyzeOffer } from "./AnalyzeOfferPanel";
@@ -43,7 +44,10 @@ function LayoutShell() {
   const { user, logout } = useAuth();
   const { t } = useLocale();
   const navigate = useNavigate();
+  const location = useLocation();
   const { openAnalyze } = useAnalyzeOffer();
+  const hideFab =
+    location.pathname.startsWith("/profile") || location.pathname.startsWith("/settings");
 
   return (
     <div className="min-h-dvh">
@@ -102,19 +106,21 @@ function LayoutShell() {
         <Outlet />
       </main>
 
-      {/* FAB — nouvelle offre (mobile) ; masqué quand un bottom sheet page est ouvert */}
-      <button
-        type="button"
-        className="mobile-fab fixed z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--ink)] bg-[var(--amber)] text-[var(--amber-fg)] shadow-lg transition-transform active:scale-95 lg:hidden"
-        style={{
-          right: "max(1rem, env(safe-area-inset-right, 0px))",
-          bottom: "calc(4.75rem + env(safe-area-inset-bottom, 0px))",
-        }}
-        aria-label={t("nav.newOfferShort")}
-        onClick={() => openAnalyze()}
-      >
-        <PlusIcon />
-      </button>
+      {/* FAB — nouvelle offre (mobile) ; masqué sur profil/réglages et pendant bottom sheet */}
+      {!hideFab && (
+        <button
+          type="button"
+          className="mobile-fab fixed z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--ink)] bg-[var(--amber)] text-[var(--amber-fg)] shadow-lg transition-transform active:scale-95 lg:hidden"
+          style={{
+            right: "max(1rem, env(safe-area-inset-right, 0px))",
+            bottom: "calc(4.75rem + env(safe-area-inset-bottom, 0px))",
+          }}
+          aria-label={t("nav.newOfferShort")}
+          onClick={() => openAnalyze()}
+        >
+          <PlusIcon />
+        </button>
+      )}
 
       {/* Tab bar (mobile) */}
       <nav
@@ -124,13 +130,29 @@ function LayoutShell() {
       >
         <div className="mx-auto flex max-w-6xl items-stretch">
           {TABS.map(({ to, end, labelKey, icon: Icon }) => (
-            <NavLink key={to} to={to} end={end} className={tabClass}>
-              {({ isActive }) => (
-                <>
-                  <Icon active={isActive} />
-                  <span className="max-w-full truncate">{t(labelKey)}</span>
-                </>
-              )}
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                tabClass({
+                  isActive:
+                    isActive ||
+                    (to === "/profile" && location.pathname.startsWith("/settings")),
+                })
+              }
+            >
+              {({ isActive }) => {
+                const active =
+                  isActive ||
+                  (to === "/profile" && location.pathname.startsWith("/settings"));
+                return (
+                  <>
+                    <Icon active={active} />
+                    <span className="max-w-full truncate">{t(labelKey)}</span>
+                  </>
+                );
+              }}
             </NavLink>
           ))}
         </div>
@@ -161,7 +183,10 @@ function UserMenu({
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if ((e.target as Element | null)?.closest?.("[data-account-panel]")) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -244,40 +269,51 @@ function UserMenu({
         <span aria-hidden="true">{initials(name, email)}</span>
       </button>
 
-      {open && (
-        <>
-          {/* Mobile — bottom sheet */}
-          <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
-            <button
-              type="button"
-              className="absolute inset-0 bg-[var(--paper-deep)]/70"
-              aria-label={t("nav.closeMenu")}
-              onClick={() => setOpen(false)}
-            />
+      {open &&
+        createPortal(
+          <>
+            {/* Mobile — bottom sheet */}
+            <div className="fixed inset-0 z-[60] lg:hidden" role="presentation" data-account-panel>
+              <button
+                type="button"
+                className="absolute inset-0 bg-[var(--paper-deep)]/70"
+                aria-label={t("nav.closeMenu")}
+                onClick={() => setOpen(false)}
+              />
+              <div
+                id={panelId}
+                role="menu"
+                aria-label={t("nav.accountMenu")}
+                className="absolute inset-x-0 bottom-0 border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
+                style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+              >
+                <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[var(--hairline)]" aria-hidden />
+                {identity}
+                {items}
+              </div>
+            </div>
+
+            {/* Desktop — anchored dropdown */}
             <div
-              id={panelId}
+              data-account-panel
               role="menu"
               aria-label={t("nav.accountMenu")}
-              className="absolute inset-x-0 bottom-0 border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
-              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+              className="fixed z-[60] hidden w-56 border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg lg:block"
+              style={(() => {
+                const rect = triggerRef.current?.getBoundingClientRect();
+                if (!rect) return { top: 0, right: 16 };
+                const width = 224;
+                let left = rect.right - width;
+                left = Math.max(16, Math.min(left, window.innerWidth - width - 16));
+                return { top: rect.bottom + 8, left };
+              })()}
             >
-              <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[var(--hairline)]" aria-hidden />
               {identity}
               {items}
             </div>
-          </div>
-
-          {/* Desktop — anchored dropdown */}
-          <div
-            role="menu"
-            aria-label={t("nav.accountMenu")}
-            className="absolute right-0 z-40 mt-2 hidden w-56 border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg lg:block"
-          >
-            {identity}
-            {items}
-          </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </div>
   );
 }

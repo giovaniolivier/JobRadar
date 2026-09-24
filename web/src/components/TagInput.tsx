@@ -70,7 +70,7 @@ export function TagInput({
         <span className="label">{label}</span>
         {hint && <span className="text-xs text-[var(--ink-soft)]">{hint}</span>}
       </div>
-      <div className="flex flex-wrap gap-1.5 border border-[var(--hairline)] bg-[var(--field-bg)] p-2 focus-within:border-[var(--ink)]">
+      <div className="flex min-h-[2.75rem] flex-wrap items-center gap-1.5 border border-[var(--hairline)] bg-[var(--field-bg)] p-2 focus-within:border-[var(--ink)]">
         {tags.map((tag) => (
           <button
             key={tag}
@@ -86,7 +86,7 @@ export function TagInput({
           </button>
         ))}
         <input
-          className="min-w-[8rem] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none"
+          className="min-w-[8rem] flex-1 bg-transparent px-1 py-1.5 text-sm outline-none"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}

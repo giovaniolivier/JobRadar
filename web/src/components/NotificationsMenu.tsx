@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type Job } from "../lib/api";
 import { useLocale, type AppLocale } from "../lib/i18n";
@@ -98,7 +99,10 @@ export function NotificationsMenu() {
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if ((e.target as Element | null)?.closest?.("[data-notif-panel]")) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -112,6 +116,20 @@ export function NotificationsMenu() {
     return () => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    if (mq.matches) {
+      document.body.style.overflow = "hidden";
+      document.body.dataset.mobileSheet = "1";
+    }
+    return () => {
+      document.body.style.overflow = prev;
+      delete document.body.dataset.mobileSheet;
     };
   }, [open]);
 
@@ -154,6 +172,89 @@ export function NotificationsMenu() {
     navigate(item.href || "/dashboard");
   }
 
+  const header = (
+    <div className="flex items-center justify-between gap-2 border-b border-[var(--hairline)] px-4 py-3 lg:px-3 lg:py-2.5">
+      <p className="label">{t("nav.notifications")}</p>
+      {unread > 0 && (
+        <button
+          type="button"
+          className="text-xs text-[var(--ink)]/70 underline underline-offset-4 hover:text-[var(--ink)]"
+          onClick={markAllSeen}
+        >
+          {t("nav.notificationsMarkAll")}
+        </button>
+      )}
+    </div>
+  );
+
+  const list: ReactNode =
+    preview.length === 0 ? (
+      <p className="px-4 py-5 text-sm text-[var(--ink)]/75 lg:px-3">
+        {t("nav.notificationsEmpty")}
+      </p>
+    ) : (
+      <ul className="max-h-[min(60dvh,24rem)] overflow-y-auto overscroll-contain lg:max-h-80">
+        {preview.map((item) => {
+          const isUnread = !seen.has(item.id);
+          return (
+            <li key={item.id} className="border-b border-[var(--hairline)] last:border-0">
+              <button
+                type="button"
+                role="menuitem"
+                disabled={busyId === item.id}
+                className={`flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--row-hover)] lg:px-3 lg:py-3 ${
+                  isUnread ? "bg-[var(--row-hover)]/60" : ""
+                }`}
+                onClick={() => void handleItemClick(item)}
+              >
+                <span
+                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: TYPE_DOT[item.type] }}
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-start justify-between gap-2">
+                    <span
+                      className={`text-sm leading-snug ${
+                        isUnread ? "font-medium text-[var(--ink)]" : "text-[var(--ink)]/90"
+                      }`}
+                    >
+                      {item.title}
+                    </span>
+                    {isUnread && (
+                      <span
+                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--amber)]"
+                        aria-label={t("nav.notificationsUnreadDot")}
+                      />
+                    )}
+                  </span>
+                  {item.body && (
+                    <span className="mt-0.5 block text-xs text-[var(--ink)]/70">{item.body}</span>
+                  )}
+                  <span className="mono mt-1.5 block text-[0.65rem] text-[var(--ink)]/70">
+                    {relativeTime(item.createdAt, locale)}
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+
+  const footer = (
+    <div className="border-t border-[var(--hairline)] px-4 py-3 lg:px-3 lg:py-2">
+      <Link
+        to="/settings#notifications"
+        role="menuitem"
+        className="text-xs text-[var(--ink)]/70 underline underline-offset-4 hover:text-[var(--ink)]"
+        onClick={() => setOpen(false)}
+      >
+        {t("nav.notificationsSettings")}
+      </Link>
+    </div>
+  );
+
   return (
     <div className="relative" ref={rootRef}>
       <button
@@ -176,94 +277,56 @@ export function NotificationsMenu() {
         )}
       </button>
 
-      {open && (
-        <div
-          id={panelId}
-          role="menu"
-          aria-label={t("nav.notifications")}
-          className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,22rem)] border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
-        >
-          <div className="flex items-center justify-between gap-2 border-b border-[var(--hairline)] px-3 py-2.5">
-            <p className="label">{t("nav.notifications")}</p>
-            {unread > 0 && (
+      {open &&
+        createPortal(
+          <>
+            {/* Mobile — bottom sheet plein largeur */}
+            <div className="fixed inset-0 z-[60] lg:hidden" role="presentation" data-notif-panel>
               <button
                 type="button"
-                className="text-xs text-[var(--ink-soft)] underline underline-offset-4 hover:text-[var(--ink)]"
-                onClick={markAllSeen}
+                className="absolute inset-0 bg-[var(--paper-deep)]/70"
+                aria-label={t("nav.closeMenu")}
+                onClick={() => setOpen(false)}
+              />
+              <div
+                id={panelId}
+                role="menu"
+                aria-label={t("nav.notifications")}
+                className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
+                style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
               >
-                {t("nav.notificationsMarkAll")}
-              </button>
-            )}
-          </div>
+                <div
+                  className="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--hairline)]"
+                  aria-hidden
+                />
+                {header}
+                <div className="min-h-0 flex-1 overflow-y-auto">{list}</div>
+                {footer}
+              </div>
+            </div>
 
-          {preview.length === 0 ? (
-            <p className="px-3 py-5 text-sm text-[var(--ink-soft)]">
-              {t("nav.notificationsEmpty")}
-            </p>
-          ) : (
-            <ul className="max-h-80 overflow-y-auto overscroll-contain">
-              {preview.map((item) => {
-                const isUnread = !seen.has(item.id);
-                return (
-                  <li key={item.id} className="border-b border-[var(--hairline)] last:border-0">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      disabled={busyId === item.id}
-                      className={`flex w-full gap-3 px-3 py-3 text-left transition-colors hover:bg-[var(--row-hover)] ${
-                        isUnread ? "bg-[var(--row-hover)]/60" : ""
-                      }`}
-                      onClick={() => void handleItemClick(item)}
-                    >
-                      <span
-                        className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: TYPE_DOT[item.type] }}
-                        aria-hidden
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-start justify-between gap-2">
-                          <span
-                            className={`text-sm leading-snug ${
-                              isUnread ? "font-medium text-[var(--ink)]" : "text-[var(--ink)]/90"
-                            }`}
-                          >
-                            {item.title}
-                          </span>
-                          {isUnread && (
-                            <span
-                              className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--amber)]"
-                              aria-label={t("nav.notificationsUnreadDot")}
-                            />
-                          )}
-                        </span>
-                        {item.body && (
-                          <span className="mt-0.5 block text-xs text-[var(--ink-soft)]">
-                            {item.body}
-                          </span>
-                        )}
-                        <span className="mono mt-1.5 block text-[0.65rem] text-[var(--ink-soft)]">
-                          {relativeTime(item.createdAt, locale)}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-
-          <div className="border-t border-[var(--hairline)] px-3 py-2">
-            <Link
-              to="/settings#notifications"
-              role="menuitem"
-              className="text-xs text-[var(--ink-soft)] underline underline-offset-4 hover:text-[var(--ink)]"
-              onClick={() => setOpen(false)}
+            {/* Desktop — dropdown ancré à droite du trigger */}
+            <div
+              data-notif-panel
+              role="menu"
+              aria-label={t("nav.notifications")}
+              className="fixed z-[60] hidden w-[min(100vw-2rem,22rem)] border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg lg:block"
+              style={(() => {
+                const rect = triggerRef.current?.getBoundingClientRect();
+                if (!rect) return { top: 0, right: 16 };
+                const width = Math.min(window.innerWidth - 32, 352);
+                let left = rect.right - width;
+                left = Math.max(16, Math.min(left, window.innerWidth - width - 16));
+                return { top: rect.bottom + 8, left };
+              })()}
             >
-              {t("nav.notificationsSettings")}
-            </Link>
-          </div>
-        </div>
-      )}
+              {header}
+              {list}
+              {footer}
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 }
