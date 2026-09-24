@@ -336,6 +336,11 @@ select {
   animation: dial-in 320ms ease both;
 }
 
+/* Masque le FAB pendant un bottom sheet page (filtres, etc.) */
+body[data-mobile-sheet] .mobile-fab {
+  display: none;
+}
+
 @keyframes analyze-bar {
   0% {
     transform: translateX(-100%);

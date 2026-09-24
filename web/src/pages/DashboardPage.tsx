@@ -111,7 +111,7 @@ export function DashboardPage() {
         </div>
         <button
           type="button"
-          className="btn btn-amber hidden self-start lg:inline-flex"
+          className="btn btn-amber !hidden self-start lg:!inline-flex"
           onClick={openAnalyze}
         >
           Analyser une nouvelle offre

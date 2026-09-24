@@ -102,10 +102,10 @@ function LayoutShell() {
         <Outlet />
       </main>
 
-      {/* FAB — nouvelle offre (mobile) */}
+      {/* FAB — nouvelle offre (mobile) ; masqué quand un bottom sheet page est ouvert */}
       <button
         type="button"
-        className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--ink)] bg-[var(--amber)] text-[var(--amber-fg)] shadow-lg transition-transform active:scale-95 lg:hidden"
+        className="mobile-fab fixed z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--ink)] bg-[var(--amber)] text-[var(--amber-fg)] shadow-lg transition-transform active:scale-95 lg:hidden"
         style={{
           right: "max(1rem, env(safe-area-inset-right, 0px))",
           bottom: "calc(4.75rem + env(safe-area-inset-bottom, 0px))",
@@ -181,11 +181,14 @@ function UserMenu({
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
-    // Lock scroll only when mobile sheet is likely shown
     const mq = window.matchMedia("(max-width: 1023px)");
-    if (mq.matches) document.body.style.overflow = "hidden";
+    if (mq.matches) {
+      document.body.style.overflow = "hidden";
+      document.body.dataset.mobileSheet = "1";
+    }
     return () => {
       document.body.style.overflow = prev;
+      delete document.body.dataset.mobileSheet;
     };
   }, [open]);
 

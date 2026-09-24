@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { api, type Job } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
@@ -35,7 +45,24 @@ function detectWorkMode(location: string | null): "remote" | "hybrid" | "onsite"
   return "onsite";
 }
 
-function filtersActive(f: {
+/** Nombre de filtres non-défaut (hors recherche). */
+function activeFilterCount(f: {
+  sort: SortKey;
+  score: ScoreFilter;
+  redFlags: RedFlagFilter;
+  pipeline: PipelineFilter;
+  work: WorkMode;
+}) {
+  let n = 0;
+  if (f.sort !== "score") n += 1;
+  if (f.score !== "all") n += 1;
+  if (f.redFlags !== "all") n += 1;
+  if (f.pipeline !== "all") n += 1;
+  if (f.work !== "all") n += 1;
+  return n;
+}
+
+function filtersDirty(f: {
   q: string;
   sort: SortKey;
   score: ScoreFilter;
@@ -43,14 +70,7 @@ function filtersActive(f: {
   pipeline: PipelineFilter;
   work: WorkMode;
 }) {
-  return (
-    f.q.trim() !== "" ||
-    f.sort !== "score" ||
-    f.score !== "all" ||
-    f.redFlags !== "all" ||
-    f.pipeline !== "all" ||
-    f.work !== "all"
-  );
+  return f.q.trim() !== "" || activeFilterCount(f) > 0;
 }
 
 export function OffersPage() {
@@ -67,7 +87,9 @@ export function OffersPage() {
   const [work, setWork] = useState<WorkMode>("all");
   const [page, setPage] = useState(1);
   const [pipelineBusy, setPipelineBusy] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const wasOpen = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -95,6 +117,22 @@ export function OffersPage() {
   useEffect(() => {
     setPage(1);
   }, [q, sort, score, redFlags, pipeline, work]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.body.dataset.mobileSheet = "1";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setFiltersOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      delete document.body.dataset.mobileSheet;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [filtersOpen]);
 
   const filtered = useMemo(() => {
     let list = [...jobs];
@@ -134,9 +172,25 @@ export function OffersPage() {
 
   const visible = filtered.slice(0, page * PAGE_SIZE);
   const hasMore = visible.length < filtered.length;
-  const activeFilters = filtersActive({ q, sort, score, redFlags, pipeline, work });
+  const filterCount = activeFilterCount({ sort, score, redFlags, pipeline, work });
+  const dirty = filtersDirty({ q, sort, score, redFlags, pipeline, work });
   const trulyEmpty = !loading && jobs.length === 0;
   const filterEmpty = !loading && jobs.length > 0 && filtered.length === 0;
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasMore || loading || filterEmpty || trulyEmpty) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setPage((p) => p + 1);
+        }
+      },
+      { rootMargin: "200px 0px" }
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [hasMore, loading, filterEmpty, trulyEmpty, visible.length]);
 
   function resetFilters() {
     setQ("");
@@ -164,17 +218,73 @@ export function OffersPage() {
     }
   }
 
+  const filterFields = (
+    <>
+      <FilterSelect
+        label="Tri"
+        value={sort}
+        onChange={(v) => setSort(v as SortKey)}
+        options={[
+          { value: "score", label: "Score" },
+          { value: "date", label: "Date d’ajout" },
+          { value: "salary", label: "Salaire" },
+        ]}
+      />
+      <FilterSelect
+        label="Score minimum"
+        value={score}
+        onChange={(v) => setScore(v as ScoreFilter)}
+        options={[
+          { value: "all", label: "Tous" },
+          { value: "80", label: "80+" },
+          { value: "60", label: "60+" },
+        ]}
+      />
+      <FilterSelect
+        label="Pipeline"
+        value={pipeline}
+        onChange={(v) => setPipeline(v as PipelineFilter)}
+        options={[
+          { value: "all", label: "Tous" },
+          { value: "out", label: "Pas encore traitée" },
+          { value: "in", label: "Déjà ajoutée" },
+        ]}
+      />
+      <FilterSelect
+        label="Red flags"
+        value={redFlags}
+        onChange={(v) => setRedFlags(v as RedFlagFilter)}
+        options={[
+          { value: "all", label: "Tous" },
+          { value: "yes", label: "Avec red flags" },
+          { value: "no", label: "Sans red flags" },
+        ]}
+      />
+      <FilterSelect
+        label="Lieu"
+        value={work}
+        onChange={(v) => setWork(v as WorkMode)}
+        options={[
+          { value: "all", label: "Tous" },
+          { value: "remote", label: "Remote" },
+          { value: "hybrid", label: "Hybride" },
+          { value: "onsite", label: "Sur site" },
+        ]}
+      />
+    </>
+  );
+
   return (
     <div className="fade-in">
       <div className="flex flex-col gap-4 border-b border-[var(--hairline)] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl">
           <p className="label">Registre</p>
           <h1 className="mt-1 text-3xl sm:text-4xl">Offres</h1>
-          <p className="mt-2 text-[var(--ink-soft)]">
+          <p className="mt-2 text-[var(--ink)]/75">
             Toutes vos offres analysées, triées par score
           </p>
           {!loading && (
-            <p className="mono mt-3 text-sm text-[var(--ink-soft)]">
+            <p className="mono mt-3 text-sm text-[var(--ink)]/70">
               {filtered.length === jobs.length
                 ? `${jobs.length} offre${jobs.length !== 1 ? "s" : ""}`
                 : `${filtered.length} / ${jobs.length} offres`}
@@ -183,7 +293,7 @@ export function OffersPage() {
         </div>
         <button
           type="button"
-          className="btn btn-amber hidden self-start lg:inline-flex"
+          className="btn btn-amber !hidden self-start lg:!inline-flex"
           onClick={openAnalyze}
         >
           + Nouvelle offre
@@ -191,74 +301,107 @@ export function OffersPage() {
       </div>
 
       {!trulyEmpty && (
-        <div className="mt-5 space-y-3 border-b border-[var(--hairline)] pb-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
+        <div className="mt-5 border-b border-[var(--hairline)] pb-5">
+          {/* Mobile — recherche + Filtrer */}
+          <div className="flex gap-2 md:hidden">
             <input
-              className="field lg:col-span-5"
+              className="field min-w-0 flex-1"
               placeholder="Rechercher un poste ou une entreprise"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
-            <select
-              className="field lg:col-span-2"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              aria-label="Trier par"
+            <button
+              type="button"
+              className="btn btn-ghost shrink-0 !px-3 !text-xs"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen(true)}
             >
-              <option value="score">Tri : score</option>
-              <option value="date">Tri : date d’ajout</option>
-              <option value="salary">Tri : salaire</option>
-            </select>
-            <select
-              className="field lg:col-span-2"
-              value={score}
-              onChange={(e) => setScore(e.target.value as ScoreFilter)}
-              aria-label="Score minimum"
-            >
-              <option value="all">Score : tous</option>
-              <option value="80">Score : 80+</option>
-              <option value="60">Score : 60+</option>
-            </select>
-            <select
-              className="field lg:col-span-3"
-              value={pipeline}
-              onChange={(e) => setPipeline(e.target.value as PipelineFilter)}
-              aria-label="Statut pipeline"
-            >
-              <option value="all">Pipeline : tous</option>
-              <option value="out">Pas encore traitée</option>
-              <option value="in">Déjà ajoutée</option>
-            </select>
+              {filterCount > 0 ? `Filtrer · ${filterCount}` : "Filtrer"}
+            </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="field !w-auto min-w-[10rem]"
-              value={redFlags}
-              onChange={(e) => setRedFlags(e.target.value as RedFlagFilter)}
-              aria-label="Red flags"
-            >
-              <option value="all">Red flags : tous</option>
-              <option value="yes">Avec red flags</option>
-              <option value="no">Sans red flags</option>
-            </select>
-            <select
-              className="field !w-auto min-w-[10rem]"
-              value={work}
-              onChange={(e) => setWork(e.target.value as WorkMode)}
-              aria-label="Mode de travail"
-            >
-              <option value="all">Lieu : tous</option>
-              <option value="remote">Remote</option>
-              <option value="hybrid">Hybride</option>
-              <option value="onsite">Sur site</option>
-            </select>
-            {activeFilters && (
-              <button type="button" className="btn btn-ghost !text-xs" onClick={resetFilters}>
-                Réinitialiser les filtres
-              </button>
-            )}
+
+          {/* Desktop — filtres inline */}
+          <div className="hidden space-y-3 md:block">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
+              <input
+                className="field lg:col-span-5"
+                placeholder="Rechercher un poste ou une entreprise"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <select
+                className="field lg:col-span-2"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                aria-label="Trier par"
+              >
+                <option value="score">Tri : score</option>
+                <option value="date">Tri : date d’ajout</option>
+                <option value="salary">Tri : salaire</option>
+              </select>
+              <select
+                className="field lg:col-span-2"
+                value={score}
+                onChange={(e) => setScore(e.target.value as ScoreFilter)}
+                aria-label="Score minimum"
+              >
+                <option value="all">Score : tous</option>
+                <option value="80">Score : 80+</option>
+                <option value="60">Score : 60+</option>
+              </select>
+              <select
+                className="field lg:col-span-3"
+                value={pipeline}
+                onChange={(e) => setPipeline(e.target.value as PipelineFilter)}
+                aria-label="Statut pipeline"
+              >
+                <option value="all">Pipeline : tous</option>
+                <option value="out">Pas encore traitée</option>
+                <option value="in">Déjà ajoutée</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                className="field !w-auto min-w-[10rem]"
+                value={redFlags}
+                onChange={(e) => setRedFlags(e.target.value as RedFlagFilter)}
+                aria-label="Red flags"
+              >
+                <option value="all">Red flags : tous</option>
+                <option value="yes">Avec red flags</option>
+                <option value="no">Sans red flags</option>
+              </select>
+              <select
+                className="field !w-auto min-w-[10rem]"
+                value={work}
+                onChange={(e) => setWork(e.target.value as WorkMode)}
+                aria-label="Mode de travail"
+              >
+                <option value="all">Lieu : tous</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybride</option>
+                <option value="onsite">Sur site</option>
+              </select>
+              {dirty && (
+                <button type="button" className="btn btn-ghost !text-xs" onClick={resetFilters}>
+                  Réinitialiser les filtres
+                </button>
+              )}
+            </div>
           </div>
         </div>
+      )}
+
+      {filtersOpen && (
+        <FiltersSheet
+          onClose={() => setFiltersOpen(false)}
+          onReset={() => {
+            resetFilters();
+          }}
+          dirty={filterCount > 0 || q.trim() !== ""}
+        >
+          {filterFields}
+        </FiltersSheet>
       )}
 
       {error && (
@@ -287,9 +430,57 @@ export function OffersPage() {
         </div>
       ) : (
         <>
-          <div className="board mt-8">
+          {/* Mobile — cartes registre */}
+          <ul className="mt-6 divide-y divide-[var(--hairline)] border-y border-[var(--ink)] md:hidden">
+            {visible.map((job, i) => {
+              const flags = effectiveRedFlags(job);
+              return (
+                <li
+                  key={job.id}
+                  className="fade-in"
+                  style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
+                >
+                  <button
+                    type="button"
+                    className="flex w-full flex-col gap-2 px-0 py-4 text-left transition-colors active:bg-[var(--row-hover)]"
+                    onClick={() => openOfferDetail(job)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <ScoreBadge score={job.analysis?.relevanceScore} />
+                      <div className="min-w-0 flex-1">
+                        <h2 className="display text-base font-semibold leading-snug">
+                          {job.title}
+                        </h2>
+                        <p className="mt-0.5 text-sm text-[var(--ink)]/70">{job.company}</p>
+                      </div>
+                    </div>
+                    <p
+                      className="mono pl-[3.5rem] text-sm"
+                      style={{ color: job.salaryRaw ? "var(--ink)" : "var(--brick)" }}
+                    >
+                      {job.salaryRaw ?? "Salaire n/c"}
+                      {job.location ? (
+                        <span className="text-[var(--ink)]/70"> · {job.location}</span>
+                      ) : null}
+                    </p>
+                    {flags.length > 0 ? (
+                      <div className="pl-[3.5rem]">
+                        <RedFlagList flags={flags.slice(0, 3)} />
+                      </div>
+                    ) : null}
+                    {job.application ? (
+                      <p className="label pl-[3.5rem] text-[var(--match)]">Au pipeline</p>
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop — tableau */}
+          <div className="board mt-8 hidden md:block">
             <div
-              className="board-head label hidden md:grid"
+              className="board-head label grid"
               style={{ gridTemplateColumns: "52px minmax(0,1fr) 100px minmax(120px,0.9fr) 128px" }}
             >
               <span>Score</span>
@@ -302,101 +493,170 @@ export function OffersPage() {
               {visible.map((job, i) => {
                 const flags = effectiveRedFlags(job);
                 return (
-                <li
-                  key={job.id}
-                  className="group fade-in"
-                  style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
-                >
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    className="board-row cursor-pointer flex flex-col gap-2 md:grid md:items-center"
-                    style={{ gridTemplateColumns: "52px minmax(0,1fr) 100px minmax(120px,0.9fr) 128px" }}
-                    onClick={() => openOfferDetail(job)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        openOfferDetail(job);
-                      }
-                    }}
+                  <li
+                    key={job.id}
+                    className="group fade-in"
+                    style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
                   >
-                    <div className="flex items-start gap-3 md:contents">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="board-row grid cursor-pointer items-center"
+                      style={{
+                        gridTemplateColumns: "52px minmax(0,1fr) 100px minmax(120px,0.9fr) 128px",
+                      }}
+                      onClick={() => openOfferDetail(job)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openOfferDetail(job);
+                        }
+                      }}
+                    >
                       <ScoreBadge score={job.analysis?.relevanceScore} />
-                      <div className="min-w-0 flex-1">
-                        <h2 className="display text-base font-semibold leading-snug sm:text-lg">
-                          {job.title}
-                        </h2>
-                        <p className="mt-0.5 text-sm text-[var(--ink-soft)]">
+                      <div className="min-w-0">
+                        <h2 className="display text-lg font-semibold leading-snug">{job.title}</h2>
+                        <p className="mt-0.5 text-sm text-[var(--ink)]/70">
                           {job.company}
                           {job.location ? ` · ${job.location}` : ""}
                         </p>
-                        <p
-                          className="mono mt-1 text-sm md:hidden"
-                          style={{ color: job.salaryRaw ? "var(--ink)" : "var(--brick)" }}
-                        >
-                          {job.salaryRaw ?? "Salaire n/c"}
-                        </p>
-                        {flags.length > 0 ? (
-                          <div className="md:hidden">
-                            <RedFlagList flags={flags.slice(0, 2)} />
-                          </div>
-                        ) : null}
+                      </div>
+                      <p
+                        className="mono text-sm"
+                        style={{ color: job.salaryRaw ? "var(--ink)" : "var(--brick)" }}
+                      >
+                        {job.salaryRaw ?? "n/c"}
+                      </p>
+                      <div className="min-w-0">
+                        {flags.length ? (
+                          <span
+                            className="label line-clamp-2"
+                            style={{ color: "var(--brick)" }}
+                            title={flags.join(" · ")}
+                          >
+                            {flags[0]}
+                            {flags.length > 1 ? ` +${flags.length - 1}` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-[var(--ink)]/70">—</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-end">
+                        {job.application ? (
+                          <span className="label text-[var(--match)]">Au pipeline</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-ghost !py-1 !text-xs whitespace-nowrap opacity-70 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                            disabled={pipelineBusy === job.id}
+                            onClick={(e) => void addToPipeline(e, job)}
+                          >
+                            {pipelineBusy === job.id ? "…" : "+ Pipeline"}
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <p
-                      className="mono hidden text-sm md:block"
-                      style={{ color: job.salaryRaw ? "var(--ink)" : "var(--brick)" }}
-                    >
-                      {job.salaryRaw ?? "n/c"}
-                    </p>
-                    <div className="hidden min-w-0 md:block">
-                      {flags.length ? (
-                        <span
-                          className="label line-clamp-2"
-                          style={{ color: "var(--brick)" }}
-                          title={flags.join(" · ")}
-                        >
-                          {flags[0]}
-                          {flags.length > 1 ? ` +${flags.length - 1}` : ""}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-[var(--ink-soft)]">—</span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-start md:justify-end">
-                      {job.application ? (
-                        <span className="label text-[var(--match)]">Au pipeline</span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-ghost !py-1 !text-xs whitespace-nowrap opacity-70 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                          disabled={pipelineBusy === job.id}
-                          onClick={(e) => void addToPipeline(e, job)}
-                        >
-                          {pipelineBusy === job.id ? "…" : "+ Pipeline"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </li>
+                  </li>
                 );
               })}
             </ul>
           </div>
 
-          {hasMore && (
-            <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Afficher plus ({filtered.length - visible.length} restantes)
-              </button>
-            </div>
-          )}
+          {hasMore && <div ref={sentinelRef} className="h-8" aria-hidden />}
         </>
       )}
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const id = useId();
+  return (
+    <div>
+      <label htmlFor={id} className="label mb-1.5 block">
+        {label}
+      </label>
+      <select
+        id={id}
+        className="field"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function FiltersSheet({
+  children,
+  onClose,
+  onReset,
+  dirty,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  onReset: () => void;
+  dirty: boolean;
+}) {
+  const panelId = useId();
+
+  return createPortal(
+    <div className="fixed inset-0 z-[60] md:hidden" role="presentation">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[var(--paper-deep)]/70"
+        aria-label="Fermer les filtres"
+        onClick={onClose}
+      />
+      <div
+        id={panelId}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filtres des offres"
+        className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
+        <div className="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--hairline)]" aria-hidden />
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--hairline)] px-4 py-3">
+          <p className="label">Filtres</p>
+          <div className="flex items-center gap-3">
+            {dirty && (
+              <button
+                type="button"
+                className="text-xs text-[var(--ink)]/70 underline underline-offset-4"
+                onClick={onReset}
+              >
+                Réinitialiser
+              </button>
+            )}
+            <button type="button" className="btn btn-ghost !py-1.5 !text-xs" onClick={onClose}>
+              Fermer
+            </button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">{children}</div>
+        <div className="shrink-0 border-t border-[var(--hairline)] px-4 py-3">
+          <button type="button" className="btn btn-amber w-full" onClick={onClose}>
+            Voir les résultats
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
