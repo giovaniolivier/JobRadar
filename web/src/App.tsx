@@ -1,6 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
-import { LocaleProvider } from "./lib/i18n";
+import { LocaleProvider, useLocale } from "./lib/i18n";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -22,15 +22,18 @@ import {
   ResetPasswordPage,
 } from "./pages/LegalPages";
 
+function SessionLoading() {
+  const { t } = useLocale();
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <p className="label">{t("common.loadingSession")}</p>
+    </div>
+  );
+}
+
 function PrivateRoute() {
   const { token, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="label">Chargement de la session…</p>
-      </div>
-    );
-  }
+  if (loading) return <SessionLoading />;
   if (!token) return <Navigate to="/" replace />;
   return <Outlet />;
 }
@@ -38,13 +41,7 @@ function PrivateRoute() {
 /** `/` : landing publique, ou tableau de bord si déjà connecté. */
 function HomeRoute() {
   const { token, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="label">Chargement de la session…</p>
-      </div>
-    );
-  }
+  if (loading) return <SessionLoading />;
   if (!token) return <LandingPage />;
   return <Navigate to="/dashboard" replace />;
 }

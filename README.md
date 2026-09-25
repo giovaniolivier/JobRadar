@@ -84,3 +84,5 @@ docker compose up --build
 - Les offres sont **isolées par utilisateur** (pas de fuite entre comptes).
 - CV : import **PDF / DOCX / .txt**.
 - Prefs email (Paramètres) : envoi réel si SMTP est configuré (score élevé, relance, entretien, digest).
+- **PWA** : le build web génère un service worker + manifest (installable sur mobile / desktop).
+- Langue : Paramètres → Langue (FR / EN).

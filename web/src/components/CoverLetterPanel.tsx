@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { api, type Application, type Job } from "../lib/api";
+import { useLocale, type MessageKey } from "../lib/i18n";
 
 export type LetterJob = Pick<Job, "id" | "title" | "company"> & {
   analysis?: Job["analysis"];
@@ -10,23 +11,19 @@ export type LetterJob = Pick<Job, "id" | "title" | "company"> & {
 type Tone = "formal" | "neutral" | "direct";
 type Length = "short" | "standard" | "detailed";
 
-const TONES: { id: Tone; label: string }[] = [
-  { id: "formal", label: "Formel" },
-  { id: "neutral", label: "Neutre" },
-  { id: "direct", label: "Direct-personnel" },
-];
+const TONE_KEYS: Record<Tone, MessageKey> = {
+  formal: "letter.toneFormal",
+  neutral: "letter.toneNeutral",
+  direct: "letter.toneDirect",
+};
 
-const LENGTHS: { id: Length; label: string }[] = [
-  { id: "short", label: "Courte" },
-  { id: "standard", label: "Standard" },
-  { id: "detailed", label: "Détaillée" },
-];
+const LENGTH_KEYS: Record<Length, MessageKey> = {
+  short: "letter.lengthShort",
+  standard: "letter.lengthStandard",
+  detailed: "letter.lengthDetailed",
+};
 
-const LOADING_STEPS = [
-  "Lecture de votre profil…",
-  "Rédaction de la lettre…",
-  "Ajustement du ton…",
-];
+const LOADING_KEYS = ["letter.loading1", "letter.loading2", "letter.loading3"] as const;
 
 function countWords(text: string) {
   const t = text.trim();
@@ -89,6 +86,7 @@ export function CoverLetterPanel({
   hasCv?: boolean;
   onSaved?: (letter: string, application?: Application | null) => void;
 }) {
+  const { t } = useLocale();
   const [tone, setTone] = useState<Tone>("neutral");
   const [length, setLength] = useState<Length>("standard");
   const [highlight, setHighlight] = useState("");
@@ -103,6 +101,15 @@ export function CoverLetterPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [hasCvState, setHasCvState] = useState(hasCv);
+
+  const tones = (Object.keys(TONE_KEYS) as Tone[]).map((id) => ({
+    id,
+    label: t(TONE_KEYS[id]),
+  }));
+  const lengths = (Object.keys(LENGTH_KEYS) as Length[]).map((id) => ({
+    id,
+    label: t(LENGTH_KEYS[id]),
+  }));
 
   useEffect(() => {
     if (!open || !job) return;
@@ -159,7 +166,7 @@ export function CoverLetterPanel({
     if (busy !== "generate") return;
     setLoadingStep(0);
     const id = window.setInterval(() => {
-      setLoadingStep((s) => (s + 1) % LOADING_STEPS.length);
+      setLoadingStep((s) => (s + 1) % LOADING_KEYS.length);
     }, 1600);
     return () => window.clearInterval(id);
   }, [busy]);
@@ -167,7 +174,7 @@ export function CoverLetterPanel({
   async function generate() {
     if (!job) return;
     if (!hasCvState) {
-      setError("Importez votre CV pour générer une lettre");
+      setError(t("letter.needCv"));
       return;
     }
     setBusy("generate");
@@ -192,7 +199,7 @@ export function CoverLetterPanel({
       setSavedSnapshot(null);
       window.setTimeout(() => textareaRef.current?.focus(), 50);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Génération impossible");
+      setError(err instanceof Error ? err.message : t("letter.generateError"));
     } finally {
       setBusy(null);
     }
@@ -220,7 +227,7 @@ export function CoverLetterPanel({
       setDirty(false);
       onSaved?.(letter, application);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Enregistrement impossible");
+      setError(err instanceof Error ? err.message : t("letter.saveError"));
     } finally {
       setBusy(null);
     }
@@ -233,7 +240,7 @@ export function CoverLetterPanel({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Impossible de copier — sélectionnez le texte manuellement");
+      setError(t("letter.copyError"));
     }
   }
 
@@ -260,13 +267,16 @@ export function CoverLetterPanel({
   const hasLetter = Boolean(letter.trim());
   const words = countWords(letter);
   const chars = letter.length;
+  const strengthsSuffix = job.analysis?.strengths?.length
+    ? ` (${job.analysis.strengths.slice(0, 2).join(" · ")})`
+    : "";
 
   return createPortal(
     <div className="fixed inset-0 z-[60] overflow-hidden">
       <button
         type="button"
         className="absolute inset-0 bg-[var(--ink)]/40"
-        aria-label="Fermer"
+        aria-label={t("letter.close")}
         onClick={onClose}
       />
       <div
@@ -278,7 +288,7 @@ export function CoverLetterPanel({
         <header className="shrink-0 border-b border-[var(--hairline)] px-4 py-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="label">Lettre de motivation</p>
+              <p className="label">{t("letter.eyebrow")}</p>
               <h2 id="letter-panel-title" className="mt-0.5 text-lg leading-snug sm:text-xl">
                 <span className="line-clamp-2">
                   {job.title}
@@ -287,7 +297,7 @@ export function CoverLetterPanel({
               </h2>
             </div>
             <button type="button" className="btn btn-ghost !px-2 !py-1 !text-xs" onClick={onClose}>
-              Fermer
+              {t("letter.close")}
             </button>
           </div>
         </header>
@@ -295,54 +305,47 @@ export function CoverLetterPanel({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           {!hasCvState ? (
             <div className="border border-dashed border-[var(--ink)] px-5 py-8">
-              <p className="text-lg text-[var(--ink)]">
-                Importez votre CV pour générer une lettre
-              </p>
-              <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                Sans profil candidat, la personnalisation n’a pas de base fiable.
-              </p>
+              <p className="text-lg text-[var(--ink)]">{t("letter.needCv")}</p>
+              <p className="mt-2 text-sm text-[var(--ink-soft)]">{t("letter.needCvBody")}</p>
               <Link to="/profile" className="btn btn-amber mt-5 inline-flex" onClick={onClose}>
-                Ouvrir Mon profil
+                {t("letter.goProfile")}
               </Link>
             </div>
           ) : (
             <>
               <section className="space-y-4 border-b border-[var(--hairline)] pb-5">
                 <div>
-                  <p className="label">Réglages</p>
-                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                    Orientez le ton avant de générer — chaque régénération remplace la version
-                    précédente.
-                  </p>
+                  <p className="label">{t("letter.settings")}</p>
+                  <p className="mt-1 text-sm text-[var(--ink-soft)]">{t("letter.settingsHint")}</p>
                 </div>
                 <div>
-                  <span className="label mb-1.5 block">Ton</span>
+                  <span className="label mb-1.5 block">{t("letter.tone")}</span>
                   <Segmented
-                    ariaLabel="Ton"
+                    ariaLabel={t("letter.tone")}
                     value={tone}
-                    options={TONES}
+                    options={tones}
                     onChange={setTone}
                     disabled={busy === "generate"}
                   />
                 </div>
                 <div>
-                  <span className="label mb-1.5 block">Longueur</span>
+                  <span className="label mb-1.5 block">{t("letter.length")}</span>
                   <Segmented
-                    ariaLabel="Longueur"
+                    ariaLabel={t("letter.length")}
                     value={length}
-                    options={LENGTHS}
+                    options={lengths}
                     onChange={setLength}
                     disabled={busy === "generate"}
                   />
                 </div>
                 <label className="block">
-                  <span className="label mb-1.5 block">Point à mettre en avant (optionnel)</span>
+                  <span className="label mb-1.5 block">{t("letter.highlight")}</span>
                   <input
                     className="field"
                     value={highlight}
                     disabled={busy === "generate"}
                     onChange={(e) => setHighlight(e.target.value)}
-                    placeholder="ex. Insiste sur ma reconversion et ma motivation"
+                    placeholder={t("letter.highlightPlaceholder")}
                   />
                 </label>
                 {!hasLetter && (
@@ -352,15 +355,15 @@ export function CoverLetterPanel({
                     disabled={busy === "generate"}
                     onClick={() => void generate()}
                   >
-                    {busy === "generate" ? "Génération…" : "Générer"}
+                    {busy === "generate" ? t("letter.generating") : t("letter.generate")}
                   </button>
                 )}
               </section>
 
               {busy === "generate" && (
                 <div className="mt-5 border border-[var(--hairline)] px-4 py-5">
-                  <p className="label">En cours</p>
-                  <p className="mt-2 text-[var(--ink)]">{LOADING_STEPS[loadingStep]}</p>
+                  <p className="label">{t("letter.loadingLabel")}</p>
+                  <p className="mt-2 text-[var(--ink)]">{t(LOADING_KEYS[loadingStep]!)}</p>
                   <div className="mt-4 h-1 overflow-hidden bg-[var(--paper-deep)]">
                     <div className="analyze-progress h-full bg-[var(--amber)]" />
                   </div>
@@ -379,7 +382,7 @@ export function CoverLetterPanel({
                       disabled={!!busy}
                       onClick={() => void generate()}
                     >
-                      Réessayer
+                      {t("letter.retry")}
                     </button>
                   )}
                 </div>
@@ -389,15 +392,17 @@ export function CoverLetterPanel({
                 <section className="mt-5 space-y-3">
                   <div className="flex flex-wrap items-end justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="label">Résultat</p>
+                      <p className="label">{t("letter.result")}</p>
                       {demo && (
                         <span className="mono text-[0.65rem] tracking-wide text-[var(--ink-soft)]">
-                          Exemple — IA non connectée
+                          {t("letter.demo")}
                         </span>
                       )}
                     </div>
                     <p className="mono text-xs text-[var(--ink-soft)]">
-                      {words} mot{words !== 1 ? "s" : ""} · {chars} car.
+                      {words === 1
+                        ? t("letter.wordCount", { words, chars })
+                        : t("letter.wordCountPlural", { words, chars })}
                     </p>
                   </div>
                   <textarea
@@ -408,14 +413,10 @@ export function CoverLetterPanel({
                       setLetter(e.target.value);
                       setDirty(true);
                     }}
-                    aria-label="Lettre de motivation éditable"
+                    aria-label={t("letter.editableAria")}
                   />
                   <p className="text-xs text-[var(--ink-soft)]">
-                    Générée à partir de votre CV et des points forts de l’analyse
-                    {job.analysis?.strengths?.length
-                      ? ` (${job.analysis.strengths.slice(0, 2).join(" · ")})`
-                      : ""}
-                    .
+                    {t("letter.fromProfile", { strengths: strengthsSuffix })}
                   </p>
                 </section>
               )}
@@ -425,9 +426,7 @@ export function CoverLetterPanel({
 
         {hasCvState && hasLetter && busy !== "generate" && (
           <footer className="shrink-0 space-y-2 border-t border-[var(--hairline)] px-4 py-3">
-            <p className="text-xs text-[var(--ink-soft)]">
-              Relisez toujours avant l’envoi — l’IA peut se tromper sur des détails.
-            </p>
+            <p className="text-xs text-[var(--ink-soft)]">{t("letter.disclaimer")}</p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -435,7 +434,7 @@ export function CoverLetterPanel({
                 disabled={!!busy}
                 onClick={() => void copyLetter()}
               >
-                {copied ? "Copié" : "Copier"}
+                {copied ? t("letter.copied") : t("letter.copy")}
               </button>
               <button
                 type="button"
@@ -443,7 +442,7 @@ export function CoverLetterPanel({
                 disabled={!!busy}
                 onClick={downloadLetter}
               >
-                Télécharger (.txt)
+                {t("letter.download")}
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -453,7 +452,7 @@ export function CoverLetterPanel({
                 disabled={!!busy}
                 onClick={() => void generate()}
               >
-                Régénérer
+                {t("letter.regenerate")}
               </button>
               <button
                 type="button"
@@ -464,8 +463,8 @@ export function CoverLetterPanel({
                 {busy === "save"
                   ? "…"
                   : savedSnapshot === letter && !dirty
-                    ? "Enregistrée"
-                    : "Enregistrer dans la candidature"}
+                    ? t("letter.saved")
+                    : t("letter.saveToApp")}
               </button>
             </div>
           </footer>

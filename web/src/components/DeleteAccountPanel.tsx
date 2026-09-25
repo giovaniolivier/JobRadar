@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLocale } from "../lib/i18n";
 
 type DeleteAccountPanelProps = {
   hasPassword: boolean;
@@ -10,11 +11,15 @@ type DeleteAccountPanelProps = {
   className?: string;
 };
 
+/** API confirm literal — must stay SUPPRIMER in both locales. */
+const DELETE_CONFIRM = "SUPPRIMER";
+
 export function DeleteAccountPanel({
   hasPassword,
   onError,
   className = "",
 }: DeleteAccountPanelProps) {
+  const { t } = useLocale();
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [confirm, setConfirm] = useState("");
@@ -29,12 +34,12 @@ export function DeleteAccountPanel({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (confirm !== "SUPPRIMER") {
-      setErr('Tapez SUPPRIMER pour confirmer');
+    if (confirm !== DELETE_CONFIRM) {
+      setErr(t("profile.deleteConfirm"));
       return;
     }
     if (hasPassword && !password) {
-      setErr("Mot de passe requis");
+      setErr(t("profile.deletePasswordRequired"));
       return;
     }
 
@@ -44,14 +49,14 @@ export function DeleteAccountPanel({
       await api("/profile", {
         method: "DELETE",
         body: JSON.stringify({
-          confirm: "SUPPRIMER",
+          confirm: DELETE_CONFIRM,
           ...(hasPassword ? { password } : {}),
         }),
       });
       await logout();
       navigate("/login", { replace: true });
     } catch (err) {
-      setErr(err instanceof Error ? err.message : "Suppression impossible");
+      setErr(err instanceof Error ? err.message : t("profile.deleteFailed"));
       setBusy(false);
     }
   }
@@ -60,14 +65,12 @@ export function DeleteAccountPanel({
     <div className={`space-y-4 border border-[var(--brick)] p-5 ${className}`}>
       <div>
         <p className="label" style={{ color: "var(--brick)" }}>
-          Zone danger
+          {t("profile.deleteDanger")}
         </p>
         <h3 className="mt-1 text-xl" style={{ color: "var(--brick)" }}>
-          Supprimer le compte
+          {t("profile.deleteTitle")}
         </h3>
-        <p className="mt-2 text-sm text-[var(--ink)]/75">
-          Irréversible : profil, CV, analyses, candidatures et lettres seront effacés.
-        </p>
+        <p className="mt-2 text-sm text-[var(--ink)]/75">{t("profile.deleteBody")}</p>
       </div>
 
       {localError && !onError && (
@@ -78,7 +81,7 @@ export function DeleteAccountPanel({
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-3">
         <label className="block">
-          <span className="label mb-1.5 block">Tapez SUPPRIMER pour confirmer</span>
+          <span className="label mb-1.5 block">{t("profile.deleteConfirm")}</span>
           <input
             className="field"
             value={confirm}
@@ -89,7 +92,7 @@ export function DeleteAccountPanel({
         </label>
         {hasPassword && (
           <label className="block">
-            <span className="label mb-1.5 block">Mot de passe</span>
+            <span className="label mb-1.5 block">{t("profile.deletePassword")}</span>
             <input
               className="field"
               type="password"
@@ -104,9 +107,9 @@ export function DeleteAccountPanel({
           type="submit"
           className="btn"
           style={{ background: "var(--brick)", borderColor: "var(--brick)", color: "#fff" }}
-          disabled={busy || confirm !== "SUPPRIMER"}
+          disabled={busy || confirm !== DELETE_CONFIRM}
         >
-          {busy ? "Suppression…" : "Supprimer définitivement mon compte"}
+          {busy ? t("profile.deleteBusy") : t("profile.deleteSubmit")}
         </button>
       </form>
     </div>

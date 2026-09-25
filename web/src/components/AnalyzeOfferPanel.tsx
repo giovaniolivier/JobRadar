@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, type Job } from "../lib/api";
+import { useLocale } from "../lib/i18n";
 import { CoverLetterPanel } from "./CoverLetterPanel";
 import { RedFlagList, ScoreBadge, ScoreDialLoading } from "./ScoreBadge";
 
@@ -31,13 +32,9 @@ export function useAnalyzeOffer() {
   return ctx;
 }
 
-const LOADING_MESSAGES = [
-  "Lecture de l'offre…",
-  "Comparaison avec votre profil…",
-  "Calcul du score de correspondance…",
-];
-
 const MIN_TEXT = 80;
+
+const LOADING_KEYS = ["analyze.loading1", "analyze.loading2", "analyze.loading3"] as const;
 
 type PanelIntent = "create" | "view";
 
@@ -93,6 +90,7 @@ function AnalyzeOfferPanel({
   intent: PanelIntent;
   initialJob: Job | null;
 }) {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<Step>("input");
@@ -105,7 +103,7 @@ function AnalyzeOfferPanel({
   const [error, setError] = useState<string | null>(null);
   const [needsCv, setNeedsCv] = useState(false);
   const [result, setResult] = useState<Job | null>(null);
-  const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]!);
+  const [loadingMsg, setLoadingMsg] = useState(() => t("analyze.loading1"));
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [letter, setLetter] = useState<string | null>(null);
   const [letterOpen, setLetterOpen] = useState(false);
@@ -146,17 +144,17 @@ function AnalyzeOfferPanel({
       return;
     }
     let i = 0;
-    setLoadingMsg(LOADING_MESSAGES[0]!);
+    setLoadingMsg(t(LOADING_KEYS[0]!));
     const msgId = window.setInterval(() => {
-      i = (i + 1) % LOADING_MESSAGES.length;
-      setLoadingMsg(LOADING_MESSAGES[i]!);
+      i = (i + 1) % LOADING_KEYS.length;
+      setLoadingMsg(t(LOADING_KEYS[i]!));
     }, 1600);
     const waitId = window.setTimeout(() => setStillWaiting(true), 3500);
     return () => {
       window.clearInterval(msgId);
       window.clearTimeout(waitId);
     };
-  }, [step]);
+  }, [step, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -176,7 +174,7 @@ function AnalyzeOfferPanel({
   function requestClose() {
     if (step === "loading") return;
     if (intent === "create" && step === "input" && hasDraft()) {
-      const ok = window.confirm("Vous avez saisi du contenu. Abandonner cette offre ?");
+      const ok = window.confirm(t("analyze.confirmAbandon"));
       if (!ok) return;
     }
     onClose();
@@ -188,9 +186,7 @@ function AnalyzeOfferPanel({
     setFileName(file.name);
     setError(null);
     if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      setError(
-        "L’extraction PDF automatique arrive bientôt. Ouvrez le fichier, copiez le texte, puis utilisez « Coller le texte »."
-      );
+      setError(t("analyze.errorPdf"));
       return;
     }
     const text = await file.text();
@@ -204,25 +200,23 @@ function AnalyzeOfferPanel({
 
     if (mode === "link") {
       if (!url.trim()) {
-        setError("Indiquez l’URL de l’offre.");
+        setError(t("analyze.errorUrl"));
         return;
       }
       if (description.trim().length < MIN_TEXT) {
-        setError(
-          "Le scraping automatique n’est pas encore disponible. Passez sur « Coller le texte » pour analyser l’annonce — vous pourrez garder l’URL dans les champs optionnels."
-        );
+        setError(t("analyze.errorScraping"));
         return;
       }
     }
 
     if (mode === "file" && description.trim().length < MIN_TEXT) {
-      setError("Importez un fichier .txt, ou collez le texte de l’offre.");
+      setError(t("analyze.errorFile"));
       return;
     }
 
     const text = description.trim();
     if (text.length < MIN_TEXT) {
-      setError("Collez le texte complet de l'offre pour lancer l'analyse.");
+      setError(t("analyze.errorMinText"));
       return;
     }
 
@@ -255,9 +249,7 @@ function AnalyzeOfferPanel({
         return;
       }
       setError(
-        err instanceof ApiError && err.message
-          ? err.message
-          : "L'analyse a échoué. Réessayez dans un instant."
+        err instanceof ApiError && err.message ? err.message : t("analyze.errorFailed")
       );
       setStep("error");
     } finally {
@@ -284,7 +276,7 @@ function AnalyzeOfferPanel({
       onClose();
       if (intent === "create") navigate("/pipeline");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible d'ajouter au pipeline");
+      setError(err instanceof Error ? err.message : t("analyze.errorPipeline"));
     } finally {
       setBusyAction(null);
     }
@@ -308,7 +300,7 @@ function AnalyzeOfferPanel({
       <button
         type="button"
         className="absolute inset-0 bg-[var(--ink)]/40"
-        aria-label="Fermer"
+        aria-label={t("analyze.close")}
         disabled={step === "loading"}
         onClick={() => step !== "loading" && requestClose()}
       />
@@ -321,17 +313,17 @@ function AnalyzeOfferPanel({
       >
         <header className="flex items-start justify-between gap-3 border-b border-[var(--hairline)] px-5 py-4">
           <div>
-            <p className="label">Action</p>
+            <p className="label">{t("analyze.action")}</p>
             <h2 id="analyze-offer-title" className="mt-1 text-xl sm:text-2xl">
               {step === "loading"
-                ? "Analyse en cours"
+                ? t("analyze.titleLoading")
                 : step === "result"
                   ? intent === "view"
-                    ? "Détail de l’offre"
-                    : "Résultat de l’analyse"
+                    ? t("analyze.titleView")
+                    : t("analyze.titleResult")
                   : step === "error"
-                    ? "Analyse interrompue"
-                    : "Analyser une nouvelle offre"}
+                    ? t("analyze.titleError")
+                    : t("analyze.title")}
             </h2>
           </div>
           {step !== "loading" && (
@@ -340,7 +332,7 @@ function AnalyzeOfferPanel({
               className="btn btn-ghost !px-2 !py-1 !text-xs"
               onClick={requestClose}
             >
-              Fermer
+              {t("analyze.close")}
             </button>
           )}
         </header>
@@ -373,7 +365,7 @@ function AnalyzeOfferPanel({
                   {loadingMsg}
                 </p>
                 {stillWaiting && (
-                  <p className="mt-3 text-sm text-[var(--ink-soft)]">Quelques secondes encore…</p>
+                  <p className="mt-3 text-sm text-[var(--ink-soft)]">{t("analyze.stillWaiting")}</p>
                 )}
               </div>
               <button
@@ -381,7 +373,7 @@ function AnalyzeOfferPanel({
                 className="text-xs text-[var(--ink-soft)] underline underline-offset-4"
                 onClick={cancelAnalysis}
               >
-                Annuler l’analyse
+                {t("analyze.cancelAnalysis")}
               </button>
             </div>
           )}
@@ -389,10 +381,10 @@ function AnalyzeOfferPanel({
           {step === "error" && (
             <div className="flex min-h-[50%] flex-col items-center justify-center gap-4 py-12 text-center">
               <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
-                {error ?? "L'analyse a échoué. Réessayez dans un instant."}
+                {error ?? t("analyze.errorFailed")}
               </p>
               <button type="button" className="btn btn-amber" onClick={() => void runAnalyze()}>
-                Réessayer
+                {t("analyze.retry")}
               </button>
               <button
                 type="button"
@@ -402,7 +394,7 @@ function AnalyzeOfferPanel({
                   setStep("input");
                 }}
               >
-                Modifier la saisie
+                {t("analyze.editInput")}
               </button>
             </div>
           )}
@@ -420,9 +412,7 @@ function AnalyzeOfferPanel({
             />
           )}
           {step === "result" && result && !result.analysis && (
-            <p className="text-sm text-[var(--ink-soft)]">
-              Cette offre n’a pas encore d’analyse. Relancez une analyse depuis « + Nouvelle offre ».
-            </p>
+            <p className="text-sm text-[var(--ink-soft)]">{t("analyze.noAnalysis")}</p>
           )}
         </div>
 
@@ -433,10 +423,10 @@ function AnalyzeOfferPanel({
               className="text-sm text-[var(--ink-soft)] underline underline-offset-4"
               onClick={requestClose}
             >
-              Annuler
+              {t("analyze.cancel")}
             </button>
             <button type="button" className="btn btn-amber" onClick={() => void runAnalyze()}>
-              Analyser
+              {t("analyze.submit")}
             </button>
           </footer>
         )}
@@ -491,18 +481,19 @@ function InputStep({
   error: string | null;
   needsCv: boolean;
 }) {
+  const { t } = useLocale();
   const [dragging, setDragging] = useState(false);
   const len = description.trim().length;
   const enough = len >= MIN_TEXT;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Méthode d'ajout">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t("analyze.modeAria")}>
         {(
           [
-            ["paste", "Coller le texte"],
-            ["link", "Coller un lien"],
-            ["file", "Importer un fichier"],
+            ["paste", t("analyze.modePaste")],
+            ["link", t("analyze.modeLink")],
+            ["file", t("analyze.modeFile")],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -521,26 +512,25 @@ function InputStep({
       {mode === "paste" && (
         <div>
           <label className="block">
-            <span className="label mb-1.5 block">Texte de l’offre</span>
+            <span className="label mb-1.5 block">{t("analyze.textLabel")}</span>
             <textarea
               className="field min-h-40 resize-y"
               rows={8}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Collez ici l’annonce complète…"
+              placeholder={t("analyze.textPlaceholder")}
               autoFocus
             />
           </label>
           <div className="mt-1.5 flex items-start justify-between gap-3">
-            <span className="text-xs text-[var(--ink-soft)]">
-              Collez l’intégralité de l’annonce pour une analyse plus précise
-            </span>
+            <span className="text-xs text-[var(--ink-soft)]">{t("analyze.textHint")}</span>
             <span
               className="mono shrink-0 text-[0.7rem] tabular-nums"
               style={{ color: enough ? "var(--match)" : "var(--ink-soft)" }}
               aria-live="polite"
+              title={`Minimum ${MIN_TEXT}`}
             >
-              {len}/{MIN_TEXT}
+              {t("analyze.counter", { len, min: MIN_TEXT })}
             </span>
           </div>
         </div>
@@ -548,25 +538,22 @@ function InputStep({
 
       {mode === "link" && (
         <label className="block">
-          <span className="label mb-1.5 block">URL de l’offre</span>
+          <span className="label mb-1.5 block">{t("analyze.urlLabel")}</span>
           <input
             className="field"
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://linkedin.com/jobs/… ou indeed, site carrière…"
+            placeholder={t("analyze.urlPlaceholder")}
             autoFocus
           />
-          <span className="mt-1.5 block text-xs text-[var(--ink-soft)]">
-            Le lien sera gardé en référence. Pour l’instant, l’analyse se fait via « Coller le texte »
-            (scraping automatique bientôt).
-          </span>
+          <span className="mt-1.5 block text-xs text-[var(--ink-soft)]">{t("analyze.urlHint")}</span>
         </label>
       )}
 
       {mode === "file" && (
         <div>
-          <span className="label mb-1.5 block">Fichier de l’offre</span>
+          <span className="label mb-1.5 block">{t("analyze.fileLabel")}</span>
           <label
             className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed px-4 py-8 text-center transition-colors ${
               dragging ? "border-[var(--amber)] bg-[var(--row-hover)]" : "border-[var(--hairline)]"
@@ -592,47 +579,46 @@ function InputStep({
               className="sr-only"
               onChange={(e) => void onFileChange(e.target.files?.[0] ?? null)}
             />
-            <span className="text-sm font-medium">Glissez un fichier ici, ou parcourir</span>
-            <span className="text-xs text-[var(--ink-soft)]">Formats acceptés : PDF, .txt</span>
+            <span className="text-sm font-medium">{t("analyze.fileDrop")}</span>
+            <span className="text-xs text-[var(--ink-soft)]">{t("analyze.fileFormats")}</span>
             {fileName && (
-              <span className="mt-1 mono text-xs text-[var(--ink)]">Sélectionné : {fileName}</span>
+              <span className="mt-1 mono text-xs text-[var(--ink)]">
+                {t("analyze.fileSelected", { name: fileName })}
+              </span>
             )}
           </label>
           {description.trim().length > 0 && mode === "file" && (
             <p className="mt-2 text-xs text-[var(--ink-soft)]">
-              Texte chargé ({description.trim().length} car.) — vous pouvez lancer l’analyse, ou
-              basculer sur « Coller le texte » pour le relire.
+              {t("analyze.fileLoaded", { n: description.trim().length })}
             </p>
           )}
         </div>
       )}
 
       <details className="border border-[var(--hairline)] px-3 py-2">
-        <summary className="label cursor-pointer select-none">Champs optionnels</summary>
+        <summary className="label cursor-pointer select-none">{t("analyze.optional")}</summary>
         <div className="mt-3 space-y-3">
           <label className="block">
-            <span className="label mb-1.5 block">Entreprise</span>
+            <span className="label mb-1.5 block">{t("analyze.company")}</span>
             <input className="field" value={company} onChange={(e) => setCompany(e.target.value)} />
           </label>
           <label className="block">
-            <span className="label mb-1.5 block">Intitulé du poste</span>
+            <span className="label mb-1.5 block">{t("analyze.jobTitle")}</span>
             <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
           </label>
           {mode !== "link" && (
             <label className="block">
-              <span className="label mb-1.5 block">Lien de l’offre</span>
+              <span className="label mb-1.5 block">{t("analyze.offerLink")}</span>
               <input
                 className="field"
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://…"
+                placeholder={t("analyze.linkPlaceholder")}
               />
             </label>
           )}
-          <p className="text-xs text-[var(--ink-soft)]">
-            L’IA peut extraire ces infos du texte — ne les remplissez que si vous voulez les forcer.
-          </p>
+          <p className="text-xs text-[var(--ink-soft)]">{t("analyze.optionalHint")}</p>
         </div>
       </details>
 
@@ -648,7 +634,7 @@ function InputStep({
               to="/onboarding"
               className="mt-2 inline-block underline decoration-[var(--amber)] underline-offset-4"
             >
-              Importer mon CV
+              {t("analyze.importCv")}
             </Link>
           )}
         </div>
@@ -676,6 +662,7 @@ function ResultStep({
   onLetter: () => void;
   onIgnore: () => void;
 }) {
+  const { t } = useLocale();
   const a = job.analysis!;
   const strengths = a.strengths ?? [];
   const gaps = a.gaps ?? [];
@@ -688,7 +675,9 @@ function ResultStep({
         <div className="min-w-0 pt-1">
           <h3 className="text-xl leading-snug sm:text-2xl">{job.title}</h3>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">{job.company}</p>
-          <p className="mono mt-2 text-xs text-[var(--ink-soft)]">Score {a.relevanceScore}/100</p>
+          <p className="mono mt-2 text-xs text-[var(--ink-soft)]">
+            {t("analyze.scoreLabel", { n: a.relevanceScore })}
+          </p>
         </div>
       </div>
 
@@ -702,37 +691,34 @@ function ResultStep({
           style={{ borderColor: "color-mix(in srgb, var(--brick) 45%, transparent)" }}
         >
           <p className="label mb-1.5" style={{ color: "var(--brick)" }}>
-            Écart important
+            {t("analyze.lowScoreTitle")}
           </p>
-          <p>
-            {gaps[0] ??
-              "Cette offre correspond peu à votre profil actuel. Les écarts ci-dessous indiquent pourquoi — utile pour prioriser ou préparer un entretien ciblé."}
-          </p>
+          <p>{gaps[0] ?? t("analyze.lowScoreFallback")}</p>
         </div>
       )}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <p className="label" style={{ color: "var(--match)" }}>
-            Points forts
+            {t("analyze.strengths")}
           </p>
           <ul className="mt-2 space-y-1.5 text-sm">
             {strengths.length ? (
               strengths.slice(0, 3).map((s) => <li key={s}>• {s}</li>)
             ) : (
-              <li className="text-[var(--ink-soft)]">Aucun point fort net détecté</li>
+              <li className="text-[var(--ink-soft)]">{t("analyze.noStrengths")}</li>
             )}
           </ul>
         </div>
         <div>
           <p className="label" style={{ color: "var(--amber)" }}>
-            Écarts à combler
+            {t("analyze.gaps")}
           </p>
           <ul className="mt-2 space-y-1.5 text-sm">
             {gaps.length ? (
               gaps.slice(0, 3).map((g) => <li key={g}>• {g}</li>)
             ) : (
-              <li className="text-[var(--ink-soft)]">Pas d’écart majeur signalé</li>
+              <li className="text-[var(--ink-soft)]">{t("analyze.noGaps")}</li>
             )}
           </ul>
         </div>
@@ -744,7 +730,7 @@ function ResultStep({
           style={{ borderColor: "color-mix(in srgb, var(--brick) 50%, transparent)" }}
         >
           <p className="label" style={{ color: "var(--brick)" }}>
-            Red flags
+            {t("analyze.redFlags")}
           </p>
           <RedFlagList flags={a.redFlags} />
         </div>
@@ -759,7 +745,7 @@ function ResultStep({
       <div className="flex flex-col gap-2 border-t border-[var(--hairline)] pt-4">
         {alreadyInPipeline ? (
           <p className="label text-center" style={{ color: "var(--match)" }}>
-            Déjà dans le pipeline
+            {t("analyze.inPipeline")}
           </p>
         ) : (
           <button
@@ -768,7 +754,7 @@ function ResultStep({
             disabled={!!busyAction}
             onClick={onPipeline}
           >
-            {busyAction === "pipeline" ? "Ajout…" : "Ajouter au pipeline"}
+            {busyAction === "pipeline" ? t("analyze.addingPipeline") : t("analyze.addPipeline")}
           </button>
         )}
         <button
@@ -777,7 +763,7 @@ function ResultStep({
           disabled={!!busyAction}
           onClick={onLetter}
         >
-          {hasLetter ? "Voir / éditer la lettre" : "Générer la lettre de motivation"}
+          {hasLetter ? t("analyze.viewLetter") : t("analyze.generateLetter")}
         </button>
         {!alreadyInPipeline && (
           <button
@@ -786,7 +772,7 @@ function ResultStep({
             disabled={!!busyAction}
             onClick={onIgnore}
           >
-            Ignorer cette offre
+            {t("analyze.ignore")}
           </button>
         )}
       </div>

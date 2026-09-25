@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { fetchDashboard, type DashboardSummary } from "../lib/home";
 import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
+import { useLocale } from "../lib/i18n";
 
 const CV_BANNER_DISMISS_KEY = "jobradar_cv_reminder_dismissed";
 
@@ -15,6 +16,7 @@ function readCvBannerDismissed(): boolean {
 }
 
 export function DashboardPage() {
+  const { t } = useLocale();
   const { openAnalyze } = useAnalyzeOffer();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function DashboardPage() {
           }
         }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Erreur");
+        if (!cancelled) setError(err instanceof Error ? err.message : t("common.error"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -46,10 +48,10 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
-    return <p className="label">Chargement du tableau de bord…</p>;
+    return <p className="label">{t("dashboard.loading")}</p>;
   }
   if (error) {
     return (
@@ -78,12 +80,12 @@ export function DashboardPage() {
       {showCvBanner && (
         <div className="flex items-start gap-3 border border-[var(--amber)]/50 bg-[var(--row-hover)] px-4 py-3 sm:px-5">
           <p className="min-w-0 flex-1 text-sm text-[var(--ink)]">
-            Importez votre CV pour débloquer des scores fiables.{" "}
+            {t("dashboard.cvBanner")}{" "}
             <Link
               to="/onboarding"
               className="font-medium underline decoration-[var(--amber)] underline-offset-4"
             >
-              Continuer l’import
+              {t("dashboard.cvBannerLink")}
             </Link>
           </p>
           <button
@@ -91,18 +93,16 @@ export function DashboardPage() {
             className="shrink-0 text-xs text-[var(--ink)]/70 underline underline-offset-4 hover:text-[var(--ink)]"
             onClick={dismissCvBanner}
           >
-            Plus tard
+            {t("dashboard.cvBannerLater")}
           </button>
         </div>
       )}
 
       <div className="flex flex-col gap-4 border-b border-[var(--hairline)] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl">
-          <p className="label">Tour de contrôle</p>
-          <h1 className="mt-1 text-3xl sm:text-4xl">Tableau de bord</h1>
-          <p className="mt-2 text-[var(--ink)]/75">
-            Où vous en êtes — et la prochaine action utile.
-          </p>
+          <p className="label">{t("dashboard.eyebrow")}</p>
+          <h1 className="mt-1 text-3xl sm:text-4xl">{t("dashboard.title")}</h1>
+          <p className="mt-2 text-[var(--ink)]/75">{t("dashboard.subtitle")}</p>
           {stats.activityHint && (
             <p className="mt-3 text-sm" style={{ color: "var(--match)" }}>
               {stats.activityHint}
@@ -114,34 +114,25 @@ export function DashboardPage() {
           className="btn btn-amber !hidden self-start lg:!inline-flex"
           onClick={openAnalyze}
         >
-          Analyser une nouvelle offre
+          {t("dashboard.analyzeCta")}
         </button>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-3">
+        <StatCard label={t("dashboard.statAnalyzed")} value={String(stats.analyzedThisWeek)} />
         <StatCard
-          label="Analysées cette semaine"
-          value={String(stats.analyzedThisWeek)}
-        />
-        <StatCard
-          label="Score moyen"
+          label={t("dashboard.statAvgScore")}
           value={stats.avgScore != null ? `${stats.avgScore}` : "—"}
         />
-        <StatCard
-          label="En attente de réponse"
-          value={String(stats.awaitingResponse)}
-        />
+        <StatCard label={t("dashboard.statAwaiting")} value={String(stats.awaitingResponse)} />
       </section>
 
       {isEmpty ? (
         <section className="border border-[var(--hairline)] px-5 py-10 max-lg:pr-20 sm:px-8">
-          <h2 className="text-2xl">Prêt à démarrer</h2>
-          <p className="mt-3 max-w-lg text-[var(--ink)]/75">
-            Ajoutez votre première offre pour voir votre score de correspondance et construire votre
-            pipeline.
-          </p>
+          <h2 className="text-2xl">{t("dashboard.emptyTitle")}</h2>
+          <p className="mt-3 max-w-lg text-[var(--ink)]/75">{t("dashboard.emptyBody")}</p>
           <button type="button" className="btn btn-amber mt-6 inline-flex" onClick={openAnalyze}>
-            Analyser une nouvelle offre
+            {t("dashboard.analyzeCta")}
           </button>
         </section>
       ) : (
@@ -149,25 +140,25 @@ export function DashboardPage() {
           <section>
             <div className="mb-4 flex items-end justify-between gap-4">
               <div>
-                <p className="label">Priorité</p>
-                <h2 className="mt-1 text-2xl">Offres qui méritent votre attention</h2>
+                <p className="label">{t("dashboard.priorityEyebrow")}</p>
+                <h2 className="mt-1 text-2xl">{t("dashboard.priorityTitle")}</h2>
               </div>
               <Link
                 to="/offers"
                 className="text-sm underline decoration-[var(--amber)] underline-offset-4"
               >
-                Voir toutes
+                {t("dashboard.seeAll")}
               </Link>
             </div>
             {topOffers.length === 0 ? (
               <p className="text-[var(--ink)]/75">
-                Aucune offre « à postuler » à fort score pour le moment.{" "}
+                {t("dashboard.noTopOffers")}{" "}
                 <button
                   type="button"
                   className="underline decoration-[var(--amber)]"
                   onClick={openAnalyze}
                 >
-                  Analysez une offre
+                  {t("dashboard.analyzeLink")}
                 </button>
                 .
               </p>
@@ -194,10 +185,10 @@ export function DashboardPage() {
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:items-stretch">
                       <Link to={`/offers/${offer.id}`} className="btn btn-amber !text-xs">
-                        Générer la lettre
+                        {t("dashboard.generateLetter")}
                       </Link>
                       <Link to={`/offers/${offer.id}`} className="btn btn-ghost !text-xs">
-                        Ouvrir
+                        {t("dashboard.open")}
                       </Link>
                     </div>
                   </li>
@@ -209,21 +200,18 @@ export function DashboardPage() {
           <section>
             <div className="mb-4 flex items-end justify-between gap-4">
               <div>
-                <p className="label">Pipeline</p>
-                <h2 className="mt-1 text-2xl">En cours</h2>
+                <p className="label">{t("dashboard.pipelineEyebrow")}</p>
+                <h2 className="mt-1 text-2xl">{t("dashboard.pipelineTitle")}</h2>
               </div>
               <Link
                 to="/pipeline"
                 className="text-sm underline decoration-[var(--amber)] underline-offset-4"
               >
-                Pipeline complet
+                {t("dashboard.pipelineFull")}
               </Link>
             </div>
             {pipelineFocus.length === 0 ? (
-              <p className="text-[var(--ink)]/75">
-                Pas encore de candidature en mouvement. Passez une offre en « Candidaté » ou
-                « Entretien » depuis le pipeline.
-              </p>
+              <p className="text-[var(--ink)]/75">{t("dashboard.pipelineEmpty")}</p>
             ) : (
               <ul className="space-y-3">
                 {pipelineFocus.map((item) => (
@@ -240,7 +228,9 @@ export function DashboardPage() {
                         <p className="mt-1 text-sm text-[var(--ink)]/70">{item.hint}</p>
                       </div>
                       <span className="label shrink-0">
-                        {item.status === "INTERVIEW" ? "Entretien" : "Relance"}
+                        {item.status === "INTERVIEW"
+                          ? t("dashboard.statusInterview")
+                          : t("dashboard.statusFollowUp")}
                       </span>
                     </Link>
                   </li>

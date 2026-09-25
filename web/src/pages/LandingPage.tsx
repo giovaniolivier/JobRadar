@@ -1,37 +1,34 @@
 import { Link } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { ScoreBadge } from "../components/ScoreBadge";
-
-const STEPS = [
-  {
-    n: "01",
-    title: "Importez votre CV",
-    text: "Une base claire pour comparer chaque annonce à votre vrai profil — pas à une fiction générique.",
-  },
-  {
-    n: "02",
-    title: "Collez une offre qui vous intéresse",
-    text: "Texte, lien ou fichier : vous gardez la source, JobRadar lit le contenu.",
-  },
-  {
-    n: "03",
-    title: "Obtenez un score et les points à surveiller",
-    text: "Correspondance, écarts, red flags (salaire flou, expérience irréaliste) — en un coup d’œil.",
-  },
-  {
-    n: "04",
-    title: "Suivez vos candidatures au même endroit",
-    text: "Du « à postuler » à la réponse, avec relances et lettres au fil du pipeline.",
-  },
-] as const;
-
-const DEMO_OFFERS = [
-  { title: "Développeur front-end React", company: "Lumen Atelier", score: 88, flag: null },
-  { title: "Full-stack (React / Node)", company: "NovaTech", score: 72, flag: "Salaire non précisé" },
-  { title: "Ingénieur logiciel senior", company: "Atlas Digital", score: 41, flag: "Expérience irréaliste" },
-] as const;
+import { useLocale } from "../lib/i18n";
 
 export function LandingPage() {
+  const { t } = useLocale();
+
+  const STEPS = [
+    { n: "01", title: t("landing.step1Title"), text: t("landing.step1Text") },
+    { n: "02", title: t("landing.step2Title"), text: t("landing.step2Text") },
+    { n: "03", title: t("landing.step3Title"), text: t("landing.step3Text") },
+    { n: "04", title: t("landing.step4Title"), text: t("landing.step4Text") },
+  ] as const;
+
+  const DEMO_OFFERS = [
+    { title: t("landing.demo1Title"), company: t("landing.demo1Company"), score: 88, flag: null },
+    {
+      title: t("landing.demo2Title"),
+      company: t("landing.demo2Company"),
+      score: 72,
+      flag: t("landing.demo2Flag"),
+    },
+    {
+      title: t("landing.demo3Title"),
+      company: t("landing.demo3Company"),
+      score: 41,
+      flag: t("landing.demo3Flag"),
+    },
+  ] as const;
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px]">
@@ -42,10 +39,10 @@ export function LandingPage() {
               to="/login"
               className="text-sm text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline"
             >
-              Se connecter
+              {t("landing.login")}
             </Link>
             <Link to="/register" className="btn btn-amber !py-2 !text-sm">
-              Créer un compte
+              {t("landing.register")}
             </Link>
           </div>
         </div>
@@ -56,29 +53,28 @@ export function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_20%,var(--glow-amber),transparent_55%)]" />
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 sm:py-16 xl:grid-cols-2 xl:items-center xl:gap-14 xl:py-20">
           <div className="landing-fade min-w-0">
-            <p className="label">JobRadar</p>
+            <p className="label">{t("landing.brand")}</p>
             <h1 className="mt-3 max-w-xl text-3xl leading-[1.12] sm:text-4xl lg:text-[2.65rem]">
-              Arrêtez de deviner. Sachez en un coup d’œil quelles offres valent vraiment le coup.
+              {t("landing.heroTitle")}
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
-              JobRadar compare chaque offre à votre CV, détecte les signaux d’alerte, et vous aide à
-              répondre plus vite.
+              {t("landing.heroSubtitle")}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link to="/register" className="btn btn-amber !px-5 !py-2.5 !text-sm sm:!text-base">
-                Créer un compte gratuitement
+                {t("landing.ctaFree")}
               </Link>
               <a
                 href="#comment-ca-marche"
                 className="text-sm text-[var(--ink-soft)] underline decoration-[var(--amber)] underline-offset-4 hover:text-[var(--ink)]"
               >
-                Voir comment ça marche
+                {t("landing.howItWorksLink")}
               </a>
             </div>
           </div>
 
           <div className="landing-fade-delay mx-auto w-full min-w-0 max-w-lg xl:mx-0 xl:max-w-none" aria-hidden>
-            <InstrumentPreview />
+            <InstrumentPreview demoOffers={DEMO_OFFERS} />
           </div>
         </div>
       </section>
@@ -86,11 +82,9 @@ export function LandingPage() {
       {/* Comment ça marche */}
       <section id="comment-ca-marche" className="scroll-mt-20 border-b border-[var(--hairline)]">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-          <p className="label">Parcours</p>
-          <h2 className="mt-2 text-2xl sm:text-3xl">Comment ça marche</h2>
-          <p className="mt-2 max-w-xl text-[var(--ink-soft)]">
-            Quatre gestes, le même fil que dans l’app — sans jargon.
-          </p>
+          <p className="label">{t("landing.howEyebrow")}</p>
+          <h2 className="mt-2 text-2xl sm:text-3xl">{t("landing.howTitle")}</h2>
+          <p className="mt-2 max-w-xl text-[var(--ink-soft)]">{t("landing.howSubtitle")}</p>
 
           <ol className="mt-10 grid gap-8 sm:grid-cols-2 xl:grid-cols-4 xl:gap-6">
             {STEPS.map((step, i) => (
@@ -113,31 +107,20 @@ export function LandingPage() {
       {/* Preuve / valeur */}
       <section className="border-b border-[var(--hairline)]">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-          <p className="label">Ce que ça change</p>
-          <h2 className="mt-2 max-w-2xl text-2xl sm:text-3xl">
-            Moins de temps perdu sur des annonces qui ne collent pas
-          </h2>
+          <p className="label">{t("landing.valueEyebrow")}</p>
+          <h2 className="mt-2 max-w-2xl text-2xl sm:text-3xl">{t("landing.valueTitle")}</h2>
           <ul className="mt-8 grid gap-6 sm:grid-cols-2">
             <li className="border-l-2 border-[var(--amber)] pl-4">
-              <p className="text-lg leading-snug">
-                Repérez en 10 secondes un salaire non précisé ou une expérience irréaliste demandée.
-              </p>
-              <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                Les red flags remontent à côté du score — avant que vous n’investissiez une soirée.
-              </p>
+              <p className="text-lg leading-snug">{t("landing.value1Title")}</p>
+              <p className="mt-2 text-sm text-[var(--ink-soft)]">{t("landing.value1Text")}</p>
             </li>
             <li className="border-l-2 border-[var(--match)] pl-4">
-              <p className="text-lg leading-snug">
-                Priorisez les offres où votre profil pèse vraiment, et avancez dans un seul pipeline.
-              </p>
-              <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                Analyse, lettre, relance : le fil reste visible sans tableur parallèle.
-              </p>
+              <p className="text-lg leading-snug">{t("landing.value2Title")}</p>
+              <p className="mt-2 text-sm text-[var(--ink-soft)]">{t("landing.value2Text")}</p>
             </li>
           </ul>
           <p className="mt-8 max-w-2xl text-sm italic text-[var(--ink-soft)]">
-            Exemple d’usage (illustratif) — « En recherche active, j’ouvre JobRadar pour trier ce qui
-            mérite une candidature ce soir, plutôt que de tout coller dans un tableur. »
+            {t("landing.testimonial")}
           </p>
         </div>
       </section>
@@ -145,17 +128,14 @@ export function LandingPage() {
       {/* Confiance */}
       <section className="border-b border-[var(--hairline)]">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <p className="label">Données</p>
-          <h2 className="mt-2 text-xl sm:text-2xl">Votre CV reste privé</h2>
-          <p className="mt-3 max-w-2xl text-[var(--ink-soft)]">
-            Jamais partagé avec des recruteurs, ni vendu à des tiers. Il sert uniquement à
-            personnaliser vos analyses dans votre compte.
-          </p>
+          <p className="label">{t("landing.trustEyebrow")}</p>
+          <h2 className="mt-2 text-xl sm:text-2xl">{t("landing.trustTitle")}</h2>
+          <p className="mt-3 max-w-2xl text-[var(--ink-soft)]">{t("landing.trustBody")}</p>
           <Link
             to="/legal/privacy"
             className="mt-4 inline-block text-sm underline decoration-[var(--amber)] underline-offset-4"
           >
-            Politique de confidentialité
+            {t("landing.privacyLink")}
           </Link>
         </div>
       </section>
@@ -164,40 +144,38 @@ export function LandingPage() {
       <section className="border-b border-[var(--ink)]">
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-5 px-4 py-14 sm:px-6 sm:py-16 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl sm:text-3xl">Prêt à scorer votre prochaine offre ?</h2>
-            <p className="mt-2 text-[var(--ink-soft)]">
-              Compte gratuit — email et mot de passe, puis votre CV.
-            </p>
+            <h2 className="text-2xl sm:text-3xl">{t("landing.finalTitle")}</h2>
+            <p className="mt-2 text-[var(--ink-soft)]">{t("landing.finalSubtitle")}</p>
           </div>
           <Link to="/register" className="btn btn-amber shrink-0 !px-5 !py-2.5">
-            Commencer gratuitement
+            {t("landing.finalCta")}
           </Link>
         </div>
       </section>
 
       <footer className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-[var(--ink-soft)] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <p className="mono text-xs">JobRadar</p>
+        <p className="mono text-xs">{t("landing.brand")}</p>
         <nav className="flex flex-wrap gap-x-5 gap-y-2">
           <Link to="/legal/cgu" className="hover:text-[var(--ink)] hover:underline underline-offset-4">
-            CGU
+            {t("legal.cgu")}
           </Link>
           <Link
             to="/legal/privacy"
             className="hover:text-[var(--ink)] hover:underline underline-offset-4"
           >
-            Confidentialité
+            {t("legal.privacy")}
           </Link>
           <Link
             to="/legal/mentions"
             className="hover:text-[var(--ink)] hover:underline underline-offset-4"
           >
-            Mentions légales
+            {t("legal.mentions")}
           </Link>
           <a
             href="mailto:hello@jobradar.app"
             className="hover:text-[var(--ink)] hover:underline underline-offset-4"
           >
-            Contact
+            {t("common.contact")}
           </a>
         </nav>
       </footer>
@@ -206,18 +184,19 @@ export function LandingPage() {
 }
 
 function StepPasteMock() {
+  const { t } = useLocale();
   return (
-    <div
-      className="mt-auto pt-4"
-      aria-hidden
-    >
+    <div className="mt-auto pt-4" aria-hidden>
       <div className="border border-dashed border-[var(--hairline)] bg-[var(--paper-lift)] px-3 py-3 sm:px-3.5 sm:py-3.5">
-        <p className="label mb-2">Texte de l’offre</p>
+        <p className="label mb-2">{t("landing.mockOfferLabel")}</p>
         <p className="font-[var(--font-body)] text-sm leading-snug text-[var(--ink-soft)]">
-          Collez l’annonce complète…
+          {t("landing.mockOfferPlaceholder")}
         </p>
-        <p className="mono mt-3 text-right text-[0.7rem] tabular-nums text-[var(--ink-soft)]">
-          0/80
+        <p
+          className="mono mt-3 text-right text-[0.7rem] tabular-nums text-[var(--ink-soft)]"
+          title="Minimum 80 caractères (illustration)"
+        >
+          {t("landing.mockCounter")}
         </p>
       </div>
     </div>
@@ -225,14 +204,15 @@ function StepPasteMock() {
 }
 
 function StepScoreMock() {
+  const { t } = useLocale();
   return (
     <div className="mt-auto pt-4" aria-hidden>
       <div className="flex items-center gap-3 border border-[var(--hairline)] bg-[var(--paper-lift)] px-3 py-3 sm:gap-3.5 sm:px-3.5">
         <ScoreBadge score={88} size={52} />
         <div className="min-w-0">
-          <p className="text-sm font-medium leading-snug text-[var(--ink)]">Score 88/100</p>
+          <p className="text-sm font-medium leading-snug text-[var(--ink)]">{t("landing.mockScore")}</p>
           <p className="mt-0.5 text-xs leading-snug text-[var(--ink-soft)]">
-            Points forts · red flags
+            {t("landing.mockScoreHint")}
           </p>
         </div>
       </div>
@@ -240,15 +220,20 @@ function StepScoreMock() {
   );
 }
 
-function InstrumentPreview() {
+function InstrumentPreview({
+  demoOffers,
+}: {
+  demoOffers: readonly { title: string; company: string; score: number; flag: string | null }[];
+}) {
+  const { t } = useLocale();
   return (
     <div className="border border-[var(--ink)] bg-[var(--paper-lift)] shadow-[8px_8px_0_0_color-mix(in_srgb,var(--ink)_12%,transparent)]">
       <div className="flex items-center justify-between border-b border-[var(--hairline)] px-4 py-2.5">
-        <p className="label">Instrument · offres</p>
-        <p className="mono text-[0.65rem] text-[var(--ink-soft)]">aperçu</p>
+        <p className="label">{t("landing.previewLabel")}</p>
+        <p className="mono text-[0.65rem] text-[var(--ink-soft)]">{t("landing.previewBadge")}</p>
       </div>
       <ul className="divide-y divide-[var(--hairline)]">
-        {DEMO_OFFERS.map((offer, i) => (
+        {demoOffers.map((offer, i) => (
           <li
             key={offer.title}
             className="flex items-center gap-3 px-4 py-3 landing-row sm:gap-3.5 sm:py-3.5"

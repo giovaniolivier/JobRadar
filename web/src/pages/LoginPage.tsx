@@ -5,13 +5,12 @@ import { ApiError, api } from "../lib/api";
 import { useAuth, type AuthUser } from "../lib/auth";
 import { resolvePostAuthPath } from "../lib/home";
 import { isValidEmail, passwordStrength } from "../lib/validation";
+import { useLocale } from "../lib/i18n";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
-const VALUE_PROP =
-  "Centralisez vos offres, scorez-les par rapport à votre CV, et gardez le contrôle.";
-
 export function LoginPage() {
+  const { t } = useLocale();
   const { token, setSession, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -29,12 +28,12 @@ export function LoginPage() {
 
   useEffect(() => {
     if (params.get("oauth") === "error") {
-      setError("Connexion sociale impossible. Réessayez ou utilisez email / mot de passe.");
+      setError(t("auth.oauthError"));
     }
     if (params.get("reset") === "ok") {
-      setInfo("Mot de passe mis à jour. Vous pouvez vous connecter.");
+      setInfo(t("auth.resetOk"));
     }
-  }, [params]);
+  }, [params, t]);
 
   if (authLoading) return null;
   if (token) return <Navigate to="/dashboard" replace />;
@@ -60,7 +59,9 @@ export function LoginPage() {
         setEmailHint(data.emailHint ?? null);
         setDevCode(data.devCode ?? null);
         setOtpCode("");
-        setInfo(`Un code a été envoyé à ${data.emailHint ?? "votre email"}.`);
+        setInfo(
+          t("auth.otpSent", { email: data.emailHint ?? t("auth.yourEmail") })
+        );
         return;
       }
       if (data.user) {
@@ -69,9 +70,9 @@ export function LoginPage() {
       }
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 400)) {
-        setError("Identifiants incorrects. Vérifiez votre email et votre mot de passe.");
+        setError(t("auth.badCredentials"));
       } else {
-        setError("Impossible de se connecter pour le moment. Réessayez.");
+        setError(t("auth.loginFailed"));
       }
     } finally {
       setLoading(false);
@@ -94,7 +95,7 @@ export function LoginPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Vérification impossible. Réessayez.");
+        setError(t("auth.verifyFailed"));
       }
     } finally {
       setLoading(false);
@@ -118,10 +119,10 @@ export function LoginPage() {
       setEmailHint(data.emailHint ?? null);
       setDevCode(data.devCode ?? null);
       setOtpCode("");
-      setInfo("Un nouveau code a été envoyé.");
+      setInfo(t("auth.otpResent"));
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
-      else setError("Impossible de renvoyer le code.");
+      else setError(t("auth.resendFailed"));
     } finally {
       setLoading(false);
     }
@@ -130,12 +131,12 @@ export function LoginPage() {
   if (challengeId) {
     return (
       <AuthShell
-        title="Vérification"
-        subtitle={`Saisissez le code à 6 chiffres envoyé à ${emailHint ?? "votre email"}.`}
+        title={t("auth.verifyTitle")}
+        subtitle={t("auth.verifySubtitle", { email: emailHint ?? t("auth.yourEmail") })}
       >
         <form onSubmit={onVerifyOtp} className="space-y-4" noValidate>
           <Field
-            label="Code de vérification"
+            label={t("auth.otpLabel")}
             value={otpCode}
             onChange={(v) => setOtpCode(v.replace(/\D/g, "").slice(0, 6))}
             autoComplete="one-time-code"
@@ -143,7 +144,8 @@ export function LoginPage() {
           />
           {devCode && (
             <p className="text-xs text-[var(--ink-soft)]">
-              Code dev : <span className="font-mono text-[var(--ink)]">{devCode}</span>
+              {t("auth.devCode")}{" "}
+              <span className="font-mono text-[var(--ink)]">{devCode}</span>
             </p>
           )}
           {error && (
@@ -161,7 +163,7 @@ export function LoginPage() {
             disabled={loading || otpCode.length !== 6}
             className="btn btn-amber w-full"
           >
-            {loading ? "Vérification…" : "Valider le code"}
+            {loading ? t("auth.verifying") : t("auth.verifySubmit")}
           </button>
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <button
@@ -170,7 +172,7 @@ export function LoginPage() {
               disabled={loading}
               onClick={() => void onResendOtp()}
             >
-              Renvoyer le code
+              {t("auth.resendCode")}
             </button>
             <button
               type="button"
@@ -184,7 +186,7 @@ export function LoginPage() {
                 setError(null);
               }}
             >
-              Retour
+              {t("auth.back")}
             </button>
           </div>
         </form>
@@ -193,18 +195,18 @@ export function LoginPage() {
   }
 
   return (
-    <AuthShell title="Connexion" subtitle={VALUE_PROP}>
+    <AuthShell title={t("auth.loginTitle")} subtitle={t("auth.valueProp")}>
       <form onSubmit={onSubmit} className="space-y-3" noValidate>
         <Field
-          label="Email"
+          label={t("auth.email")}
           type="email"
           autoComplete="email"
           value={email}
           onChange={setEmail}
-          hint={email && !isValidEmail(email) ? "Format d'email invalide" : undefined}
+          hint={email && !isValidEmail(email) ? t("auth.invalidEmail") : undefined}
         />
         <PasswordField
-          label="Mot de passe"
+          label={t("auth.password")}
           value={password}
           onChange={setPassword}
           show={showPassword}
@@ -220,13 +222,13 @@ export function LoginPage() {
               onChange={(e) => setRemember(e.target.checked)}
               className="accent-[var(--amber)]"
             />
-            Se souvenir de moi
+            {t("auth.remember")}
           </label>
           <Link
             to="/forgot-password"
             className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
           >
-            Mot de passe oublié ?
+            {t("auth.forgot")}
           </Link>
         </div>
 
@@ -242,19 +244,19 @@ export function LoginPage() {
         )}
 
         <button type="submit" disabled={loading || !email || !password} className="btn btn-amber w-full">
-          {loading ? "Vérification…" : "Se connecter"}
+          {loading ? t("auth.loggingIn") : t("auth.login")}
         </button>
       </form>
 
       <SocialButtons onInfo={setInfo} onError={setError} />
 
       <p className="mt-4 text-sm text-[var(--ink-soft)]">
-        Pas encore de compte ?{" "}
+        {t("auth.noAccount")}{" "}
         <Link
           to="/register"
           className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
         >
-          Créer un compte
+          {t("auth.createAccount")}
         </Link>
       </p>
     </AuthShell>
@@ -262,6 +264,7 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
+  const { t } = useLocale();
   const { token, setSession, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -296,11 +299,11 @@ export function RegisterPage() {
       navigate(await resolvePostAuthPath());
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        setError("Un compte existe déjà avec cet email.");
+        setError(t("auth.emailTaken"));
       } else if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Impossible de créer le compte.");
+        setError(t("auth.registerFailed"));
       }
     } finally {
       setLoading(false);
@@ -309,30 +312,30 @@ export function RegisterPage() {
 
   return (
     <AuthShell
-      title="Créer mon compte"
-      subtitle="Email, mot de passe — puis votre CV. Gratuit."
+      title={t("auth.registerTitle")}
+      subtitle={t("auth.registerSubtitle")}
       compact
     >
       <form onSubmit={onSubmit} className="space-y-2.5" noValidate>
         <Field
-          label="Prénom"
+          label={t("auth.firstName")}
           value={name}
           onChange={setName}
           autoComplete="given-name"
-          placeholder="Alex"
+          placeholder={t("auth.firstNamePlaceholder")}
           dense
         />
         <Field
-          label="Email"
+          label={t("auth.email")}
           type="email"
           autoComplete="email"
           value={email}
           onChange={setEmail}
-          hint={!emailOk ? "Format d'email invalide" : undefined}
+          hint={!emailOk ? t("auth.invalidEmail") : undefined}
           dense
         />
         <PasswordField
-          label="Mot de passe"
+          label={t("auth.password")}
           value={password}
           onChange={setPassword}
           show={showPassword}
@@ -361,8 +364,8 @@ export function RegisterPage() {
               ))}
             </div>
             <p className="mono mt-1 text-[0.65rem] text-[var(--ink-soft)]">
-              Force : {strength.label}
-              {!passwordOk ? " — min. 8 car." : ""}
+              {t("auth.passwordStrength", { label: strength.label })}
+              {!passwordOk ? t("auth.passwordMin") : ""}
             </p>
           </div>
         )}
@@ -376,27 +379,27 @@ export function RegisterPage() {
             required
           />
           <span>
-            J’accepte les{" "}
+            {t("auth.acceptTerms")}{" "}
             <Link to="/legal/cgu" className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4">
-              CGU
+              {t("legal.cgu")}
             </Link>{" "}
-            et la{" "}
+            {t("auth.andThe")}{" "}
             <Link
               to="/legal/privacy"
               className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
             >
-              confidentialité
+              {t("legal.privacy")}
             </Link>
-            . CV et offres restent privés.
+            {t("auth.termsPrivacySuffix")}
           </span>
         </label>
 
         {error && (
           <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
             {error}{" "}
-            {error.includes("existe déjà") && (
+            {(error === t("auth.emailTaken") || error.includes("existe déjà") || error.includes("already exists")) && (
               <Link to="/login" className="underline decoration-[var(--amber)] underline-offset-4">
-                Se connecter
+                {t("auth.login")}
               </Link>
             )}
           </p>
@@ -408,16 +411,16 @@ export function RegisterPage() {
         )}
 
         <button type="submit" disabled={!canSubmit} className="btn btn-amber w-full !py-2">
-          {loading ? "Création…" : "Créer mon compte"}
+          {loading ? t("auth.creating") : t("auth.createSubmit")}
         </button>
       </form>
 
       <SocialButtons onInfo={setInfo} onError={setError} />
 
       <p className="mt-3 text-sm text-[var(--ink-soft)]">
-        Déjà un compte ?{" "}
+        {t("auth.hasAccount")}{" "}
         <Link to="/login" className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4">
-          Se connecter
+          {t("auth.login")}
         </Link>
       </p>
     </AuthShell>
@@ -435,6 +438,7 @@ function AuthShell({
   children: ReactNode;
   compact?: boolean;
 }) {
+  const { t } = useLocale();
   return (
     <div
       className={`mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 ${
@@ -442,7 +446,7 @@ function AuthShell({
       }`}
     >
       <BrandLogo to="/" size="xl" />
-      {!compact && <p className="label mt-2">Tour de contrôle · candidatures</p>}
+      {!compact && <p className="label mt-2">{t("auth.shellLabel")}</p>}
       <h1 className={`text-xl sm:text-2xl ${compact ? "mt-2" : "mt-3"}`}>{title}</h1>
       <p
         className={`text-sm leading-snug text-[var(--ink-soft)] ${
@@ -514,6 +518,7 @@ function PasswordField({
   autoComplete?: string;
   dense?: boolean;
 }) {
+  const { t } = useLocale();
   return (
     <label className="block">
       <span className={`label block ${dense ? "mb-1" : "mb-1.5"}`}>{label}</span>
@@ -531,7 +536,7 @@ function PasswordField({
           onClick={onToggle}
           className="absolute top-1/2 right-2 -translate-y-1/2 px-2 py-1 text-xs text-[var(--ink-soft)] hover:text-[var(--ink)]"
         >
-          {show ? "Masquer" : "Afficher"}
+          {show ? t("common.hide") : t("common.show")}
         </button>
       </div>
     </label>
@@ -545,6 +550,7 @@ function SocialButtons({
   onInfo: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
+  const { t } = useLocale();
   async function start(provider: "google" | "linkedin") {
     onInfo("");
     onError("");
@@ -552,22 +558,22 @@ function SocialButtons({
       const res = await fetch(`${API_URL}/auth/providers`, { credentials: "include" });
       const data = (await res.json()) as { google?: boolean; linkedin?: boolean };
       if (provider === "google" && !data.google) {
-        onError("Google OAuth non configuré (GOOGLE_CLIENT_ID / SECRET).");
+        onError(t("auth.googleNotConfigured"));
         return;
       }
       if (provider === "linkedin" && !data.linkedin) {
-        onError("LinkedIn OAuth non configuré (LINKEDIN_CLIENT_ID / SECRET).");
+        onError(t("auth.linkedinNotConfigured"));
         return;
       }
       window.location.href = `${API_URL}/auth/${provider}`;
     } catch {
-      onError("Impossible de démarrer la connexion sociale.");
+      onError(t("auth.socialStartFailed"));
     }
   }
 
   return (
     <div className="mt-2.5 space-y-1.5">
-      <p className="label text-center">Ou continuer avec</p>
+      <p className="label text-center">{t("auth.orContinue")}</p>
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"

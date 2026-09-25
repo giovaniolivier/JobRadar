@@ -3,8 +3,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { ApiError, api } from "../lib/api";
 import { isValidEmail, passwordStrength } from "../lib/validation";
+import { useLocale } from "../lib/i18n";
 
 export function ForgotPasswordPage() {
+  const { t } = useLocale();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [devLink, setDevLink] = useState<string | null>(null);
@@ -51,11 +53,10 @@ export function ForgotPasswordPage() {
   return (
     <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
       <BrandLogo to="/" size="lg" />
-      <p className="label mt-3">Récupération</p>
-      <h1 className="mt-6 text-2xl">Mot de passe oublié</h1>
+      <p className="label mt-3">{t("auth.forgotEyebrow")}</p>
+      <h1 className="mt-6 text-2xl">{t("auth.forgotTitle")}</h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-        Indiquez l’email de votre compte. Nous vous enverrons un lien pour choisir un nouveau mot de
-        passe (valide 1 heure).
+        {t("auth.forgotSubtitle")}
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-[var(--ink)] py-6">
         <label className="block">
@@ -111,13 +112,14 @@ export function ForgotPasswordPage() {
         )}
       </form>
       <Link to="/login" className="mt-6 text-sm underline decoration-[var(--amber)] underline-offset-4">
-        Retour à la connexion
+        {t("auth.backToLogin")}
       </Link>
     </div>
   );
 }
 
 export function ResetPasswordPage() {
+  const { t } = useLocale();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const token = params.get("token") ?? "";
@@ -167,11 +169,9 @@ export function ResetPasswordPage() {
   return (
     <div className="fade-in mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
       <BrandLogo to="/" size="lg" />
-      <p className="label mt-3">Récupération</p>
-      <h1 className="mt-6 text-2xl">Nouveau mot de passe</h1>
-      <p className="mt-3 text-sm text-[var(--ink-soft)]">
-        Choisissez un mot de passe d’au moins 8 caractères.
-      </p>
+      <p className="label mt-3">{t("auth.forgotEyebrow")}</p>
+      <h1 className="mt-6 text-2xl">{t("auth.resetTitle")}</h1>
+      <p className="mt-3 text-sm text-[var(--ink-soft)]">{t("auth.resetSubtitle")}</p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-[var(--ink)] py-6">
         <label className="block">
           <span className="label mb-1.5 block">Mot de passe</span>
@@ -223,7 +223,7 @@ export function ResetPasswordPage() {
         </button>
       </form>
       <Link to="/login" className="mt-6 text-sm underline decoration-[var(--amber)] underline-offset-4">
-        Retour à la connexion
+        {t("auth.backToLogin")}
       </Link>
     </div>
   );
@@ -421,29 +421,30 @@ export function LegalMentionsPage() {
 }
 
 function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
+  const { t } = useLocale();
   return (
     <div className="fade-in mx-auto min-h-screen max-w-2xl px-4 py-12">
       <BrandLogo to="/" size="md" />
-      <p className="label mt-3">Informations légales</p>
+      <p className="label mt-3">{t("legal.eyebrow")}</p>
       <h1 className="mt-6 text-3xl">{title}</h1>
       <div className="mt-8 space-y-4 border-t border-[var(--ink)] pt-6 text-sm leading-relaxed text-[var(--ink)]/90">
         {children}
       </div>
       <nav className="mt-10 flex flex-wrap gap-4 text-sm">
         <Link to="/legal/cgu" className="underline decoration-[var(--amber)] underline-offset-4">
-          CGU
+          {t("legal.cgu")}
         </Link>
         <Link to="/legal/privacy" className="underline decoration-[var(--amber)] underline-offset-4">
-          Confidentialité
+          {t("legal.privacy")}
         </Link>
         <Link
           to="/legal/mentions"
           className="underline decoration-[var(--amber)] underline-offset-4"
         >
-          Mentions légales
+          {t("legal.mentions")}
         </Link>
         <Link to="/" className="underline decoration-[var(--amber)] underline-offset-4">
-          ← Accueil
+          {t("legal.home")}
         </Link>
       </nav>
     </div>

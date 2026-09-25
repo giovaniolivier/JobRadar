@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { resolvePostAuthPath } from "../lib/home";
 import { useAuth } from "../lib/auth";
+import { useLocale } from "../lib/i18n";
 
 /** Landing after OAuth (or any auth) to choose onboarding vs dashboard. */
 export function ContinuePage() {
+  const { t } = useLocale();
   const { token, loading: authLoading } = useAuth();
   const [path, setPath] = useState<string | null>(null);
 
@@ -22,7 +24,7 @@ export function ContinuePage() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="label">Préparation de votre espace…</p>
+        <p className="label">{t("auth.continuePrep")}</p>
       </div>
     );
   }
@@ -30,7 +32,7 @@ export function ContinuePage() {
   if (!path) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="label">Préparation de votre espace…</p>
+        <p className="label">{t("auth.continuePrep")}</p>
       </div>
     );
   }

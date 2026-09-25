@@ -4,15 +4,16 @@ import { BrandLogo } from "../components/BrandLogo";
 import { TagInput } from "../components/TagInput";
 import { ApiError, api, apiForm, type ProfileData } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLocale } from "../lib/i18n";
 
 type Step = "upload" | "loading" | "preview" | "manual";
 
 const MAX_BYTES = 5 * 1024 * 1024;
-const LOADING_MESSAGES = [
-  "Lecture du fichier…",
-  "Extraction de vos compétences…",
-  "Préparation de votre profil…",
-];
+const LOADING_KEYS = [
+  "onboarding.loading1",
+  "onboarding.loading2",
+  "onboarding.loading3",
+] as const;
 
 const SKIP_KEY = "jobradar_onboarding_skipped";
 
@@ -30,23 +31,6 @@ function guessExperienceYears(text: string): number | null {
     }
   }
   return null;
-}
-
-/** Nombre entier 0–45, ou vide. Rejette « trois ans », décimales, etc. */
-function parseExperienceYears(raw: string): { ok: true; value: number | null } | { ok: false; message: string } {
-  const t = raw.trim();
-  if (!t) return { ok: true, value: null };
-  if (!/^\d{1,2}$/.test(t)) {
-    return {
-      ok: false,
-      message: "Indiquez un nombre entier (ex. 3), pas du texte.",
-    };
-  }
-  const n = Number(t);
-  if (n > 45) {
-    return { ok: false, message: "Indiquez un nombre entre 0 et 45." };
-  }
-  return { ok: true, value: n };
 }
 
 function isTextExt(name: string) {
@@ -71,10 +55,11 @@ function isLegacyDoc(name: string, type: string) {
 
 export function OnboardingCvPage() {
   const { token, user, loading: authLoading } = useAuth();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("upload");
   const [dragging, setDragging] = useState(false);
-  const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]!);
+  const [loadingMsg, setLoadingMsg] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
@@ -86,6 +71,21 @@ export function OnboardingCvPage() {
   const [checking, setChecking] = useState(true);
   const [alreadyHasCv, setAlreadyHasCv] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function parseExperienceYears(
+    raw: string
+  ): { ok: true; value: number | null } | { ok: false; message: string } {
+    const trimmed = raw.trim();
+    if (!trimmed) return { ok: true, value: null };
+    if (!/^\d{1,2}$/.test(trimmed)) {
+      return { ok: false, message: t("onboarding.errorYearsText") };
+    }
+    const n = Number(trimmed);
+    if (n > 45) {
+      return { ok: false, message: t("onboarding.errorYearsRange") };
+    }
+    return { ok: true, value: n };
+  }
 
   useEffect(() => {
     if (authLoading || !token) return;
@@ -110,18 +110,18 @@ export function OnboardingCvPage() {
   useEffect(() => {
     if (step !== "loading") return;
     let i = 0;
-    setLoadingMsg(LOADING_MESSAGES[0]!);
+    setLoadingMsg(t(LOADING_KEYS[0]!));
     const id = window.setInterval(() => {
-      i = (i + 1) % LOADING_MESSAGES.length;
-      setLoadingMsg(LOADING_MESSAGES[i]!);
+      i = (i + 1) % LOADING_KEYS.length;
+      setLoadingMsg(t(LOADING_KEYS[i]!));
     }, 1400);
     return () => window.clearInterval(id);
-  }, [step]);
+  }, [step, t]);
 
   if (authLoading || checking) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        <p className="label">Préparation…</p>
+        <p className="label">{t("onboarding.preparing")}</p>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export function OnboardingCvPage() {
   async function processText(text: string, name: string) {
     const trimmed = text.trim();
     if (trimmed.length < 40) {
-      setError("Le contenu semble trop court pour un CV. Collez le texte complet, ou saisissez manuellement.");
+      setError(t("onboarding.errorTooShort"));
       setStep("manual");
       return;
     }
@@ -149,11 +149,7 @@ export function OnboardingCvPage() {
       setExperienceYears(years != null ? String(years) : "");
       setStep("preview");
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Impossible de lire ce fichier. Vous pouvez coller le texte ou continuer manuellement."
-      );
+      setError(err instanceof ApiError ? err.message : t("onboarding.errorRead"));
       setStep("manual");
     }
   }
@@ -174,11 +170,7 @@ export function OnboardingCvPage() {
       setExperienceYears(years != null ? String(years) : "");
       setStep("preview");
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Impossible de lire ce fichier. Vous pouvez coller le texte ou continuer manuellement."
-      );
+      setError(err instanceof ApiError ? err.message : t("onboarding.errorRead"));
       setStep("manual");
     }
   }
@@ -188,14 +180,12 @@ export function OnboardingCvPage() {
     setError(null);
 
     if (file.size > MAX_BYTES) {
-      setError("Fichier trop volumineux. Maximum 5 Mo.");
+      setError(t("onboarding.errorFileSize"));
       return;
     }
 
     if (isLegacyDoc(file.name, file.type)) {
-      setError(
-        "Le format .doc (Word ancien) n’est pas supporté. Enregistrez en .docx, .pdf ou .txt."
-      );
+      setError(t("onboarding.errorDoc"));
       return;
     }
 
@@ -205,7 +195,7 @@ export function OnboardingCvPage() {
     }
 
     if (!isTextExt(file.name) && !file.type.startsWith("text/")) {
-      setError("Ce format n’est pas pris en charge. Utilisez un PDF, un DOCX ou un .txt.");
+      setError(t("onboarding.errorFormat"));
       return;
     }
 
@@ -213,7 +203,7 @@ export function OnboardingCvPage() {
       const text = await file.text();
       await processText(text, file.name);
     } catch {
-      setError("Lecture du fichier impossible. Collez le texte ou continuez manuellement.");
+      setError(t("onboarding.errorReadFile"));
       setStep("manual");
     }
   }
@@ -247,7 +237,7 @@ export function OnboardingCvPage() {
       }
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Enregistrement impossible");
+      setError(err instanceof Error ? err.message : t("onboarding.errorSave"));
     } finally {
       setBusy(false);
     }
@@ -267,7 +257,7 @@ export function OnboardingCvPage() {
     }
 
     if (!manualReady) {
-      setError("Collez le texte de votre CV (40 caractères min.), ou ajoutez au moins une compétence.");
+      setError(t("onboarding.errorManual"));
       return;
     }
 
@@ -295,7 +285,7 @@ export function OnboardingCvPage() {
       }
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Enregistrement impossible");
+      setError(err instanceof Error ? err.message : t("onboarding.errorSave"));
     } finally {
       setBusy(false);
     }
@@ -321,13 +311,10 @@ export function OnboardingCvPage() {
 
       <main className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
         <p className="text-sm text-[var(--ink-soft)]">
-          {firstName ? `Bonjour ${firstName}` : "Bienvenue"}
+          {firstName ? t("onboarding.hello", { name: firstName }) : t("onboarding.welcome")}
         </p>
-        <h1 className="mt-2 text-3xl leading-tight sm:text-4xl">Commençons par votre CV</h1>
-        <p className="mt-3 text-[var(--ink-soft)] leading-relaxed">
-          C’est ce qui permet à JobRadar de comparer chaque offre à votre profil et de calculer un
-          score fiable.
-        </p>
+        <h1 className="mt-2 text-3xl leading-tight sm:text-4xl">{t("onboarding.title")}</h1>
+        <p className="mt-3 text-[var(--ink-soft)] leading-relaxed">{t("onboarding.subtitle")}</p>
 
         {step === "upload" && (
           <div className="mt-8 space-y-4">
@@ -360,8 +347,8 @@ export function OnboardingCvPage() {
                 onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
               />
               <UploadIcon />
-              <span className="text-base font-medium">Glissez votre CV ici, ou cliquez pour parcourir</span>
-              <span className="text-xs text-[var(--ink-soft)]">PDF, DOCX, TXT — 5 Mo max</span>
+              <span className="text-base font-medium">{t("onboarding.dropHint")}</span>
+              <span className="text-xs text-[var(--ink-soft)]">{t("onboarding.formats")}</span>
             </label>
             <button
               type="button"
@@ -371,7 +358,7 @@ export function OnboardingCvPage() {
                 setStep("manual");
               }}
             >
-              Ou coller / saisir manuellement
+              {t("onboarding.orManual")}
             </button>
           </div>
         )}
@@ -391,13 +378,11 @@ export function OnboardingCvPage() {
         {step === "preview" && (
           <div className="mt-8 space-y-6">
             <div className="border border-[var(--hairline)] px-4 py-4">
-              <p className="label">Vérification</p>
-              <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                Voici ce que nous avons lu — corrigez si besoin avant de continuer.
-              </p>
+              <p className="label">{t("onboarding.verify")}</p>
+              <p className="mt-1 text-sm text-[var(--ink-soft)]">{t("onboarding.verifyHint")}</p>
 
               <label className="mt-4 block">
-                <span className="label mb-1.5 block">Années d’expérience (estimées)</span>
+                <span className="label mb-1.5 block">{t("onboarding.yearsEstimated")}</span>
                 <input
                   className="field max-w-[8rem]"
                   inputMode="numeric"
@@ -407,10 +392,12 @@ export function OnboardingCvPage() {
                     setExperienceYears(e.target.value);
                     setYearsHint(null);
                   }}
-                  placeholder="ex. 3"
+                  placeholder={t("onboarding.yearsPh")}
                   aria-invalid={yearsHint ? true : undefined}
                 />
-                <span className="mt-1 block text-xs text-[var(--ink-soft)]">Nombre entier, ex. 3</span>
+                <span className="mt-1 block text-xs text-[var(--ink-soft)]">
+                  {t("onboarding.yearsHint")}
+                </span>
                 {yearsHint && (
                   <span className="mt-1 block text-xs" style={{ color: "var(--brick)" }}>
                     {yearsHint}
@@ -420,24 +407,22 @@ export function OnboardingCvPage() {
 
               <div className="mt-4">
                 <TagInput
-                  label="Compétences détectées"
+                  label={t("onboarding.skillsDetected")}
                   tags={skills}
                   onChange={setSkills}
-                  hint="Entrée ou virgule"
-                  placeholder="ex. React"
+                  hint={t("onboarding.skillsHint")}
+                  placeholder={t("onboarding.skillsPh")}
                 />
               </div>
 
               {softSkills.length > 0 && (
                 <p className="mt-3 text-xs text-[var(--ink-soft)]">
-                  Soft skills : {softSkills.slice(0, 6).join(" · ")}
+                  {t("onboarding.softSkills", { list: softSkills.slice(0, 6).join(" · ") })}
                 </p>
               )}
             </div>
 
-            <p className="text-sm text-[var(--ink-soft)]">
-              Vous pourrez toujours modifier ces informations plus tard depuis votre profil.
-            </p>
+            <p className="text-sm text-[var(--ink-soft)]">{t("onboarding.editLater")}</p>
 
             <button
               type="button"
@@ -445,7 +430,7 @@ export function OnboardingCvPage() {
               disabled={busy}
               onClick={() => void saveAndContinue()}
             >
-              {busy ? "…" : "C’est parti"}
+              {busy ? "…" : t("onboarding.letsGo")}
             </button>
             <button
               type="button"
@@ -455,18 +440,16 @@ export function OnboardingCvPage() {
                 setError(null);
               }}
             >
-              Importer un autre fichier
+              {t("onboarding.importAnother")}
             </button>
           </div>
         )}
 
         {step === "manual" && (
           <form className="mt-8 space-y-4" onSubmit={(e) => void onManualSubmit(e)}>
-            <p className="text-sm text-[var(--ink-soft)]">
-              Pas de panique — collez le texte de votre CV, ou indiquez vos compétences à la main.
-            </p>
+            <p className="text-sm text-[var(--ink-soft)]">{t("onboarding.manualHint")}</p>
             <label className="block">
-              <span className="label mb-1.5 block">Texte du CV (optionnel si compétences remplies)</span>
+              <span className="label mb-1.5 block">{t("onboarding.cvText")}</span>
               <textarea
                 className="field min-h-32 resize-y"
                 value={manualCvText}
@@ -474,21 +457,21 @@ export function OnboardingCvPage() {
                   setManualCvText(e.target.value);
                   setError(null);
                 }}
-                placeholder="Collez ici le contenu de votre CV…"
+                placeholder={t("onboarding.cvTextPh")}
               />
             </label>
             <TagInput
-              label="Compétences"
+              label={t("onboarding.skills")}
               tags={skills}
               onChange={(next) => {
                 setSkills(next);
                 setError(null);
               }}
-              hint="Entrée ou virgule — comme sur Mon profil"
-              placeholder="ex. React, TypeScript"
+              hint={t("onboarding.skillsManualHint")}
+              placeholder={t("onboarding.skillsManualPh")}
             />
             <label className="block">
-              <span className="label mb-1.5 block">Années d’expérience</span>
+              <span className="label mb-1.5 block">{t("onboarding.years")}</span>
               <input
                 className="field max-w-[8rem]"
                 inputMode="numeric"
@@ -498,27 +481,23 @@ export function OnboardingCvPage() {
                   setExperienceYears(e.target.value);
                   setYearsHint(null);
                 }}
-                placeholder="ex. 3"
+                placeholder={t("onboarding.yearsPh")}
                 aria-invalid={yearsHint ? true : undefined}
               />
-              <span className="mt-1 block text-xs text-[var(--ink-soft)]">Nombre entier uniquement (ex. 3)</span>
+              <span className="mt-1 block text-xs text-[var(--ink-soft)]">
+                {t("onboarding.yearsHintStrict")}
+              </span>
               {yearsHint && (
                 <span className="mt-1 block text-xs" style={{ color: "var(--brick)" }}>
                   {yearsHint}
                 </span>
               )}
             </label>
-            <button
-              type="submit"
-              className="btn btn-amber w-full"
-              disabled={busy || !manualReady}
-            >
-              {busy ? "…" : "Continuer"}
+            <button type="submit" className="btn btn-amber w-full" disabled={busy || !manualReady}>
+              {busy ? "…" : t("onboarding.continue")}
             </button>
             {!manualReady && (
-              <p className="text-xs text-[var(--ink-soft)]">
-                Remplissez le texte du CV ou ajoutez au moins une compétence pour continuer.
-              </p>
+              <p className="text-xs text-[var(--ink-soft)]">{t("onboarding.manualReadyHint")}</p>
             )}
             <button
               type="button"
@@ -529,7 +508,7 @@ export function OnboardingCvPage() {
                 setYearsHint(null);
               }}
             >
-              Retour à l’import
+              {t("onboarding.backImport")}
             </button>
           </form>
         )}
@@ -547,7 +526,7 @@ export function OnboardingCvPage() {
               className="underline underline-offset-4 hover:text-[var(--ink)]"
               onClick={skip}
             >
-              Je le ferai plus tard depuis mon profil
+              {t("onboarding.skip")}
             </button>
           </p>
         )}

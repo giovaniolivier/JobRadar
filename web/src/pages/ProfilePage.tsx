@@ -4,6 +4,7 @@ import { TagInput } from "../components/TagInput";
 import { DeleteAccountPanel } from "../components/DeleteAccountPanel";
 import { api, apiForm, type ProfileData, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLocale, type MessageKey } from "../lib/i18n";
 import {
   dedupeNormalize,
   formatSalaryDisplay,
@@ -15,34 +16,28 @@ import { passwordStrength } from "../lib/validation";
 
 type WorkMode = "remote" | "hybrid" | "onsite";
 
-const WORK_MODES: { id: WorkMode; label: string }[] = [
-  { id: "remote", label: "Remote" },
-  { id: "hybrid", label: "Hybride" },
-  { id: "onsite", label: "Sur site" },
+const WORK_MODE_KEYS: { id: WorkMode; key: MessageKey }[] = [
+  { id: "remote", key: "profile.workRemote" },
+  { id: "hybrid", key: "profile.workHybrid" },
+  { id: "onsite", key: "profile.workOnsite" },
 ];
 
-const SENIORITIES = [
-  { id: "junior", label: "Junior" },
-  { id: "confirme", label: "Confirmé" },
-  { id: "senior", label: "Senior" },
-  { id: "lead", label: "Lead" },
+const SENIORITY_KEYS = [
+  { id: "junior", key: "profile.seniorityJunior" },
+  { id: "confirme", key: "profile.seniorityConfirme" },
+  { id: "senior", key: "profile.senioritySenior" },
+  { id: "lead", key: "profile.seniorityLead" },
 ] as const;
 
-const PROFILE_TABS = [
-  { id: "cv", label: "CV" },
-  { id: "skills", label: "Compét." },
-  { id: "prefs", label: "Préfér." },
-  { id: "account", label: "Compte" },
-] as const;
+const PROFILE_TAB_IDS = ["cv", "skills", "prefs", "account"] as const;
+type ProfileTab = (typeof PROFILE_TAB_IDS)[number];
 
-type ProfileTab = (typeof PROFILE_TABS)[number]["id"];
-
-function formatDate(iso: string | null | undefined) {
+function formatDate(iso: string | null | undefined, locale: "fr" | "en") {
   if (!iso) return null;
   try {
     const d = new Date(iso);
     if (Number.isNaN(+d)) return null;
-    return d.toLocaleDateString("fr-FR", {
+    return d.toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -85,6 +80,7 @@ function SalaryField({
 
 export function ProfilePage() {
   const { token, setSession, refreshSession } = useAuth();
+  const { t, locale } = useLocale();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const onboarding = params.get("onboarding") === "1";
@@ -137,6 +133,13 @@ export function ProfilePage() {
   const accountTimer = useRef<number | null>(null);
   const accountReady = useRef(false);
 
+  const tabMeta: Record<ProfileTab, { short: MessageKey; full?: MessageKey }> = {
+    cv: { short: "profile.tabCv" },
+    skills: { short: "profile.tabSkills", full: "profile.tabSkillsFull" },
+    prefs: { short: "profile.tabPrefs", full: "profile.tabPrefsFull" },
+    account: { short: "profile.tabAccount" },
+  };
+
   function showToast(msg: string) {
     setToast(msg);
     window.setTimeout(() => setToast(null), 4000);
@@ -186,7 +189,7 @@ export function ProfilePage() {
           accountReady.current = true;
         }, 0);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Erreur");
+        if (!cancelled) setError(err instanceof Error ? err.message : t("common.error"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -217,13 +220,13 @@ export function ProfilePage() {
         }),
       });
       setProfile(data.profile);
-      setPrefsSaved("Préférences enregistrées");
+      setPrefsSaved(t("profile.prefsSaved"));
       window.setTimeout(() => setPrefsSaved(null), 2500);
       if (onboarding && data.profile?.hasCv) {
         // stay until user finishes
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Enregistrement impossible");
+      setError(err instanceof Error ? err.message : t("profile.errorSave"));
     }
   }
 
@@ -261,9 +264,9 @@ export function ProfilePage() {
         body: JSON.stringify({ name: name.trim(), email: email.trim() }),
       });
       setSession({ id: data.id, email: data.email, name: data.name });
-      showToast("Compte mis à jour");
+      showToast(t("profile.toastAccount"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Mise à jour impossible");
+      setError(err instanceof Error ? err.message : t("profile.errorUpdate"));
     } finally {
       setAccountBusy(false);
     }
@@ -297,12 +300,12 @@ export function ProfilePage() {
       setSoftSkills(res.profile.softSkills);
       setReplacingCv(false);
       setCvPaste("");
-      showToast(res.message || "CV mis à jour — les nouvelles analyses utiliseront cette version");
+      showToast(res.message || t("profile.toastCv"));
       if (onboarding) {
         // keep on page so user can review skills
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Import impossible");
+      setError(err instanceof Error ? err.message : t("profile.errorImport"));
     } finally {
       setCvBusy(false);
     }
@@ -323,9 +326,9 @@ export function ProfilePage() {
       setSoftSkills(res.profile.softSkills);
       setReplacingCv(false);
       setCvPaste("");
-      showToast(res.message || "CV mis à jour — les nouvelles analyses utiliseront cette version");
+      showToast(res.message || t("profile.toastCv"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Import impossible");
+      setError(err instanceof Error ? err.message : t("profile.errorImport"));
     } finally {
       setCvBusy(false);
     }
@@ -333,21 +336,20 @@ export function ProfilePage() {
 
   async function onFileSelected(file: File | null) {
     if (!file) return;
-    const name = file.name.toLowerCase();
-    const isPdf = file.type === "application/pdf" || name.endsWith(".pdf");
+    const nameLower = file.name.toLowerCase();
+    const isPdf = file.type === "application/pdf" || nameLower.endsWith(".pdf");
     const isDocx =
-      name.endsWith(".docx") ||
-      file.type.includes("wordprocessingml");
-    const isDoc = name.endsWith(".doc") || file.type === "application/msword";
+      nameLower.endsWith(".docx") || file.type.includes("wordprocessingml");
+    const isDoc = nameLower.endsWith(".doc") || file.type === "application/msword";
 
     if (isDoc && !isDocx) {
-      setError("Le format .doc n’est pas supporté. Enregistrez en .docx, .pdf ou .txt.");
+      setError(t("profile.errorDoc"));
       return;
     }
 
     if (isPdf || isDocx) {
       if (file.size > 5 * 1024 * 1024) {
-        setError("Fichier trop volumineux. Maximum 5 Mo.");
+        setError(t("profile.errorFileSize"));
         return;
       }
       await uploadCvFile(file);
@@ -356,7 +358,7 @@ export function ProfilePage() {
 
     const text = (await file.text()).trim();
     if (text.length < 40) {
-      setError("Le fichier semble trop court pour être un CV");
+      setError(t("profile.errorCvShort"));
       return;
     }
     await uploadCvText(text, file.name);
@@ -365,11 +367,11 @@ export function ProfilePage() {
   async function onChangePassword(e: FormEvent) {
     e.preventDefault();
     if (newPassword.length < 8) {
-      setError("Le nouveau mot de passe doit faire au moins 8 caractères");
+      setError(t("profile.errorPasswordLen"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("La confirmation ne correspond pas");
+      setError(t("profile.errorPasswordMismatch"));
       return;
     }
     setAccountBusy(true);
@@ -382,10 +384,10 @@ export function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      showToast("Mot de passe mis à jour");
+      showToast(t("profile.toastPassword"));
       await refreshSession();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Changement impossible");
+      setError(err instanceof Error ? err.message : t("profile.errorPasswordChange"));
     } finally {
       setAccountBusy(false);
     }
@@ -399,7 +401,8 @@ export function ProfilePage() {
 
   const hasCv = Boolean(profile?.cvText?.trim() || profile?.hasCv);
   const importDate =
-    formatDate(profile?.cvImportedAt) ?? (hasCv ? formatDate(profile?.updatedAt) : null);
+    formatDate(profile?.cvImportedAt, locale) ??
+    (hasCv ? formatDate(profile?.updatedAt, locale) : null);
   const canPreviewCv = Boolean(profile?.cvText?.trim());
   const strength = passwordStrength(newPassword);
 
@@ -407,19 +410,19 @@ export function ProfilePage() {
     return profileTab === id ? "block" : "hidden lg:block";
   }
 
-  if (loading) return <p className="label">Chargement du profil…</p>;
+  if (loading) return <p className="label">{t("profile.loading")}</p>;
 
   return (
     <div className="fade-in max-w-3xl pb-16">
       <header className="border-b border-[var(--hairline)] pb-4">
-        <p className="label">{onboarding ? "Première connexion" : "Profil"}</p>
+        <p className="label">
+          {onboarding ? t("profile.eyebrowOnboarding") : t("profile.eyebrow")}
+        </p>
         <h1 className="mt-1 text-3xl sm:text-4xl">
-          {onboarding ? "Importez votre CV" : "Mon profil"}
+          {onboarding ? t("profile.titleOnboarding") : t("profile.title")}
         </h1>
         <p className="mt-2 max-w-xl text-[var(--ink)]/75">
-          {onboarding
-            ? "Sans CV, JobRadar ne peut pas scorer les offres. Importez-le pour activer l’analyse."
-            : "Ce que JobRadar utilise pour évaluer chaque offre"}
+          {onboarding ? t("profile.subtitleOnboarding") : t("profile.subtitle")}
         </p>
         {toast && (
           <p className="mono mt-3 text-sm" style={{ color: "var(--match)" }} role="status">
@@ -433,462 +436,430 @@ export function ProfilePage() {
         )}
       </header>
 
-      {/* Onglets mobile — une section à la fois */}
       <div
         className="sticky top-[3.25rem] z-20 -mx-4 grid grid-cols-4 gap-1 border-b border-[var(--hairline)] bg-[var(--paper)]/95 px-4 py-2 backdrop-blur-[2px] lg:hidden"
         role="tablist"
-        aria-label="Sections du profil"
+        aria-label={t("profile.tabsAria")}
       >
-        {PROFILE_TABS.map((s) => {
-          const active = profileTab === s.id;
+        {PROFILE_TAB_IDS.map((id) => {
+          const active = profileTab === id;
+          const meta = tabMeta[id];
           return (
             <button
-              key={s.id}
+              key={id}
               type="button"
               role="tab"
               aria-selected={active}
-              title={
-                s.id === "skills"
-                  ? "Compétences"
-                  : s.id === "prefs"
-                    ? "Préférences"
-                    : s.label
-              }
+              title={meta.full ? t(meta.full) : t(meta.short)}
               className={`min-h-10 px-1 py-2 text-center text-[0.7rem] font-medium tracking-wide transition-colors ${
                 active
                   ? "border border-[var(--amber)] text-[var(--amber)]"
                   : "border border-[var(--hairline)] text-[var(--ink)]/70"
               }`}
-              onClick={() => setProfileTab(s.id)}
+              onClick={() => setProfileTab(id)}
             >
-              {s.label}
+              {t(meta.short)}
             </button>
           );
         })}
       </div>
 
       <div className="mt-5 space-y-8 lg:mt-8 lg:space-y-10">
-      {/* ——— CV ——— */}
-      <section
-        role="tabpanel"
-        className={`${tabPanelClass("cv")} space-y-4 border-b border-[var(--hairline)] pb-8 lg:pb-10`}
-      >
-        <div>
-          <h2 className="text-xl">CV</h2>
-        </div>
-
-        {!hasCv && !replacingCv ? (
-          <div className="border border-dashed border-[var(--ink)] px-5 py-8">
-            <p className="text-lg text-[var(--ink)]">
-              Importez votre CV pour activer l’analyse des offres
-            </p>
-            <p className="mt-2 text-sm text-[var(--ink)]/75">
-              C’est bloquant pour le scoring : sans CV, aucune offre ne peut être évaluée sérieusement.
-            </p>
-            <p className="mt-2 text-xs text-[var(--ink)]/70">
-              Formats : PDF, DOCX ou .txt — ou collez le texte.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="btn btn-amber"
-                onClick={() => fileRef.current?.click()}
-              >
-                Importer un fichier
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setReplacingCv(true)}
-              >
-                Coller le texte
-              </button>
-            </div>
+        <section
+          role="tabpanel"
+          className={`${tabPanelClass("cv")} space-y-4 border-b border-[var(--hairline)] pb-8 lg:pb-10`}
+        >
+          <div>
+            <h2 className="text-xl">{t("profile.cvTitle")}</h2>
           </div>
-        ) : (
-          <>
-            {hasCv && (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium truncate">
-                    {profile?.cvFileName || "CV importé"}
-                  </p>
-                  <p className="mono mt-1 text-xs text-[var(--ink)]/70">
-                    {importDate ? `Importé le ${importDate}` : "Date d’import inconnue"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-ghost !py-1.5 !text-sm"
-                    disabled={!canPreviewCv}
-                    onClick={() => setCvPreview((v) => !v)}
-                  >
-                    {cvPreview ? "Masquer" : "Voir le CV"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-amber !py-1.5 !text-sm"
-                    onClick={() => {
-                      setReplacingCv(true);
-                      setCvPreview(false);
-                    }}
-                  >
-                    Remplacer le CV
-                  </button>
-                </div>
-              </div>
-            )}
 
-            {cvPreview && profile?.cvText && (
-              <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap border border-[var(--hairline)] bg-[var(--field-bg)] p-3 font-[var(--font-body)] text-sm leading-relaxed">
-                {profile.cvText}
-              </pre>
-            )}
-
-            {replacingCv && (
-              <div className="space-y-3 border border-[var(--ink)] p-4">
-                <p className="text-sm text-[var(--ink)]/75">
-                  Remplace la version actuelle — une seule version est utilisée pour l’analyse.
-                </p>
-                <p className="text-xs text-[var(--ink)]/70">
-                  Formats lus automatiquement : PDF, DOCX, .txt.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-amber"
-                    disabled={cvBusy}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    Choisir un fichier
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={cvBusy}
-                    onClick={() => {
-                      setReplacingCv(false);
-                      setCvPaste("");
-                    }}
-                  >
-                    Annuler
-                  </button>
-                </div>
-                <label className="block">
-                  <span className="label mb-1.5 block">Ou coller le texte</span>
-                  <textarea
-                    className="field min-h-36"
-                    rows={7}
-                    value={cvPaste}
-                    onChange={(e) => setCvPaste(e.target.value)}
-                    placeholder="Collez votre CV ici…"
-                  />
-                </label>
+          {!hasCv && !replacingCv ? (
+            <div className="border border-dashed border-[var(--ink)] px-5 py-8">
+              <p className="text-lg text-[var(--ink)]">{t("profile.cvEmptyTitle")}</p>
+              <p className="mt-2 text-sm text-[var(--ink)]/75">{t("profile.cvEmptyBody")}</p>
+              <p className="mt-2 text-xs text-[var(--ink)]/70">{t("profile.cvEmptyFormats")}</p>
+              <div className="mt-5 flex flex-wrap gap-3">
                 <button
                   type="button"
                   className="btn btn-amber"
-                  disabled={cvBusy || cvPaste.trim().length < 40}
-                  onClick={() => void uploadCvText(cvPaste.trim(), "cv-colle.txt")}
+                  onClick={() => fileRef.current?.click()}
                 >
-                  {cvBusy ? "Import…" : "Remplacer avec ce texte"}
+                  {t("profile.cvImportFile")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setReplacingCv(true)}
+                >
+                  {t("profile.cvPasteText")}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            </div>
+          ) : (
+            <>
+              {hasCv && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">
+                      {profile?.cvFileName || t("profile.cvImported")}
+                    </p>
+                    <p className="mono mt-1 text-xs text-[var(--ink)]/70">
+                      {importDate
+                        ? t("profile.cvImportedOn", { date: importDate })
+                        : t("profile.cvImportDateUnknown")}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-ghost !py-1.5 !text-sm"
+                      disabled={!canPreviewCv}
+                      onClick={() => setCvPreview((v) => !v)}
+                    >
+                      {cvPreview ? t("profile.cvHide") : t("profile.cvShow")}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-amber !py-1.5 !text-sm"
+                      onClick={() => {
+                        setReplacingCv(true);
+                        setCvPreview(false);
+                      }}
+                    >
+                      {t("profile.cvReplace")}
+                    </button>
+                  </div>
+                </div>
+              )}
 
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".txt,.md,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          className="hidden"
-          onChange={(e) => {
-            void onFileSelected(e.target.files?.[0] ?? null);
-            e.target.value = "";
-          }}
-        />
-      </section>
+              {cvPreview && profile?.cvText && (
+                <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap border border-[var(--hairline)] bg-[var(--field-bg)] p-3 font-[var(--font-body)] text-sm leading-relaxed">
+                  {profile.cvText}
+                </pre>
+              )}
 
-      {/* ——— Compétences ——— */}
-      <section
-        role="tabpanel"
-        className={`${tabPanelClass("skills")} space-y-5 border-b border-[var(--hairline)] pb-10`}
-      >
-        <div>
-          <h2 className="text-xl">Compétences extraites</h2>
-          <p className="mt-1 text-sm text-[var(--ink)]/75">
-            Corrigez ou complétez ce que l’import a détecté — le score s’appuie dessus.
-          </p>
-          {!hasCv && (
-            <p className="mt-2 text-xs text-[var(--amber)]">
-              Sans CV, vous pouvez déjà saisir vos compétences manuellement — l’import les complétera.
-            </p>
+              {replacingCv && (
+                <div className="space-y-3 border border-[var(--ink)] p-4">
+                  <p className="text-sm text-[var(--ink)]/75">{t("profile.cvReplaceHint")}</p>
+                  <p className="text-xs text-[var(--ink)]/70">{t("profile.cvReplaceFormats")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-amber"
+                      disabled={cvBusy}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {t("profile.cvChooseFile")}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={cvBusy}
+                      onClick={() => {
+                        setReplacingCv(false);
+                        setCvPaste("");
+                      }}
+                    >
+                      {t("profile.cancel")}
+                    </button>
+                  </div>
+                  <label className="block">
+                    <span className="label mb-1.5 block">{t("profile.cvOrPaste")}</span>
+                    <textarea
+                      className="field min-h-36"
+                      rows={7}
+                      value={cvPaste}
+                      onChange={(e) => setCvPaste(e.target.value)}
+                      placeholder={t("profile.cvPastePlaceholder")}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-amber"
+                    disabled={cvBusy || cvPaste.trim().length < 40}
+                    onClick={() => void uploadCvText(cvPaste.trim(), "cv-colle.txt")}
+                  >
+                    {cvBusy ? t("profile.cvImporting") : t("profile.cvReplaceWithText")}
+                  </button>
+                </div>
+              )}
+            </>
           )}
-        </div>
-        <TagInput
-          label="Techniques"
-          tags={skills}
-          onChange={setSkills}
-          placeholder="ex. TypeScript"
-          hint="Entrée pour ajouter"
-        />
-        <TagInput
-          label="Soft skills"
-          tags={softSkills}
-          onChange={setSoftSkills}
-          placeholder="ex. Communication"
-        />
-        <TagInput
-          label="Rôles cibles"
-          tags={targetRoles}
-          onChange={setTargetRoles}
-          placeholder="ex. Full-stack"
-        />
-      </section>
 
-      {/* ——— Préférences ——— */}
-      <section
-        role="tabpanel"
-        className={`${tabPanelClass("prefs")} space-y-5 border-b border-[var(--hairline)] pb-10`}
-      >
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-xl">Préférences de recherche</h2>
-            <p className="mt-1 text-sm text-[var(--ink)]/75">
-              Affine le scoring au-delà du matching CV / offre.
-            </p>
-          </div>
-          {prefsSaved && (
-            <p className="mono text-xs" style={{ color: "var(--match)" }}>
-              {prefsSaved}
-            </p>
-          )}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SalaryField
-            label="Salaire min (€ brut / an)"
-            value={salaryMin}
-            onChange={setSalaryMin}
-            placeholder="50 000"
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".txt,.md,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="hidden"
+            onChange={(e) => {
+              void onFileSelected(e.target.files?.[0] ?? null);
+              e.target.value = "";
+            }}
           />
-          <SalaryField
-            label="Salaire max (€ brut / an)"
-            value={salaryMax}
-            onChange={setSalaryMax}
-            placeholder="70 000"
-          />
-        </div>
+        </section>
 
-        <div>
-          <span className="label mb-1.5 block">Type de poste</span>
-          <p className="mb-2 text-xs text-[var(--ink)]/70">
-            Modalités de travail — indépendant des villes ci-dessous.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {WORK_MODES.map((m) => {
-              const on = workModes.includes(m.id);
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  className={
-                    on
-                      ? "inline-flex items-center border border-[var(--amber)] bg-[var(--amber)] px-3 py-1.5 text-sm font-medium text-[var(--amber-fg)]"
-                      : "inline-flex items-center border border-[var(--hairline)] bg-transparent px-3 py-1.5 text-sm text-[var(--ink-soft)] hover:border-[var(--ink)] hover:text-[var(--ink)]"
-                  }
-                  aria-pressed={on}
-                  onClick={() => toggleWorkMode(m.id)}
-                >
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <TagInput
-          label="Localisations acceptées"
-          tags={preferredLocations}
-          onChange={setPreferredLocations}
-          placeholder="ex. Paris, Lyon"
-          hint="Villes / régions uniquement"
-          onIntercept={(value) => {
-            if (!isWorkModeLocationTag(value)) return false;
-            const mode = workModeFromTag(value);
-            if (mode) {
-              setWorkModes((prev) => (prev.includes(mode) ? prev : [...prev, mode]));
-              showToast(
-                mode === "remote"
-                  ? "Remote ajouté dans Type de poste (pas dans les localisations)"
-                  : "Ajouté dans Type de poste"
-              );
-            }
-            return true;
-          }}
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="label mb-1.5 block">Séniorité visée</span>
-            <select
-              className="field"
-              value={targetSeniority}
-              onChange={(e) => setTargetSeniority(e.target.value)}
-            >
-              <option value="">— Non précisé —</option>
-              {SENIORITIES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="label mb-1.5 block">Années d’expérience</span>
-            <input
-              className="field mono"
-              type="number"
-              min={0}
-              max={60}
-              value={experienceYears}
-              onChange={(e) => setExperienceYears(e.target.value)}
-            />
-          </label>
-        </div>
-
-        <TagInput
-          label="Secteurs à privilégier"
-          tags={preferredSectors}
-          onChange={setPreferredSectors}
-          placeholder="ex. SaaS"
-        />
-        <TagInput
-          label="Secteurs à éviter"
-          tags={avoidedSectors}
-          onChange={setAvoidedSectors}
-          placeholder="ex. Crypto"
-        />
-      </section>
-
-      {/* ——— Compte (+ zone danger) ——— */}
-      <section
-        role="tabpanel"
-        className={`${tabPanelClass("account")} space-y-8 border-b border-[var(--hairline)] pb-10 lg:border-b-0`}
-      >
-        <div>
-          <h2 className="text-xl">Informations du compte</h2>
-          <p className="mt-1 text-sm text-[var(--ink)]/75">
-            Nom et email se sauvegardent automatiquement.
-          </p>
-        </div>
-
-        <Link
-          to="/settings?tab=privacy"
-          className="flex items-center justify-between gap-3 border border-[var(--ink)] px-4 py-3.5 transition-colors hover:bg-[var(--row-hover)]"
+        <section
+          role="tabpanel"
+          className={`${tabPanelClass("skills")} space-y-5 border-b border-[var(--hairline)] pb-10`}
         >
-          <span>
-            <span className="block text-sm font-medium">Paramètres</span>
-            <span className="mt-0.5 block text-xs text-[var(--ink)]/70">
-              Thème, notifications, langue, export et suppression du compte
-            </span>
-          </span>
-          <span className="text-[var(--amber)]" aria-hidden>
-            →
-          </span>
-        </Link>
+          <div>
+            <h2 className="text-xl">{t("profile.skillsTitle")}</h2>
+            <p className="mt-1 text-sm text-[var(--ink)]/75">{t("profile.skillsSubtitle")}</p>
+            {!hasCv && (
+              <p className="mt-2 text-xs text-[var(--amber)]">{t("profile.skillsNoCvHint")}</p>
+            )}
+          </div>
+          <TagInput
+            label={t("profile.skillsTech")}
+            tags={skills}
+            onChange={setSkills}
+            placeholder={t("profile.skillsTechPh")}
+            hint={t("profile.skillsHint")}
+          />
+          <TagInput
+            label={t("profile.skillsSoft")}
+            tags={softSkills}
+            onChange={setSoftSkills}
+            placeholder={t("profile.skillsSoftPh")}
+          />
+          <TagInput
+            label={t("profile.skillsRoles")}
+            tags={targetRoles}
+            onChange={setTargetRoles}
+            placeholder={t("profile.skillsRolesPh")}
+          />
+        </section>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="label mb-1.5 block">Nom</span>
-            <input
-              className="field"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
-            />
-          </label>
-          <label className="block">
-            <span className="label mb-1.5 block">Email</span>
-            <input
-              className="field"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-          </label>
-        </div>
+        <section
+          role="tabpanel"
+          className={`${tabPanelClass("prefs")} space-y-5 border-b border-[var(--hairline)] pb-10`}
+        >
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-xl">{t("profile.prefsTitle")}</h2>
+              <p className="mt-1 text-sm text-[var(--ink)]/75">{t("profile.prefsSubtitle")}</p>
+            </div>
+            {prefsSaved && (
+              <p className="mono text-xs" style={{ color: "var(--match)" }}>
+                {prefsSaved}
+              </p>
+            )}
+          </div>
 
-        {hasPassword ? (
-          <form onSubmit={onChangePassword} className="space-y-3 border-t border-[var(--hairline)] pt-5">
-            <p className="label">Changer le mot de passe</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SalaryField
+              label={t("profile.salaryMin")}
+              value={salaryMin}
+              onChange={setSalaryMin}
+              placeholder="50 000"
+            />
+            <SalaryField
+              label={t("profile.salaryMax")}
+              value={salaryMax}
+              onChange={setSalaryMax}
+              placeholder="70 000"
+            />
+          </div>
+
+          <div>
+            <span className="label mb-1.5 block">{t("profile.workType")}</span>
+            <p className="mb-2 text-xs text-[var(--ink)]/70">{t("profile.workTypeHint")}</p>
+            <div className="flex flex-wrap gap-2">
+              {WORK_MODE_KEYS.map((m) => {
+                const on = workModes.includes(m.id);
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={
+                      on
+                        ? "inline-flex items-center border border-[var(--amber)] bg-[var(--amber)] px-3 py-1.5 text-sm font-medium text-[var(--amber-fg)]"
+                        : "inline-flex items-center border border-[var(--hairline)] bg-transparent px-3 py-1.5 text-sm text-[var(--ink-soft)] hover:border-[var(--ink)] hover:text-[var(--ink)]"
+                    }
+                    aria-pressed={on}
+                    onClick={() => toggleWorkMode(m.id)}
+                  >
+                    {t(m.key)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <TagInput
+            label={t("profile.locations")}
+            tags={preferredLocations}
+            onChange={setPreferredLocations}
+            placeholder={t("profile.locationsPh")}
+            hint={t("profile.locationsHint")}
+            onIntercept={(value) => {
+              if (!isWorkModeLocationTag(value)) return false;
+              const mode = workModeFromTag(value);
+              if (mode) {
+                setWorkModes((prev) => (prev.includes(mode) ? prev : [...prev, mode]));
+                showToast(
+                  mode === "remote" ? t("profile.toastRemote") : t("profile.toastWorkMode")
+                );
+              }
+              return true;
+            }}
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="label mb-1.5 block">Mot de passe actuel</span>
-              <input
+              <span className="label mb-1.5 block">{t("profile.seniority")}</span>
+              <select
                 className="field"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                required
+                value={targetSeniority}
+                onChange={(e) => setTargetSeniority(e.target.value)}
+              >
+                <option value="">{t("profile.seniorityNone")}</option>
+                {SENIORITY_KEYS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {t(s.key)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="label mb-1.5 block">{t("profile.experienceYears")}</span>
+              <input
+                className="field mono"
+                type="number"
+                min={0}
+                max={60}
+                value={experienceYears}
+                onChange={(e) => setExperienceYears(e.target.value)}
               />
             </label>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="label mb-1.5 block">Nouveau mot de passe</span>
-                <input
-                  className="field"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                />
-                {newPassword.length > 0 && (
-                  <p className="mono mt-1 text-xs text-[var(--ink-soft)]">
-                    Force : {strength.label}
-                  </p>
-                )}
-              </label>
-              <label className="block">
-                <span className="label mb-1.5 block">Confirmation</span>
-                <input
-                  className="field"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  required
-                />
-              </label>
-            </div>
-            <button type="submit" className="btn btn-ghost" disabled={accountBusy}>
-              {accountBusy ? "…" : "Mettre à jour le mot de passe"}
-            </button>
-          </form>
-        ) : (
-          <p className="text-sm text-[var(--ink)]/75">
-            Compte connecté via un fournisseur social — pas de mot de passe local.
-          </p>
-        )}
+          </div>
 
-        <DeleteAccountPanel hasPassword={hasPassword} onError={setError} />
-      </section>
+          <TagInput
+            label={t("profile.sectorsPrefer")}
+            tags={preferredSectors}
+            onChange={setPreferredSectors}
+            placeholder={t("profile.sectorsPreferPh")}
+          />
+          <TagInput
+            label={t("profile.sectorsAvoid")}
+            tags={avoidedSectors}
+            onChange={setAvoidedSectors}
+            placeholder={t("profile.sectorsAvoidPh")}
+          />
+        </section>
 
-      {onboarding && hasCv && (
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            className="btn btn-amber"
-            onClick={() => navigate("/", { replace: true })}
+        <section
+          role="tabpanel"
+          className={`${tabPanelClass("account")} space-y-8 border-b border-[var(--hairline)] pb-10 lg:border-b-0`}
+        >
+          <div>
+            <h2 className="text-xl">{t("profile.accountTitle")}</h2>
+            <p className="mt-1 text-sm text-[var(--ink)]/75">{t("profile.accountSubtitle")}</p>
+          </div>
+
+          <Link
+            to="/settings?tab=privacy"
+            className="flex items-center justify-between gap-3 border border-[var(--ink)] px-4 py-3.5 transition-colors hover:bg-[var(--row-hover)]"
           >
-            Continuer vers le dashboard
-          </button>
-        </div>
-      )}
+            <span>
+              <span className="block text-sm font-medium">{t("profile.settingsLink")}</span>
+              <span className="mt-0.5 block text-xs text-[var(--ink)]/70">
+                {t("profile.settingsLinkHint")}
+              </span>
+            </span>
+            <span className="text-[var(--amber)]" aria-hidden>
+              →
+            </span>
+          </Link>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="label mb-1.5 block">{t("profile.name")}</span>
+              <input
+                className="field"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+              />
+            </label>
+            <label className="block">
+              <span className="label mb-1.5 block">{t("profile.email")}</span>
+              <input
+                className="field"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </label>
+          </div>
+
+          {hasPassword ? (
+            <form onSubmit={onChangePassword} className="space-y-3 border-t border-[var(--hairline)] pt-5">
+              <p className="label">{t("profile.changePassword")}</p>
+              <label className="block">
+                <span className="label mb-1.5 block">{t("profile.currentPassword")}</span>
+                <input
+                  className="field"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="label mb-1.5 block">{t("profile.newPassword")}</span>
+                  <input
+                    className="field"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                  />
+                  {newPassword.length > 0 && (
+                    <p className="mono mt-1 text-xs text-[var(--ink-soft)]">
+                      {t("auth.passwordStrength", { label: strength.label })}
+                    </p>
+                  )}
+                </label>
+                <label className="block">
+                  <span className="label mb-1.5 block">{t("profile.confirmPassword")}</span>
+                  <input
+                    className="field"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                </label>
+              </div>
+              <button type="submit" className="btn btn-ghost" disabled={accountBusy}>
+                {accountBusy ? "…" : t("profile.updatePassword")}
+              </button>
+            </form>
+          ) : (
+            <p className="text-sm text-[var(--ink)]/75">{t("profile.socialAccount")}</p>
+          )}
+
+          <DeleteAccountPanel hasPassword={hasPassword} onError={setError} />
+        </section>
+
+        {onboarding && hasCv && (
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="btn btn-amber"
+              onClick={() => navigate("/", { replace: true })}
+            >
+              {t("profile.continueDashboard")}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

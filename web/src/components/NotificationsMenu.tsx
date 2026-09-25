@@ -36,7 +36,7 @@ function writeSeen(ids: Set<string>) {
   localStorage.setItem(SEEN_KEY, JSON.stringify([...ids]));
 }
 
-function relativeTime(iso: string, locale: AppLocale): string {
+function relativeTime(iso: string, locale: AppLocale, justNow: string): string {
   const then = +new Date(iso);
   if (Number.isNaN(then)) return "";
   const deltaMs = then - Date.now(); // negative = past
@@ -45,7 +45,7 @@ function relativeTime(iso: string, locale: AppLocale): string {
   const sign = deltaMs < 0 ? -1 : 1;
 
   const minutes = Math.round(abs / 60_000);
-  if (minutes < 1) return locale === "en" ? "Just now" : "À l’instant";
+  if (minutes < 1) return justNow;
   if (minutes < 60) return rtf.format(sign * minutes, "minute");
 
   const hours = Math.round(minutes / 60);
@@ -232,7 +232,7 @@ export function NotificationsMenu() {
                     <span className="mt-0.5 block text-xs text-[var(--ink)]/70">{item.body}</span>
                   )}
                   <span className="mono mt-1.5 block text-[0.65rem] text-[var(--ink)]/70">
-                    {relativeTime(item.createdAt, locale)}
+                    {relativeTime(item.createdAt, locale, t("common.justNow"))}
                   </span>
                 </span>
               </button>
