@@ -40,10 +40,9 @@ services:
         value: https://jobradar-web.onrender.com
       - key: APP_ORIGIN
         value: https://jobradar-web.onrender.com
-      # SMTP désactivé au boot : l'API démarre sans mail (codes OTP renvoyés par l'API).
-      # Repasser à "true" + renseigner SMTP_HOST/SMTP_USER/SMTP_PASS/MAIL_FROM pour activer les emails.
+      # SMTP obligatoire au boot (vérifié via Brevo).
       - key: MAIL_REQUIRED
-        value: "false"
+        value: "true"
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
