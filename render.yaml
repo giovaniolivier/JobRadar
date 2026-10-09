@@ -1,0 +1,95 @@
+# Blueprint Render — JobRadar (API + Web static + Postgres)
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Après le 1er sync, vérifie que les noms de services donnent bien ces URLs :
+#   API  → https://jobradar-api.onrender.com
+#   Web  → https://jobradar-web.onrender.com
+# Si un nom est déjà pris, ajuste name + CORS_ORIGIN/APP_ORIGIN + VITE_API_URL.
+
+databases:
+  - name: jobradar-db
+    databaseName: jobradar
+    user: jobradar
+    plan: free
+    region: frankfurt
+
+services:
+  # ── API (Express + Prisma) ──────────────────────────────────────────────
+  - type: web
+    name: jobradar-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: api
+    branch: main
+    healthCheckPath: /health
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
+    startCommand: npm run db:migrate:deploy && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: jobradar-db
+          property: connectionString
+      - key: CORS_ORIGIN
+        value: https://jobradar-web.onrender.com
+      - key: APP_ORIGIN
+        value: https://jobradar-web.onrender.com
+      # SMTP obligatoire au boot (vérifié via Brevo).
+      - key: MAIL_REQUIRED
+        value: "true"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # IA : groq en tête (Gemini n'est pas dans la chaîne de fallback sur clé invalide).
+      - key: AI_PROVIDER
+        value: groq
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # OAuth (optionnel) — redirect HTTPS vers l'API Render
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://jobradar-api.onrender.com/auth/google/callback
+      - key: LINKEDIN_CLIENT_ID
+        sync: false
+      - key: LINKEDIN_CLIENT_SECRET
+        sync: false
+      - key: LINKEDIN_REDIRECT_URI
+        value: https://jobradar-api.onrender.com/auth/linkedin/callback
+
+  # ── Web (Vite → site statique) ──────────────────────────────────────────
+  - type: web
+    name: jobradar-web
+    runtime: static
+    branch: main
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_API_URL
+        value: https://jobradar-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

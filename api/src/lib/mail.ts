@@ -8,6 +8,10 @@ let lastVerifyError: string | null = null;
 
 const isProd = () => process.env.NODE_ENV === "production";
 
+/** SMTP obligatoire au boot en prod, sauf si MAIL_REQUIRED=false (déploiement sans mail). */
+const mailRequired = () =>
+  (process.env.MAIL_REQUIRED ?? "true").trim().toLowerCase() !== "false";
+
 export function isSmtpConfigured(): boolean {
   return Boolean(
     process.env.SMTP_URL?.trim() ||
@@ -167,6 +171,14 @@ export async function assertMailReadyForBoot(): Promise<void> {
     return;
   }
 
+  if (!mailRequired()) {
+    console.warn(
+      "[mail] MAIL_REQUIRED=false — démarrage sans SMTP. OTP/reset/notifs indisponibles " +
+        "(les codes de connexion sont renvoyés par l’API). À réactiver pour une instance publique."
+    );
+    return;
+  }
+
   if (!status.configured) {
     throw new Error(
       "Production: SMTP obligatoire. Définissez SMTP_HOST + SMTP_USER + SMTP_PASS (ou SMTP_URL) et MAIL_FROM."
@@ -201,7 +213,7 @@ export async function sendMail(opts: {
 }): Promise<{ delivered: boolean }> {
   const tx = getTransporter();
   if (!tx) {
-    if (isProd()) {
+    if (isProd() && mailRequired()) {
       throw new Error("SMTP non configuré en production — impossible d’envoyer l’email.");
     }
     console.log(`[dev] mail → ${opts.to} | ${opts.subject}`);
