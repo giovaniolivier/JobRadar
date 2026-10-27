@@ -62,13 +62,18 @@ En `NODE_ENV=production`, l’API **refuse de démarrer** si SMTP est absent ou 
 | Variable | Exemple Brevo |
 |----------|----------------|
 | `SMTP_HOST` | `smtp-relay.brevo.com` |
-| `SMTP_PORT` | `587` |
+| `SMTP_PORT` | `587` (local) · `2525` **sur Render** |
 | `SMTP_USER` | login SMTP du dashboard |
 | `SMTP_PASS` | clé SMTP |
 | `MAIL_FROM` | `JobRadar <ton@email-verifie.com>` |
 
 `APP_ORIGIN` = URL publique du front (liens reset + notifs).  
-Santé : `GET /health` → `{ mail: { configured, verified } }`.
+Santé : `GET /health` → `{ mail: { configured, verified } }` (toujours `200` si l'API tourne).  
+Readiness e-mail : `GET /health/mail` → `503` si SMTP est configuré mais injoignable.
+
+> **Render (plan gratuit)** : les ports SMTP sortants `25`, `465` et `587` sont bloqués
+> ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)).
+> Utilise `SMTP_PORT=2525` (Brevo accepte 2525 en STARTTLS), ou un plan payant.
 
 ### Web
 

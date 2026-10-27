@@ -12,6 +12,20 @@ const isProd = () => process.env.NODE_ENV === "production";
 const mailRequired = () =>
   (process.env.MAIL_REQUIRED ?? "true").trim().toLowerCase() !== "false";
 
+/** Ports SMTP bloqués en sortie par Render sur le plan gratuit. */
+const RENDER_BLOCKED_SMTP_PORTS = [25, 465, 587];
+
+/** Indice de diagnostic ajouté aux erreurs SMTP quand on tourne sur Render. */
+function smtpBlockedPortHint(): string {
+  if (!process.env.RENDER || process.env.SMTP_URL?.trim()) return "";
+  const port = Number(process.env.SMTP_PORT ?? 587);
+  if (!RENDER_BLOCKED_SMTP_PORTS.includes(port)) return "";
+  return (
+    ` — port ${port} bloqué en sortie par Render (plan gratuit) : ` +
+    `définissez SMTP_PORT=2525 (Brevo/Mailgun supportent 2525 en STARTTLS).`
+  );
+}
+
 export function isSmtpConfigured(): boolean {
   return Boolean(
     process.env.SMTP_URL?.trim() ||
@@ -152,7 +166,7 @@ export async function verifySmtp(opts?: { timeoutMs?: number }): Promise<MailSta
     console.log(`[mail] SMTP OK — from ${mailFrom()}`);
   } catch (err) {
     lastVerifyOk = false;
-    lastVerifyError = formatSmtpError(err).message;
+    lastVerifyError = formatSmtpError(err).message + smtpBlockedPortHint();
     console.error(`[mail] SMTP verify failed: ${lastVerifyError}`);
   }
   return getMailStatus();
@@ -161,17 +175,32 @@ export async function verifySmtp(opts?: { timeoutMs?: number }): Promise<MailSta
 /**
  * Production: refuse to boot without a working SMTP (OTP / reset / notifs).
  * Development: log status only.
+ * En prod, 3 tentatives (backoff) : un timeout transitoire ne doit pas tuer un deploy.
  */
 export async function assertMailReadyForBoot(): Promise<void> {
-  const status = await verifySmtp();
   if (!isProd()) {
+    const status = await verifySmtp();
     if (!status.configured) {
       console.warn("[mail] SMTP absent — OTP/reset/notifs en mode console (devCode / logs).");
     }
     return;
   }
 
-  if (!mailRequired()) {
+  const required = mailRequired();
+  const timeoutsMs = required ? [8_000, 10_000, 12_000] : [12_000];
+
+  let status = await verifySmtp({ timeoutMs: timeoutsMs[0] });
+  for (
+    let attempt = 1;
+    attempt < timeoutsMs.length && status.configured && !status.verified;
+    attempt++
+  ) {
+    console.warn(`[mail] verify ${attempt}/${timeoutsMs.length} échoué — nouvel essai…`);
+    await new Promise((r) => setTimeout(r, 2_000 * attempt));
+    status = await verifySmtp({ timeoutMs: timeoutsMs[attempt] });
+  }
+
+  if (!required) {
     console.warn(
       "[mail] MAIL_REQUIRED=false — démarrage sans SMTP. OTP/reset/notifs indisponibles " +
         "(les codes de connexion sont renvoyés par l’API). À réactiver pour une instance publique."

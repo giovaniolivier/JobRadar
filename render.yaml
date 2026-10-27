@@ -45,8 +45,10 @@ services:
         value: "true"
       - key: SMTP_HOST
         sync: false
+      # Render (plan gratuit) bloque les ports SMTP sortants 25 / 465 / 587.
+      # Brevo accepte 2525 (STARTTLS), d'où ce port ici.
       - key: SMTP_PORT
-        value: "587"
+        value: "2525"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS

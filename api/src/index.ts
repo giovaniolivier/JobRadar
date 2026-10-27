@@ -46,6 +46,23 @@ app.use(csrfProtect);
 
 app.get("/health", (_req, res) => {
   const mail = getMailStatus();
+  // Liveness : 200 tant que le process tourne. Une panne SMTP (Brevo) ne doit pas
+  // faire redémarrer l'instance ni bloquer un deploy — l'état mail est dans le body.
+  res.json({
+    ok: true,
+    service: "jobradar-api",
+    mail: {
+      configured: mail.configured,
+      verified: mail.verified,
+      from: mail.from || undefined,
+      error: mail.error ?? undefined,
+    },
+  });
+});
+
+// Readiness e-mail uniquement : 503 si SMTP est configuré mais injoignable.
+app.get("/health/mail", (_req, res) => {
+  const mail = getMailStatus();
   const mailOk = !mail.configured || mail.verified !== false;
   res.status(mailOk ? 200 : 503).json({
     ok: mailOk,
@@ -70,11 +87,20 @@ app.use("/applications", applicationsRouter);
 app.use(errorHandler);
 
 async function boot() {
-  await assertMailReadyForBoot();
-  app.listen(port, () => {
+  // Bind the port before any third-party call: Render detects the open port
+  // immediately, so a slow SMTP verify can't look like "No open ports detected".
+  const server = app.listen(port, () => {
     console.log(`JobRadar API listening on http://localhost:${port}`);
-    startEmailNotificationScheduler();
   });
+
+  try {
+    await assertMailReadyForBoot();
+  } catch (err) {
+    server.close();
+    throw err;
+  }
+
+  startEmailNotificationScheduler();
 }
 
 boot().catch((err) => {
