@@ -67,6 +67,22 @@ function publicUser(user: { id: string; email: string; name: string }) {
 const loginOtpRequired = () =>
   (process.env.LOGIN_OTP_REQUIRED ?? "true").trim().toLowerCase() !== "false";
 
+/**
+ * URL de redirection OAuth. Priorité à `*_REDIRECT_URI`, sinon on dérive l'URL
+ * publique du service (Render expose `RENDER_EXTERNAL_URL`) : évite de renvoyer
+ * vers localhost:4000 en production si la variable a été oubliée.
+ */
+function oauthRedirectUri(provider: "google" | "linkedin"): string {
+  const explicit = process.env[`${provider.toUpperCase()}_REDIRECT_URI`]?.trim();
+  if (explicit) return explicit;
+  const base = (
+    process.env.RENDER_EXTERNAL_URL ??
+    process.env.API_ORIGIN ??
+    "http://localhost:4000"
+  ).replace(/\/$/, "");
+  return `${base}/auth/${provider}/callback`;
+}
+
 async function issueLoginOtp(user: { id: string; email: string }, remember: boolean) {
   await prisma.loginOtp.deleteMany({ where: { userId: user.id, consumedAt: null } });
 
@@ -528,7 +544,7 @@ authRouter.post(
 // ——— OAuth Google ———
 authRouter.get("/google", (_req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI ?? "http://localhost:4000/auth/google/callback";
+  const redirectUri = oauthRedirectUri("google");
   if (!clientId) {
     return res.status(501).json({
       error: "Google OAuth non configuré. Définissez GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET.",
@@ -549,7 +565,7 @@ authRouter.get("/google/callback", async (req, res, next) => {
     const code = typeof req.query.code === "string" ? req.query.code : null;
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI ?? "http://localhost:4000/auth/google/callback";
+    const redirectUri = oauthRedirectUri("google");
     const webOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
 
     if (!code || !clientId || !clientSecret) {
@@ -610,8 +626,7 @@ authRouter.get("/google/callback", async (req, res, next) => {
 // ——— OAuth LinkedIn ———
 authRouter.get("/linkedin", (_req, res) => {
   const clientId = process.env.LINKEDIN_CLIENT_ID;
-  const redirectUri =
-    process.env.LINKEDIN_REDIRECT_URI ?? "http://localhost:4000/auth/linkedin/callback";
+  const redirectUri = oauthRedirectUri("linkedin");
   if (!clientId) {
     return res.status(501).json({
       error: "LinkedIn OAuth non configuré. Définissez LINKEDIN_CLIENT_ID et LINKEDIN_CLIENT_SECRET.",
@@ -630,8 +645,7 @@ authRouter.get("/linkedin/callback", async (req, res, next) => {
     const code = typeof req.query.code === "string" ? req.query.code : null;
     const clientId = process.env.LINKEDIN_CLIENT_ID;
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-    const redirectUri =
-      process.env.LINKEDIN_REDIRECT_URI ?? "http://localhost:4000/auth/linkedin/callback";
+    const redirectUri = oauthRedirectUri("linkedin");
     const webOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
 
     if (!code || !clientId || !clientSecret) {
