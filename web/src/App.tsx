@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
+import { API_URL } from "./lib/api";
 import { LocaleProvider, useLocale } from "./lib/i18n";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
@@ -31,6 +33,45 @@ function SessionLoading() {
   );
 }
 
+/** Bandeau affiché quand l'API est injoignable (mauvaise URL, CORS, service en veille). */
+function ApiStatusBanner() {
+  const { t } = useLocale();
+  const { sessionError, refreshSession } = useAuth();
+  const [retrying, setRetrying] = useState(false);
+
+  if (!sessionError) return null;
+
+  const retry = async () => {
+    setRetrying(true);
+    try {
+      await refreshSession();
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  return (
+    <div
+      role="alert"
+      className="fixed inset-x-0 top-0 z-50 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-sm"
+      style={{ background: "var(--brick)", color: "var(--paper-lift)" }}
+    >
+      <span>
+        {t(sessionError === "timeout" ? "common.apiTimeout" : "common.apiUnreachable")}{" "}
+        <span className="font-mono text-xs opacity-80">{API_URL}</span>
+      </span>
+      <button
+        type="button"
+        className="underline underline-offset-4 disabled:opacity-60"
+        onClick={() => void retry()}
+        disabled={retrying}
+      >
+        {retrying ? t("common.loadingSession") : t("common.retry")}
+      </button>
+    </div>
+  );
+}
+
 function PrivateRoute() {
   const { token, loading } = useAuth();
   if (loading) return <SessionLoading />;
@@ -50,6 +91,7 @@ export default function App() {
   return (
     <LocaleProvider>
       <AuthProvider>
+        <ApiStatusBanner />
         <Routes>
           <Route path="/" element={<HomeRoute />} />
           <Route path="/login" element={<LoginPage />} />

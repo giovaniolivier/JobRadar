@@ -59,6 +59,14 @@ function publicUser(user: { id: string; email: string; name: string }) {
   return { id: user.id, email: user.email, name: user.name };
 }
 
+/**
+ * OTP par e-mail obligatoire par défaut. `LOGIN_OTP_REQUIRED=false` permet une
+ * connexion mot de passe seul : utile quand l'hébergeur bloque le SMTP sortant
+ * (Render gratuit) et qu'aucun code ne peut partir.
+ */
+const loginOtpRequired = () =>
+  (process.env.LOGIN_OTP_REQUIRED ?? "true").trim().toLowerCase() !== "false";
+
 async function issueLoginOtp(user: { id: string; email: string }, remember: boolean) {
   await prisma.loginOtp.deleteMany({ where: { userId: user.id, consumedAt: null } });
 
@@ -180,6 +188,12 @@ authRouter.post("/login", authLimiter, async (req, res, next) => {
 
     const ok = await bcrypt.compare(body.password, user.passwordHash);
     if (!ok) throw new HttpError(401, "Invalid credentials");
+
+    if (!loginOtpRequired()) {
+      await createSession(res, user.id, user.email, { remember: body.remember ?? true });
+      res.json({ user: publicUser(user) });
+      return;
+    }
 
     const challenge = await issueLoginOtp(user, body.remember ?? true);
     res.json(challenge);

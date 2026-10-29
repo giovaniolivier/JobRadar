@@ -22,7 +22,8 @@ function smtpBlockedPortHint(): string {
   if (!RENDER_BLOCKED_SMTP_PORTS.includes(port)) return "";
   return (
     ` — port ${port} bloqué en sortie par Render (plan gratuit) : ` +
-    `définissez SMTP_PORT=2525 (Brevo/Mailgun supportent 2525 en STARTTLS).`
+    `définissez SMTP_PORT=2525 sur le service API. Brevo/Resend/Mailgun acceptent 2525 ; ` +
+    `Gmail n'expose que 465/587 et ne peut donc pas être utilisé sur le plan gratuit Render.`
   );
 }
 
@@ -69,7 +70,8 @@ function getTransporter(): Transporter | null {
     host: process.env.SMTP_HOST!.trim(),
     port,
     secure: port === 465,
-    requireTLS: port === 587,
+    // 587 et 2525 : STARTTLS obligatoire (Brevo, Mailgun, Resend…).
+    requireTLS: port !== 465,
     auth: {
       user: process.env.SMTP_USER!.trim(),
       pass,

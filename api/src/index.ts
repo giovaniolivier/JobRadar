@@ -89,16 +89,25 @@ app.use(errorHandler);
 async function boot() {
   // Bind the port before any third-party call: Render detects the open port
   // immediately, so a slow SMTP verify can't look like "No open ports detected".
-  const server = app.listen(port, () => {
+  app.listen(port, () => {
     console.log(`JobRadar API listening on http://localhost:${port}`);
   });
 
-  try {
-    await assertMailReadyForBoot();
-  } catch (err) {
-    server.close();
-    throw err;
-  }
+  // SMTP n'est jamais bloquant : une panne d'e-mail (port sortant filtré par
+  // l'hébergeur, identifiants invalides…) ne doit pas empêcher l'API de servir
+  // (session, offres, profil…). L'état est exposé sur /health et /health/mail.
+  void assertMailReadyForBoot()
+    .then(() => {
+      const mail = getMailStatus();
+      console.log(`[mail] vérification terminée — opérationnel: ${mail.verified}`);
+    })
+    .catch((err) => {
+      console.error(`[mail] ${err instanceof Error ? err.message : String(err)}`);
+      console.error(
+        "[mail] L'API continue de servir, mais l'envoi d'e-mails échouera " +
+          "(les codes de connexion OTP ne partiront pas). Voir /health et configurer SMTP_*."
+      );
+    });
 
   startEmailNotificationScheduler();
 }

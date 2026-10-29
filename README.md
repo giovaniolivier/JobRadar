@@ -52,7 +52,14 @@ Voir `api/.env.example` pour les modèles (`GEMINI_MODEL`, `GROQ_MODEL`, etc.).
 
 ### SMTP (Brevo)
 
-En `NODE_ENV=production`, l’API **refuse de démarrer** si SMTP est absent ou inaccessible (`verify`).
+L’API **démarre toujours**, même si SMTP est absent ou injoignable : la vérification
+tourne en arrière-plan et son résultat est exposé sur `/health`. En revanche la connexion
+par mot de passe envoie un **code OTP par e-mail** — sans SMTP fonctionnel, personne ne
+peut se connecter (l’envoi renvoie `503`).
+
+> **Secours** : `LOGIN_OTP_REQUIRED=false` désactive le code par e-mail et autorise la
+> connexion mot de passe seul. À réactiver (`true`) dès que `/health` renvoie
+> `mail.verified: true`.
 
 1. Créer un compte [Brevo](https://www.brevo.com/) (plan gratuit : ~300 emails/jour)
 2. **Settings → SMTP & API → SMTP** : copier login + clé SMTP dans `api/.env`

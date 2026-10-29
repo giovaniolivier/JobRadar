@@ -98,6 +98,10 @@ export const messages = {
     "toggle.offTitle": "Désactivé",
 
     "common.loadingSession": "Chargement de la session…",
+    "common.apiUnreachable":
+      "Impossible de joindre l’API. Vérifiez VITE_API_URL / CORS_ORIGIN, puis réessayez.",
+    "common.apiTimeout":
+      "L’API ne répond pas (service en veille ?). Patientez un instant puis réessayez.",
     "common.justNow": "À l’instant",
     "common.error": "Erreur",
     "common.close": "Fermer",
@@ -801,6 +805,8 @@ export const messages = {
     "toggle.offTitle": "Off",
 
     "common.loadingSession": "Loading session…",
+    "common.apiUnreachable": "Can’t reach the API. Check VITE_API_URL / CORS_ORIGIN, then retry.",
+    "common.apiTimeout": "The API isn’t responding (service asleep?). Wait a moment and retry.",
     "common.justNow": "Just now",
     "common.error": "Error",
     "common.close": "Close",

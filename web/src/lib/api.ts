@@ -1,11 +1,50 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+export const API_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
 
+if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
+  console.error(
+    "[jobradar] VITE_API_URL n'est pas défini au build : repli sur http://localhost:4000. " +
+      "Définissez VITE_API_URL (URL de l'API) dans les variables d'environnement du site, puis redéployez."
+  );
+}
+
+/** status 0 = la requête n'a jamais atteint l'API (réseau, CORS, timeout). */
 export class ApiError extends Error {
   status: number;
+  code?: "network" | "timeout";
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: "network" | "timeout") {
     super(message);
     this.status = status;
+    this.code = code;
+  }
+}
+
+export function isNetworkError(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 0;
+}
+
+/** Timeout généreux : un service Render en veille peut mettre ~30 s à démarrer. */
+export const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * `fetch` avec timeout et erreurs normalisées.
+ * Un échec réseau/CORS/timeout devient une ApiError(status 0) au lieu d'une
+ * TypeError qui remonte parfois hors des try/catch (=> spinner infini).
+ */
+export async function request(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch {
+    const timedOut = controller.signal.aborted;
+    throw new ApiError(0, timedOut ? "timeout" : "network", timedOut ? "timeout" : "network");
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -20,14 +59,18 @@ async function tryRefresh(): Promise<boolean> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       const csrf = readCookie("csrf_token");
-      const res = await fetch(`${API_URL}/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          ...(csrf ? { "X-CSRF-Token": csrf } : {}),
-        },
-      });
-      return res.ok;
+      try {
+        const res = await request(`${API_URL}/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+          },
+        });
+        return res.ok;
+      } catch {
+        return false;
+      }
     })().finally(() => {
       refreshPromise = null;
     });
@@ -38,7 +81,7 @@ async function tryRefresh(): Promise<boolean> {
 export async function ensureCsrf(): Promise<string | null> {
   const existing = readCookie("csrf_token");
   if (existing) return existing;
-  const res = await fetch(`${API_URL}/auth/csrf`, { credentials: "include" });
+  const res = await request(`${API_URL}/auth/csrf`, { credentials: "include" });
   if (!res.ok) return null;
   const data = (await res.json()) as { csrfToken?: string };
   return data.csrfToken ?? readCookie("csrf_token");
@@ -53,7 +96,7 @@ export async function api<T>(
 
   const run = async () => {
     const csrf = method === "GET" || method === "HEAD" ? null : await ensureCsrf();
-    return fetch(`${API_URL}${path}`, {
+    return request(`${API_URL}${path}`, {
       ...rest,
       method,
       credentials: "include",
@@ -173,7 +216,7 @@ export type UserSettings = {
 /** Télécharge l’export RGPD (JSON). */
 export async function downloadDataExport(): Promise<void> {
   const run = async () =>
-    fetch(`${API_URL}/settings/export`, {
+    request(`${API_URL}/settings/export`, {
       method: "GET",
       credentials: "include",
     });
@@ -207,7 +250,7 @@ export async function apiForm<T>(path: string, form: FormData): Promise<T> {
   const method = "POST";
   const run = async () => {
     const csrf = await ensureCsrf();
-    return fetch(`${API_URL}${path}`, {
+    return request(`${API_URL}${path}`, {
       method,
       credentials: "include",
       headers: {
