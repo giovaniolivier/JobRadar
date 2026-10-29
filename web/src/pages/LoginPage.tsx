@@ -1,13 +1,11 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
-import { ApiError, api } from "../lib/api";
+import { API_URL, ApiError, api, request } from "../lib/api";
 import { useAuth, type AuthUser } from "../lib/auth";
 import { resolvePostAuthPath } from "../lib/home";
 import { isValidEmail, passwordStrength } from "../lib/validation";
 import { useLocale } from "../lib/i18n";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 export function LoginPage() {
   const { t } = useLocale();
@@ -551,46 +549,68 @@ function SocialButtons({
   onError: (msg: string) => void;
 }) {
   const { t } = useLocale();
-  async function start(provider: "google" | "linkedin") {
+  const [providers, setProviders] = useState<{ google?: boolean; linkedin?: boolean } | null>(null);
+
+  // N'affiche que les fournisseurs réellement configurés côté API
+  // (GET /auth/providers) : pas de bouton mort quand les clés OAuth manquent.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await request(`${API_URL}/auth/providers`, { credentials: "include" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { google?: boolean; linkedin?: boolean };
+        if (alive) setProviders(data);
+      } catch {
+        // API injoignable : on garde les boutons, l'utilisateur verra l'erreur au clic.
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const googleEnabled = providers ? Boolean(providers.google) : true;
+  const linkedinEnabled = providers ? Boolean(providers.linkedin) : true;
+
+  if (!googleEnabled && !linkedinEnabled) return null;
+
+  function start(provider: "google" | "linkedin") {
     onInfo("");
     onError("");
-    try {
-      const res = await fetch(`${API_URL}/auth/providers`, { credentials: "include" });
-      const data = (await res.json()) as { google?: boolean; linkedin?: boolean };
-      if (provider === "google" && !data.google) {
-        onError(t("auth.googleNotConfigured"));
-        return;
-      }
-      if (provider === "linkedin" && !data.linkedin) {
-        onError(t("auth.linkedinNotConfigured"));
-        return;
-      }
-      window.location.href = `${API_URL}/auth/${provider}`;
-    } catch {
-      onError(t("auth.socialStartFailed"));
+    if (providers && !providers[provider]) {
+      onError(
+        t(provider === "google" ? "auth.googleNotConfigured" : "auth.linkedinNotConfigured")
+      );
+      return;
     }
+    window.location.href = `${API_URL}/auth/${provider}`;
   }
 
   return (
     <div className="mt-2.5 space-y-1.5">
       <p className="label text-center">{t("auth.orContinue")}</p>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
-          onClick={() => void start("google")}
-        >
-          <GoogleIcon />
-          Google
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
-          onClick={() => void start("linkedin")}
-        >
-          <LinkedInIcon />
-          LinkedIn
-        </button>
+      <div className={googleEnabled && linkedinEnabled ? "grid grid-cols-2 gap-2" : "grid gap-2"}>
+        {googleEnabled && (
+          <button
+            type="button"
+            className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
+            onClick={() => start("google")}
+          >
+            <GoogleIcon />
+            Google
+          </button>
+        )}
+        {linkedinEnabled && (
+          <button
+            type="button"
+            className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
+            onClick={() => start("linkedin")}
+          >
+            <LinkedInIcon />
+            LinkedIn
+          </button>
+        )}
       </div>
     </div>
   );

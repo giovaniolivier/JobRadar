@@ -82,6 +82,25 @@ Readiness e-mail : `GET /health/mail` → `503` si SMTP est configuré mais injo
 > ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)).
 > Utilise `SMTP_PORT=2525` (Brevo accepte 2525 en STARTTLS), ou un plan payant.
 
+### Connexion Google (optionnel)
+
+Les boutons Google / LinkedIn ne s’affichent que si l’API les a configurés :
+`GET /auth/providers` → `{ "google": true }`.
+
+1. [Google Cloud Console → Identifiants](https://console.cloud.google.com/apis/credentials)
+   → **Créer des identifiants → ID client OAuth → Application Web**
+2. **URI de redirection autorisés** : `<URL_API>/auth/google/callback`
+   (ex. `https://jobradar-api-mpcj.onrender.com/auth/google/callback`)
+3. **Origines JavaScript autorisées** : l’URL du front
+   (ex. `https://jobradar-web-ewb5.onrender.com`)
+4. Écran de consentement : type *Externe* ; ajoutez votre compte en **testeur** tant que
+   l’application n’est pas publiée
+5. Renseignez `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` et `GOOGLE_REDIRECT_URI`
+   dans l’environnement de l’API, puis redéployez
+
+Même principe pour LinkedIn (`LINKEDIN_*`, redirection
+`<URL_API>/auth/linkedin/callback`).
+
 ### Web
 
 ```powershell
