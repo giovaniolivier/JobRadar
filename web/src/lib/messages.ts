@@ -634,8 +634,8 @@ export const messages = {
       "Cette offre n’a pas encore d’analyse. Relancez une analyse depuis « + Nouvelle offre ».",
     "analyze.confirmAbandon": "Vous avez saisi du contenu. Abandonner cette offre ?",
     "analyze.errorUrl": "Indiquez l’URL de l’offre.",
-    "analyze.errorScraping":
-      "Le scraping automatique n’est pas encore disponible. Passez sur « Coller le texte » pour analyser l’annonce — vous pourrez garder l’URL dans les champs optionnels.",
+    "analyze.scrapingUnavailable":
+      "Le scraping automatique n’est pas encore disponible : collez le texte de l’annonce ci-dessous. Votre URL est conservée dans les champs optionnels.",
     "analyze.errorFile": "Importez un fichier .txt, ou collez le texte de l’offre.",
     "analyze.errorMinText": "Collez le texte complet de l'offre pour lancer l'analyse.",
     "analyze.errorFailed": "L'analyse a échoué. Réessayez dans un instant.",
@@ -1335,8 +1335,8 @@ export const messages = {
       "This job has no analysis yet. Run one again from “+ New job”.",
     "analyze.confirmAbandon": "You have entered content. Discard this job?",
     "analyze.errorUrl": "Enter the job URL.",
-    "analyze.errorScraping":
-      "Automatic scraping isn’t available yet. Switch to “Paste text” to analyze the posting — you can keep the URL in optional fields.",
+    "analyze.scrapingUnavailable":
+      "Automatic scraping isn’t available yet: paste the job description below. Your URL is kept in the optional fields.",
     "analyze.errorFile": "Import a .txt file, or paste the job text.",
     "analyze.errorMinText": "Paste the full job text to start the analysis.",
     "analyze.errorFailed": "Analysis failed. Try again in a moment.",

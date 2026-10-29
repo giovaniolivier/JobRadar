@@ -101,6 +101,8 @@ function AnalyzeOfferPanel({
   const [company, setCompany] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [optionalOpen, setOptionalOpen] = useState(false);
   const [needsCv, setNeedsCv] = useState(false);
   const [result, setResult] = useState<Job | null>(null);
   const [loadingMsg, setLoadingMsg] = useState(() => t("analyze.loading1"));
@@ -115,6 +117,8 @@ function AnalyzeOfferPanel({
     abortRef.current?.abort();
     abortRef.current = null;
     setError(null);
+    setNotice(null);
+    setOptionalOpen(false);
     setNeedsCv(false);
     setBusyAction(null);
     setStillWaiting(false);
@@ -194,8 +198,16 @@ function AnalyzeOfferPanel({
     setMode("paste");
   }
 
+  function switchToPaste() {
+    setMode("paste");
+    setError(null);
+    setOptionalOpen(true);
+    setNotice(t("analyze.scrapingUnavailable"));
+  }
+
   async function runAnalyze() {
     setError(null);
+    setNotice(null);
     setNeedsCv(false);
 
     if (mode === "link") {
@@ -203,8 +215,12 @@ function AnalyzeOfferPanel({
         setError(t("analyze.errorUrl"));
         return;
       }
+      // Le scraping n'existe pas encore : on bascule sur le collage de texte
+      // (l'URL reste dans les champs optionnels) au lieu de bloquer l'utilisateur.
       if (description.trim().length < MIN_TEXT) {
-        setError(t("analyze.errorScraping"));
+        setMode("paste");
+        setOptionalOpen(true);
+        setNotice(t("analyze.scrapingUnavailable"));
         return;
       }
     }
@@ -341,7 +357,11 @@ function AnalyzeOfferPanel({
           {step === "input" && (
             <InputStep
               mode={mode}
-              setMode={setMode}
+              setMode={(next) => {
+                setNotice(null);
+                setError(null);
+                setMode(next);
+              }}
               description={description}
               setDescription={setDescription}
               url={url}
@@ -353,7 +373,11 @@ function AnalyzeOfferPanel({
               fileName={fileName}
               onFileChange={onFileChange}
               error={error}
+              notice={notice}
               needsCv={needsCv}
+              optionalOpen={optionalOpen}
+              setOptionalOpen={setOptionalOpen}
+              onSwitchToPaste={switchToPaste}
             />
           )}
 
@@ -464,7 +488,11 @@ function InputStep({
   fileName,
   onFileChange,
   error,
+  notice,
   needsCv,
+  optionalOpen,
+  setOptionalOpen,
+  onSwitchToPaste,
 }: {
   mode: InputMode;
   setMode: (m: InputMode) => void;
@@ -479,7 +507,11 @@ function InputStep({
   fileName: string | null;
   onFileChange: (f: File | null) => void;
   error: string | null;
+  notice: string | null;
   needsCv: boolean;
+  optionalOpen: boolean;
+  setOptionalOpen: (v: boolean) => void;
+  onSwitchToPaste: () => void;
 }) {
   const { t } = useLocale();
   const [dragging, setDragging] = useState(false);
@@ -509,6 +541,16 @@ function InputStep({
         ))}
       </div>
 
+      {notice && (
+        <div
+          className="border-l-2 py-1 pl-3 text-sm"
+          style={{ borderColor: "var(--amber)" }}
+          role="status"
+        >
+          {notice}
+        </div>
+      )}
+
       {mode === "paste" && (
         <div>
           <label className="block">
@@ -537,18 +579,27 @@ function InputStep({
       )}
 
       {mode === "link" && (
-        <label className="block">
-          <span className="label mb-1.5 block">{t("analyze.urlLabel")}</span>
-          <input
-            className="field"
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder={t("analyze.urlPlaceholder")}
-            autoFocus
-          />
-          <span className="mt-1.5 block text-xs text-[var(--ink-soft)]">{t("analyze.urlHint")}</span>
-        </label>
+        <div>
+          <label className="block">
+            <span className="label mb-1.5 block">{t("analyze.urlLabel")}</span>
+            <input
+              className="field"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder={t("analyze.urlPlaceholder")}
+              autoFocus
+            />
+          </label>
+          <p className="mt-1.5 text-xs text-[var(--ink-soft)]">{t("analyze.urlHint")}</p>
+          <button
+            type="button"
+            className="mt-2 text-sm underline decoration-[var(--amber)] underline-offset-4"
+            onClick={onSwitchToPaste}
+          >
+            {t("analyze.modePaste")} →
+          </button>
+        </div>
       )}
 
       {mode === "file" && (
@@ -595,7 +646,11 @@ function InputStep({
         </div>
       )}
 
-      <details className="border border-[var(--hairline)] px-3 py-2">
+      <details
+        className="border border-[var(--hairline)] px-3 py-2"
+        open={optionalOpen}
+        onToggle={(e) => setOptionalOpen(e.currentTarget.open)}
+      >
         <summary className="label cursor-pointer select-none">{t("analyze.optional")}</summary>
         <div className="mt-3 space-y-3">
           <label className="block">
