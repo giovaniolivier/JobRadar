@@ -66,7 +66,9 @@ export function htmlToText(html: string): string {
   const withBreaks = removeNonContent(html)
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<li\b[^>]*>/gi, "\n- ")
-    .replace(/<\/(p|div|section|article|li|ul|ol|h[1-6]|tr|table|header|footer)>/gi, "\n")
+    // Pas de </li> ici : chaque <li> ouvre déjà sa ligne, sinon les puces seraient
+    // séparées par une ligne vide.
+    .replace(/<\/(p|div|section|article|ul|ol|h[1-6]|tr|table|header|footer)>/gi, "\n")
     .replace(/<(p|h[1-6])\b[^>]*>/gi, "\n")
     .replace(/<[^>]+>/g, " ");
   return decodeEntities(withBreaks)

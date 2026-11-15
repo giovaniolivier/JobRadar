@@ -48,21 +48,21 @@ type AiProvider = "gemini" | "groq" | "anthropic";
 
 function hasGeminiKey(): boolean {
   const k = process.env.GEMINI_API_KEY?.trim();
-  return Boolean(k && !k.includes("your-key") && k.length > 10);
+  return Boolean(k && !k.includes("your-") && k.length > 10);
 }
 
 function hasGroqKey(): boolean {
   const k = process.env.GROQ_API_KEY?.trim();
-  return Boolean(k && !k.includes("your-key") && k.length > 10);
+  return Boolean(k && !k.includes("your-") && k.length > 10);
 }
 
 function hasAnthropicKey(): boolean {
   const k = process.env.ANTHROPIC_API_KEY?.trim();
-  return Boolean(k && !k.includes("your-key") && k.length > 10);
+  return Boolean(k && !k.includes("your-") && k.length > 10);
 }
 
 /** Ordre auto : Gemini → Groq → Claude (selon clés présentes). */
-function providerChain(): AiProvider[] {
+export function providerChain(): AiProvider[] {
   const forced = (process.env.AI_PROVIDER ?? "auto").trim().toLowerCase();
   if (forced === "none" || forced === "off" || forced === "heuristic") return [];
   if (forced === "gemini") return hasGeminiKey() ? ["gemini"] : [];

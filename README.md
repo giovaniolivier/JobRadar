@@ -160,5 +160,14 @@ Passez aussi `BREVO_API_KEY` / `SMTP_*`, `APP_ORIGIN`, `CORS_ORIGIN` et les clé
 
 ## Tests
 
-Peu de couverture automatisée pour l’instant : smoke API (`cd api && npm run smoke`) et `npm run mail:test`.  
-CI : typecheck / build web + validation Prisma (pas de suite e2e complète).
+```powershell
+cd api
+npm test        # tests unitaires (Vitest), sans base de données ni réseau
+```
+
+Couverts : lecture des offres collées / CSV (`ingestion`), lecture d’une offre depuis son URL
+et protection SSRF (`fetchOffer`), envoi d’e-mails Brevo / SMTP (`mail`), choix et erreurs des
+fournisseurs IA (`ai`). Les fichiers sont dans `api/test/`.
+
+Autres vérifications : smoke API (`npm run smoke`, API lancée) et `npm run mail:test`.  
+CI (GitHub Actions) : typecheck + tests de l’API, validation Prisma, lint + build du web.

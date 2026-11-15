@@ -12,6 +12,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
     "mail:test": "tsx scripts/mail-test.ts"
   },
@@ -46,7 +47,8 @@
     "@types/pdf-parse": "^1.1.5",
     "prisma": "^6.5.0",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.2.7"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
