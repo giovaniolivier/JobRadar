@@ -82,7 +82,7 @@ function resolveProvider(): AiProvider | null {
 
 export const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
 export const GROQ_MODEL = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
-export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-6";
+export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-5-5";
 
 /** @deprecated use aiProviderErrorMessage */
 export function anthropicErrorMessage(err: unknown): string {
@@ -95,7 +95,12 @@ function errText(err: unknown): string {
     : String(err ?? "");
 }
 
-function isRetryableProviderError(err: unknown): boolean {
+export function isRetryableProviderError(err: unknown): boolean {
+  // Erreurs typées du SDK Anthropic : 408/409/429/5xx et coupures réseau.
+  if (err instanceof Anthropic.APIConnectionError) return true;
+  if (err instanceof Anthropic.APIError && typeof err.status === "number") {
+    if ([408, 409, 429].includes(err.status) || err.status >= 500) return true;
+  }
   const lower = errText(err).toLowerCase();
   return (
     lower.includes("rate") ||
@@ -223,11 +228,20 @@ async function completeWithProvider(
   }
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!.trim() });
-  const message = await client.messages.create({
+  // Réflexion adaptative par défaut (pas de paramètre `thinking`) : on prévoit de
+  // la marge sur max_tokens, la réflexion étant comptée dedans.
+  // `fallbacks: "default"` : si un filtre de sécurité refuse, l'API relance la même
+  // requête sur un modèle de repli, dans le même appel.
+  const message = await client.beta.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: maxTokens,
+    max_tokens: Math.min(Math.max(maxTokens * 4, 4096), 16000),
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
     messages: [{ role: "user", content: prompt }],
   });
+  if (message.stop_reason === "refusal") {
+    throw new Error("Anthropic refusal: la requête a été refusée par le modèle");
+  }
   const text = message.content
     .filter((b) => b.type === "text")
     .map((b) => (b.type === "text" ? b.text : ""))
