@@ -15,7 +15,10 @@ import { csrfProtect } from "./middleware/csrf.js";
 import { enforceHttps } from "./middleware/https.js";
 import { assertJwtSecret } from "./lib/authTokens.js";
 import { assertMailReadyForBoot, getMailStatus } from "./lib/mail.js";
-import { startEmailNotificationScheduler } from "./services/emailNotifications.js";
+import {
+  dispatchPendingNotificationEmails,
+  startEmailNotificationScheduler,
+} from "./services/emailNotifications.js";
 
 assertJwtSecret();
 
@@ -42,6 +45,32 @@ app.use(
 );
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
+
+// Déclencheur machine pour les e-mails de notification (relances, score, digest).
+// Sur Render gratuit le service s'endort : un cron externe appelle cette route pour
+// garantir l'envoi. Placée AVANT le CSRF (appel machine, pas de session navigateur)
+// et protégée par un secret partagé. Sans CRON_SECRET défini, la route est désactivée.
+app.post("/internal/dispatch-emails", async (req, res) => {
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const auth = req.header("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : String(req.query.token ?? "");
+  if (token !== secret) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const result = await dispatchPendingNotificationEmails();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error("[cron] dispatch-emails", err);
+    res.status(500).json({ error: "dispatch failed" });
+  }
+});
+
 app.use(csrfProtect);
 
 app.get("/health", (_req, res) => {

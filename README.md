@@ -92,6 +92,23 @@ Readiness e-mail : `GET /health/mail` → `503` si l’e-mail est configuré mai
 > ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)).
 > Utilise `BREVO_API_KEY` (ou, à défaut, `SMTP_PORT=2525`).
 
+#### Fiabilité des notifications (relances, score, digest)
+
+L’API envoie ces e-mails via un planificateur interne (toutes les 15 min). Sur
+**Render gratuit, le service s’endort quand il est inactif** et ce planificateur ne
+tourne plus de façon fiable. Une route machine prend le relais :
+`POST /internal/dispatch-emails`, protégée par `CRON_SECRET`.
+
+Le dépôt inclut un cron GitHub Actions (`.github/workflows/dispatch-emails.yml`) qui
+l’appelle toutes les heures. Pour l’activer :
+
+1. Sur le service API Render : définir `CRON_SECRET` (valeur aléatoire).
+2. Sur GitHub (Settings → Secrets and variables → Actions) :
+   - **Variable** `API_URL` = `https://jobradar-api-mpcj.onrender.com`
+   - **Secret** `CRON_SECRET` = la même valeur que sur Render.
+
+Sans `CRON_SECRET`, la route renvoie `404` (désactivée) et seul le planificateur interne agit.
+
 ### Connexion Google (optionnel)
 
 Les boutons Google / LinkedIn ne s’affichent que si l’API les a configurés :

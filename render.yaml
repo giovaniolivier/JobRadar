@@ -53,6 +53,11 @@ services:
       # mail.verified: true, connexion mot de passe seul sinon.
       - key: LOGIN_OTP_REQUIRED
         value: "auto"
+      # Secret partagé avec le cron GitHub Actions (.github/workflows/dispatch-emails.yml)
+      # qui déclenche l'envoi des e-mails de notification. Mettez la MÊME valeur ici
+      # (service API) et dans le secret de dépôt CRON_SECRET. Vide = route désactivée.
+      - key: CRON_SECRET
+        sync: false
       - key: BREVO_API_KEY
         sync: false
       - key: SMTP_HOST

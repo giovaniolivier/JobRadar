@@ -1,0 +1,34 @@
+name: Dispatch notification emails
+
+# Déclenche l'envoi des e-mails de notification (relances, score élevé, digest).
+# Nécessaire car sur Render gratuit l'API s'endort : son planificateur interne ne
+# tourne pas de façon fiable. Ce cron réveille l'API et déclenche l'envoi.
+#
+# Prérequis :
+#   - Variable de dépôt  API_URL     (Settings → Secrets and variables → Actions → Variables)
+#   - Secret de dépôt    CRON_SECRET (même valeur que la variable CRON_SECRET sur Render)
+# Sans ces deux valeurs, le job se termine sans rien faire.
+
+on:
+  schedule:
+    - cron: "0 * * * *" # toutes les heures (UTC)
+  workflow_dispatch: {} # déclenchement manuel possible
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the dispatch endpoint
+        env:
+          API_URL: ${{ vars.API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "API_URL ou CRON_SECRET non défini — rien à faire (voir le commentaire du workflow)."
+            exit 0
+          fi
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
+            "${API_URL%/}/internal/dispatch-emails" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $code"; cat /tmp/out.json; echo
+          [ "$code" = "200" ]
