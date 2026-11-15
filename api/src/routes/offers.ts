@@ -26,6 +26,18 @@ export const offersRouter = Router();
 
 offersRouter.use(requireAuth);
 
+/**
+ * Limite les appels qui déclenchent le LLM (analyse, lettre) : protège le quota
+ * et la facture des fournisseurs IA contre une boucle côté client.
+ */
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop d'analyses d'affilée. Réessayez dans une minute." },
+});
+
 function clampScore(n: number) {
   return Math.max(5, Math.min(100, Math.round(n)));
 }
@@ -222,7 +234,7 @@ offersRouter.post("/", async (req: AuthedRequest, res, next) => {
 const MIN_OFFER_TEXT = 80;
 
 /** POST /offers/analyze-new — créer + analyser une offre en une requête (panneau dashboard) */
-offersRouter.post("/analyze-new", async (req: AuthedRequest, res, next) => {
+offersRouter.post("/analyze-new", aiLimiter, async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const body = z
@@ -409,7 +421,7 @@ offersRouter.get("/:id", async (req: AuthedRequest, res, next) => {
   }
 });
 
-offersRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
+offersRouter.post("/:id/analyze", aiLimiter, async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
@@ -482,7 +494,7 @@ offersRouter.post("/:id/analyze", async (req: AuthedRequest, res, next) => {
   }
 });
 
-offersRouter.post("/:id/generate-letter", async (req: AuthedRequest, res, next) => {
+offersRouter.post("/:id/generate-letter", aiLimiter, async (req: AuthedRequest, res, next) => {
   try {
     const userId = req.user!.userId;
     const id = paramId(req.params.id);
