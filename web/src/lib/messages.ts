@@ -337,6 +337,7 @@ export const messages = {
     "offers.addPipeline": "+ Pipeline",
     "offers.salaryUnspecified": "Salaire non précisé",
     "offers.addPipelineError": "Impossible d'ajouter au pipeline",
+    "offers.addedToPipeline": "Offre ajoutée à vos candidatures",
 
     "pipeline.eyebrow": "Pipeline",
     "pipeline.title": "Candidatures",
@@ -1058,6 +1059,7 @@ export const messages = {
     "offers.addPipeline": "+ Pipeline",
     "offers.salaryUnspecified": "Salary not specified",
     "offers.addPipelineError": "Could not add to pipeline",
+    "offers.addedToPipeline": "Offer added to your applications",
 
     "pipeline.eyebrow": "Pipeline",
     "pipeline.title": "Applications",

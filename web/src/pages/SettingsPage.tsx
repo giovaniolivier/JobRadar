@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { DeleteAccountPanel } from "../components/DeleteAccountPanel";
 import { api, downloadDataExport, type ProfileResponse, type UserSettings } from "../lib/api";
 import { useLocale, type AppLocale } from "../lib/i18n";
+import { useToast } from "../lib/toast";
 import { applyTheme, type ThemePreference } from "../lib/theme";
 
 type Choice<T extends string> = { id: T; label: string };
@@ -146,10 +147,10 @@ function SettingRow({
 
 export function SettingsPage() {
   const { t, setLocale } = useLocale();
+  const toast = useToast();
   const [params] = useSearchParams();
   const [settings, setSettings] = useState<UserSettings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [savedHint, setSavedHint] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [hasPassword, setHasPassword] = useState(true);
@@ -225,7 +226,7 @@ export function SettingsPage() {
           ready.current = true;
         }, 0);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : t("settings.loadError"));
+        if (!cancelled) toast.error(err instanceof Error ? err.message : t("settings.loadError"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -243,7 +244,6 @@ export function SettingsPage() {
         const body = { ...pendingPatch.current };
         pendingPatch.current = {};
         if (Object.keys(body).length === 0) return;
-        setError(null);
         try {
           await api<UserSettings>("/settings", {
             method: "PUT",
@@ -253,7 +253,7 @@ export function SettingsPage() {
           window.setTimeout(() => setSavedHint(null), 2000);
         } catch (err) {
           pendingPatch.current = { ...body, ...pendingPatch.current };
-          setError(err instanceof Error ? err.message : t("settings.saveError"));
+          toast.error(err instanceof Error ? err.message : t("settings.saveError"));
         }
       })();
     }, 700);
@@ -279,13 +279,11 @@ export function SettingsPage() {
 
   async function onExport() {
     setExporting(true);
-    setError(null);
     try {
       await downloadDataExport();
-      setSavedHint(t("settings.exported"));
-      window.setTimeout(() => setSavedHint(null), 2500);
+      toast.success(t("settings.exported"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("settings.exportError"));
+      toast.error(err instanceof Error ? err.message : t("settings.exportError"));
     } finally {
       setExporting(false);
     }
@@ -306,11 +304,6 @@ export function SettingsPage() {
         {savedHint && (
           <p className="mono mt-3 text-sm" style={{ color: "var(--match)" }} role="status">
             {savedHint}
-          </p>
-        )}
-        {error && (
-          <p className="mt-3 text-sm" style={{ color: "var(--brick)" }} role="alert">
-            {error}
           </p>
         )}
       </header>
@@ -519,7 +512,7 @@ export function SettingsPage() {
         </div>
         <p className="text-xs text-(--ink)/70">{t("settings.exportHint")}</p>
 
-        <DeleteAccountPanel hasPassword={hasPassword} onError={setError} />
+        <DeleteAccountPanel hasPassword={hasPassword} onError={(msg) => { if (msg) toast.error(msg); }} />
       </section>
 
       <section role="tabpanel" className={`${tabPanelClass("integrations")} space-y-4`}>

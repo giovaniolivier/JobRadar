@@ -15,6 +15,7 @@ import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 import { RemotiveImport } from "../components/RemotiveImport";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 import { useLocale } from "../lib/i18n";
+import { useToast } from "../lib/toast";
 
 type SortKey = "score" | "date" | "salary";
 type ScoreFilter = "all" | "80" | "60";
@@ -86,6 +87,7 @@ function SourceTag({ label }: { label: string }) {
 
 export function OffersPage() {
   const { t } = useLocale();
+  const toast = useToast();
   const { token } = useAuth();
   const { open, openAnalyze, openOfferDetail } = useAnalyzeOffer();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -224,8 +226,9 @@ export function OffersPage() {
         body: JSON.stringify({ jobId: job.id, status: "TO_APPLY" }),
       });
       await load();
+      toast.success(t("offers.addedToPipeline"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("offers.addPipelineError"));
+      toast.error(err instanceof Error ? err.message : t("offers.addPipelineError"));
     } finally {
       setPipelineBusy(null);
     }

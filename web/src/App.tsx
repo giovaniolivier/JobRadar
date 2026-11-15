@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { API_URL } from "./lib/api";
 import { LocaleProvider, useLocale } from "./lib/i18n";
+import { ToastProvider } from "./lib/toast";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -90,9 +91,10 @@ function HomeRoute() {
 export default function App() {
   return (
     <LocaleProvider>
-      <AuthProvider>
-        <ApiStatusBanner />
-        <Routes>
+      <ToastProvider>
+        <AuthProvider>
+          <ApiStatusBanner />
+          <Routes>
           <Route path="/" element={<HomeRoute />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -115,8 +117,9 @@ export default function App() {
               <Route path="/import" element={<ImportPage />} />
             </Route>
           </Route>
-        </Routes>
-      </AuthProvider>
+          </Routes>
+        </AuthProvider>
+      </ToastProvider>
     </LocaleProvider>
   );
 }

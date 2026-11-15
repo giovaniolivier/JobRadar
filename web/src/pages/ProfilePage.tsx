@@ -5,6 +5,7 @@ import { DeleteAccountPanel } from "../components/DeleteAccountPanel";
 import { api, apiForm, type ProfileData, type ProfileResponse } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLocale, type MessageKey } from "../lib/i18n";
+import { useToast } from "../lib/toast";
 import {
   dedupeNormalize,
   formatSalaryDisplay,
@@ -81,13 +82,13 @@ function SalaryField({
 export function ProfilePage() {
   const { token, setSession, refreshSession } = useAuth();
   const { t, locale } = useLocale();
+  const toast = useToast();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const onboarding = params.get("onboarding") === "1";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [prefsSaved, setPrefsSaved] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -139,11 +140,6 @@ export function ProfilePage() {
     prefs: { short: "profile.tabPrefs", full: "profile.tabPrefsFull" },
     account: { short: "profile.tabAccount" },
   };
-
-  function showToast(msg: string) {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 4000);
-  }
 
   function applyProfile(data: ProfileResponse) {
     setName(data.name);
@@ -264,7 +260,7 @@ export function ProfilePage() {
         body: JSON.stringify({ name: name.trim(), email: email.trim() }),
       });
       setSession({ id: data.id, email: data.email, name: data.name });
-      showToast(t("profile.toastAccount"));
+      toast.success(t("profile.toastAccount"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("profile.errorUpdate"));
     } finally {
@@ -300,7 +296,7 @@ export function ProfilePage() {
       setSoftSkills(res.profile.softSkills);
       setReplacingCv(false);
       setCvPaste("");
-      showToast(res.message || t("profile.toastCv"));
+      toast.success(res.message || t("profile.toastCv"));
       if (onboarding) {
         // keep on page so user can review skills
       }
@@ -326,7 +322,7 @@ export function ProfilePage() {
       setSoftSkills(res.profile.softSkills);
       setReplacingCv(false);
       setCvPaste("");
-      showToast(res.message || t("profile.toastCv"));
+      toast.success(res.message || t("profile.toastCv"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("profile.errorImport"));
     } finally {
@@ -384,7 +380,7 @@ export function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      showToast(t("profile.toastPassword"));
+      toast.success(t("profile.toastPassword"));
       await refreshSession();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("profile.errorPasswordChange"));
@@ -424,11 +420,6 @@ export function ProfilePage() {
         <p className="mt-2 max-w-xl text-(--ink)/75">
           {onboarding ? t("profile.subtitleOnboarding") : t("profile.subtitle")}
         </p>
-        {toast && (
-          <p className="mono mt-3 text-sm" style={{ color: "var(--match)" }} role="status">
-            {toast}
-          </p>
-        )}
         {error && (
           <p className="mt-3 text-sm" style={{ color: "var(--brick)" }} role="alert">
             {error}
@@ -697,7 +688,7 @@ export function ProfilePage() {
               const mode = workModeFromTag(value);
               if (mode) {
                 setWorkModes((prev) => (prev.includes(mode) ? prev : [...prev, mode]));
-                showToast(
+                toast.success(
                   mode === "remote" ? t("profile.toastRemote") : t("profile.toastWorkMode")
                 );
               }
