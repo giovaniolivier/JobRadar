@@ -35,6 +35,17 @@ export function useAnalyzeOffer() {
 
 const MIN_TEXT = 80;
 
+/** Nom de domaine lisible pour l'affichage pendant la lecture d'un lien. */
+function prettyHost(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return value.length > 48 ? `${value.slice(0, 48)}…` : value;
+  }
+}
+
 /** Réponse de POST /offers/fetch-url. */
 type FetchedOffer = {
   title: string | null;
@@ -119,6 +130,7 @@ function AnalyzeOfferPanel({
   const [needsCv, setNeedsCv] = useState(false);
   const [result, setResult] = useState<Job | null>(null);
   const [loadingMsg, setLoadingMsg] = useState(() => t("analyze.loading1"));
+  const [loadingPhase, setLoadingPhase] = useState<"reading" | "analyzing">("analyzing");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [letter, setLetter] = useState<string | null>(null);
   const [letterOpen, setLetterOpen] = useState(false);
@@ -156,7 +168,9 @@ function AnalyzeOfferPanel({
   }, [open, intent, initialJob]);
 
   useEffect(() => {
-    if (step !== "loading") {
+    // Le défilement des messages ne concerne que la phase d'analyse. La phase de
+    // lecture du lien a son propre affichage (fixe), car sa durée est imprévisible.
+    if (step !== "loading" || loadingPhase !== "analyzing") {
       setStillWaiting(false);
       return;
     }
@@ -171,7 +185,7 @@ function AnalyzeOfferPanel({
       window.clearInterval(msgId);
       window.clearTimeout(waitId);
     };
-  }, [step, t]);
+  }, [step, loadingPhase, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -241,6 +255,7 @@ function AnalyzeOfferPanel({
       // Lecture automatique de la page ; si le site la bloque, on bascule sur le
       // collage de texte (l'URL reste dans les champs optionnels).
       if (text.length < MIN_TEXT) {
+        setLoadingPhase("reading");
         setStep("loading");
         const fetchController = new AbortController();
         abortRef.current = fetchController;
@@ -276,9 +291,13 @@ function AnalyzeOfferPanel({
             setError(err.message);
             return;
           }
+          // Message précis du serveur (ex. « Ce site bloque la lecture… ») : plus
+          // utile que le texte générique de repli.
           setMode("paste");
           setOptionalOpen(true);
-          setNotice(t("analyze.scrapingFailed"));
+          setNotice(
+            err instanceof ApiError && err.message ? err.message : t("analyze.scrapingFailed")
+          );
           return;
         } finally {
           if (abortRef.current === fetchController) abortRef.current = null;
@@ -297,6 +316,7 @@ function AnalyzeOfferPanel({
       return;
     }
 
+    setLoadingPhase("analyzing");
     setStep("loading");
     const controller = new AbortController();
     abortRef.current = controller;
@@ -433,7 +453,7 @@ function AnalyzeOfferPanel({
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
+        <div key={step} className="fade-in flex-1 overflow-y-auto px-5 py-5">
           {step === "input" && (
             <InputStep
               mode={mode}
@@ -465,11 +485,27 @@ function AnalyzeOfferPanel({
             <div className="flex min-h-[60%] flex-col items-center justify-center gap-6 py-12 text-center">
               <ScoreDialLoading size={96} />
               <div className="max-w-xs">
-                <p className="display text-xl" aria-live="polite">
-                  {loadingMsg}
-                </p>
-                {stillWaiting && (
-                  <p className="mt-3 text-sm text-(--ink-soft)">{t("analyze.stillWaiting")}</p>
+                {loadingPhase === "reading" ? (
+                  <>
+                    <p className="display text-xl" aria-live="polite">
+                      {t("analyze.readingLink")}
+                    </p>
+                    {prettyHost(url) && (
+                      <p className="mono mt-2 text-sm break-all text-(--ink-soft)">
+                        {prettyHost(url)}
+                      </p>
+                    )}
+                    <p className="mt-3 text-sm text-(--ink-soft)">{t("analyze.readingHint")}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="display text-xl" aria-live="polite">
+                      {loadingMsg}
+                    </p>
+                    {stillWaiting && (
+                      <p className="mt-3 text-sm text-(--ink-soft)">{t("analyze.stillWaiting")}</p>
+                    )}
+                  </>
                 )}
               </div>
               <button
@@ -477,7 +513,7 @@ function AnalyzeOfferPanel({
                 className="text-xs text-(--ink-soft) underline underline-offset-4"
                 onClick={cancelAnalysis}
               >
-                {t("analyze.cancelAnalysis")}
+                {loadingPhase === "reading" ? t("analyze.cancelReading") : t("analyze.cancelAnalysis")}
               </button>
             </div>
           )}

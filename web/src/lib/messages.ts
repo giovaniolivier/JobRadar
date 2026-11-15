@@ -645,6 +645,9 @@ export const messages = {
     "analyze.loading3": "Calcul du score de correspondance…",
     "analyze.stillWaiting": "Quelques secondes encore…",
     "analyze.cancelAnalysis": "Annuler l’analyse",
+    "analyze.cancelReading": "Annuler la lecture",
+    "analyze.readingLink": "Lecture du lien…",
+    "analyze.readingHint": "Certains sites bloquent la lecture automatique ; on basculera sur le collage si besoin.",
     "analyze.retry": "Réessayer",
     "analyze.editInput": "Modifier la saisie",
     "analyze.noAnalysis":
@@ -1368,6 +1371,9 @@ export const messages = {
     "analyze.loading3": "Computing match score…",
     "analyze.stillWaiting": "A few more seconds…",
     "analyze.cancelAnalysis": "Cancel analysis",
+    "analyze.cancelReading": "Cancel reading",
+    "analyze.readingLink": "Reading the link…",
+    "analyze.readingHint": "Some sites block automatic reading; we’ll switch to paste if needed.",
     "analyze.retry": "Retry",
     "analyze.editInput": "Edit input",
     "analyze.noAnalysis":
