@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { htmlToText, stripHtml } from "../src/lib/html.js";
 import {
   needsJobMetadataRepair,
+  normalizeUrl,
   parseJobsCsv,
   parsePastedJob,
   repairJobMetadataFromDescription,
@@ -81,6 +82,28 @@ describe("réparation des métadonnées", () => {
       description: "Poste : Data Engineer\nEntreprise : Back Market\nStack : Python, Airflow",
     });
     expect(fixed).toEqual({ title: "Data Engineer", company: "Back Market" });
+  });
+});
+
+describe("normalizeUrl", () => {
+  it("considère équivalentes des variantes du même lien", () => {
+    const base = normalizeUrl("https://Jobs.example.com/offer/42");
+    expect(normalizeUrl("https://jobs.example.com/offer/42/")).toBe(base);
+    expect(normalizeUrl("https://jobs.example.com/offer/42#section")).toBe(base);
+    expect(normalizeUrl("https://jobs.example.com/offer/42?utm_source=remotive&utm_medium=rss")).toBe(
+      base
+    );
+  });
+
+  it("distingue deux offres différentes", () => {
+    expect(normalizeUrl("https://example.com/offer/1")).not.toBe(
+      normalizeUrl("https://example.com/offer/2")
+    );
+  });
+
+  it("garde les paramètres significatifs et ignore une chaîne vide", () => {
+    expect(normalizeUrl("https://example.com/jobs?id=99")).toBe("https://example.com/jobs?id=99");
+    expect(normalizeUrl("   ")).toBeNull();
   });
 });
 

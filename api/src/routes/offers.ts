@@ -12,6 +12,7 @@ import {
   importManualJobs,
   parseJobsCsv,
   parsePastedJob,
+  findDuplicateJobByUrl,
   needsJobMetadataRepair,
   repairJobMetadataFromDescription,
   syncRemotive,
@@ -268,15 +269,39 @@ offersRouter.post("/analyze-new", aiLimiter, async (req: AuthedRequest, res, nex
     const company = body.company?.trim() || parsed.company;
     const url = body.url?.trim() || parsed.url;
 
-    const [job] = await importManualJobs(userId, [
-      {
-        title,
-        company,
-        description,
-        url,
-        location: body.location?.trim() || undefined,
-      },
-    ]);
+    // Déduplication par URL : si une offre pointant vers le même lien existe déjà
+    // (collée, lue depuis une URL ou importée de Remotive), on la réutilise plutôt
+    // que d'en créer une seconde. L'URL est un identifiant fiable, contrairement au
+    // titre/entreprise que l'IA peut réécrire.
+    const existing = url ? await findDuplicateJobByUrl(userId, url) : null;
+
+    const { job, createdNew } = existing
+      ? {
+          job: await prisma.job.update({
+            where: { id: existing.id },
+            data: {
+              description,
+              url: url ?? existing.url,
+              location: body.location?.trim() || existing.location,
+              fetchedAt: new Date(),
+            },
+          }),
+          createdNew: false,
+        }
+      : {
+          job: (
+            await importManualJobs(userId, [
+              {
+                title,
+                company,
+                description,
+                url,
+                location: body.location?.trim() || undefined,
+              },
+            ])
+          )[0]!,
+          createdNew: true,
+        };
 
     try {
       const result = await analyzeJobAgainstProfile(profile, job!);
@@ -353,7 +378,11 @@ offersRouter.post("/analyze-new", aiLimiter, async (req: AuthedRequest, res, nex
         application: applications[0] ?? null,
       });
     } catch (err) {
-      await prisma.job.delete({ where: { id: job!.id } }).catch(() => undefined);
+      // Ne supprimer que si on vient de la créer : ne pas détruire une offre
+      // existante réutilisée par déduplication quand l'analyse échoue.
+      if (createdNew) {
+        await prisma.job.delete({ where: { id: job!.id } }).catch(() => undefined);
+      }
       if (err instanceof HttpError) throw err;
       throw new HttpError(502, aiProviderErrorMessage(err));
     }

@@ -106,6 +106,38 @@ export async function importManualJobs(userId: string, jobs: ManualJobInput[]) {
   return created;
 }
 
+/** Forme canonique d'une URL pour comparer deux liens : enlève le fragment, les
+ *  paramètres de tracking (utm_*, gclid, fbclid) et la barre oblique finale. */
+export function normalizeUrl(raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^utm_|^(gclid|fbclid|mc_cid|mc_eid|ref)$/i.test(key)) url.searchParams.delete(key);
+    }
+    return url.toString().replace(/\/$/, "").toLowerCase();
+  } catch {
+    return value.replace(/\/$/, "").toLowerCase();
+  }
+}
+
+/**
+ * Cherche une offre déjà enregistrée pour cet utilisateur pointant vers la même URL
+ * (après normalisation). L'URL est un identifiant fiable : évite les doublons quand
+ * la même offre arrive par plusieurs canaux (lien collé, lecture d'URL, Remotive).
+ */
+export async function findDuplicateJobByUrl(userId: string, url: string) {
+  const target = normalizeUrl(url);
+  if (!target) return null;
+  const candidates = await prisma.job.findMany({
+    where: { userId, NOT: { url: null } },
+    orderBy: { fetchedAt: "desc" },
+  });
+  return candidates.find((job) => job.url && normalizeUrl(job.url) === target) ?? null;
+}
+
 export function parseJobsCsv(csvText: string): ManualJobInput[] {
   const records = parse(csvText, {
     columns: true,
