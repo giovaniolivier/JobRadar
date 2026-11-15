@@ -214,9 +214,10 @@ export type UserSettings = {
 };
 
 /** Télécharge l’export RGPD (JSON). */
-export async function downloadDataExport(): Promise<void> {
+/** Télécharge un fichier depuis une route GET authentifiée (export, .ics…). */
+async function downloadAuthed(path: string, fallbackName: string): Promise<void> {
   const run = async () =>
-    request(`${API_URL}/settings/export`, {
+    request(`${API_URL}${path}`, {
       method: "GET",
       credentials: "include",
     });
@@ -234,7 +235,7 @@ export async function downloadDataExport(): Promise<void> {
   const blob = await res.blob();
   const disposition = res.headers.get("Content-Disposition") ?? "";
   const match = /filename="([^"]+)"/.exec(disposition);
-  const filename = match?.[1] ?? `jobradar-export-${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = match?.[1] ?? fallbackName;
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -243,6 +244,18 @@ export async function downloadDataExport(): Promise<void> {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+export function downloadDataExport(): Promise<void> {
+  return downloadAuthed(
+    "/settings/export",
+    `jobradar-export-${new Date().toISOString().slice(0, 10)}.json`
+  );
+}
+
+/** Télécharge l'évènement agenda (.ics) d'une candidature (date de relance/entretien). */
+export function downloadCalendarEvent(applicationId: string): Promise<void> {
+  return downloadAuthed(`/applications/${applicationId}/calendar.ics`, `jobradar-${applicationId}.ics`);
 }
 
 /** Upload multipart (CV) — ne force pas Content-Type JSON. */

@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { api, type Application, type ApplicationStatus, type StatusEvent } from "../lib/api";
+import {
+  api,
+  downloadCalendarEvent,
+  type Application,
+  type ApplicationStatus,
+  type StatusEvent,
+} from "../lib/api";
 import { useLocale, type MessageKey } from "../lib/i18n";
 import { CoverLetterPanel } from "./CoverLetterPanel";
 import { RedFlagList, ScoreBadge } from "./ScoreBadge";
@@ -366,9 +372,29 @@ export function ApplicationDetailPanel({
                 ))}
               </ol>
               {local.followUpAt && (
-                <p className="mono mt-2 text-[0.65rem]" style={{ color: "var(--amber)" }}>
-                  {t("app.followUp", { date: formatDate(local.followUpAt, locale) })}
-                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <p className="mono text-[0.65rem]" style={{ color: "var(--amber)" }}>
+                    {t("app.followUp", { date: formatDate(local.followUpAt, locale) })}
+                  </p>
+                  <button
+                    type="button"
+                    className="text-[0.65rem] underline underline-offset-4 disabled:opacity-60"
+                    disabled={busy === "ics"}
+                    onClick={async () => {
+                      setBusy("ics");
+                      setError(null);
+                      try {
+                        await downloadCalendarEvent(local.id);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : t("app.errorUpdate"));
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                  >
+                    {t("app.addToCalendar")}
+                  </button>
+                </div>
               )}
             </section>
 

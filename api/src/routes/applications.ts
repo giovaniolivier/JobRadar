@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { paramId } from "../lib/params.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
+import { buildEventIcs } from "../lib/ics.js";
 import {
   needsJobMetadataRepair,
   repairJobMetadataFromDescription,
@@ -205,6 +206,51 @@ applicationsRouter.get("/:id", async (req: AuthedRequest, res, next) => {
     if (!application) throw new HttpError(404, "Application not found");
     await hydrateApplicationJob(application, userId, profile);
     res.json(mapApplication(application));
+  } catch (err) {
+    next(err);
+  }
+});
+
+const STATUS_LABEL: Record<ApplicationStatus, string> = {
+  TO_APPLY: "À postuler",
+  APPLIED: "Relance",
+  INTERVIEW: "Entretien",
+  RESPONSE: "Suivi",
+};
+
+/** GET /applications/:id/calendar.ics — évènement agenda pour la date de relance/entretien. */
+applicationsRouter.get("/:id/calendar.ics", async (req: AuthedRequest, res, next) => {
+  try {
+    const userId = req.user!.userId;
+    const application = await prisma.application.findFirst({
+      where: { id: paramId(req.params.id), userId },
+      include: { job: true },
+    });
+    if (!application) throw new HttpError(404, "Application not found");
+    if (!application.followUpAt) {
+      throw new HttpError(400, "Aucune date de relance ou d'entretien définie pour cette candidature.");
+    }
+
+    const label = STATUS_LABEL[application.status];
+    const ics = buildEventIcs({
+      uid: `jobradar-${application.id}@jobradar`,
+      start: application.followUpAt,
+      durationMinutes: 30,
+      summary: `JobRadar — ${label} : ${application.job.title} (${application.job.company})`,
+      description: [
+        `${label} pour le poste ${application.job.title} chez ${application.job.company}.`,
+        application.notes ? `Notes : ${application.notes}` : "",
+        application.job.url ? `Offre : ${application.job.url}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      location: application.job.location ?? undefined,
+      url: application.job.url ?? undefined,
+    });
+
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="jobradar-${application.id}.ics"`);
+    res.send(ics);
   } catch (err) {
     next(err);
   }
