@@ -12,6 +12,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, type Job } from "../lib/api";
 import { useLocale } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
+import { useFocusTrap } from "../lib/useFocusTrap";
 import { CoverLetterPanel } from "./CoverLetterPanel";
 import { RedFlagList, ScoreBadge, ScoreDialLoading } from "./ScoreBadge";
 
@@ -117,6 +118,7 @@ function AnalyzeOfferPanel({
   const confirm = useConfirm();
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
   const [step, setStep] = useState<Step>("input");
   const [mode, setMode] = useState<InputMode>("paste");
   const [description, setDescription] = useState("");
@@ -424,6 +426,7 @@ function AnalyzeOfferPanel({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         aria-labelledby="analyze-offer-title"
         className="relative flex h-full w-full max-w-lg flex-col border-l border-(--ink) bg-(--paper) shadow-2xl"
       >

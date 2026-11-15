@@ -51,6 +51,9 @@ function LayoutShell() {
 
   return (
     <div className="min-h-dvh">
+      <a href="#main" className="skip-link label">
+        {t("nav.skipToContent")}
+      </a>
       <header className="sticky top-0 z-30 border-b border-(--ink) bg-(--paper)/95 backdrop-blur-[2px]">
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-3 px-4 py-2 sm:gap-x-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-2">
           {/* Left — wordmark compact on mobile, full on desktop */}
@@ -102,7 +105,11 @@ function LayoutShell() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-8 lg:py-10 lg:pb-10">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto max-w-6xl px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom,0px))] focus:outline-none sm:px-6 sm:py-8 lg:py-10 lg:pb-10"
+      >
         <Outlet />
       </main>
 

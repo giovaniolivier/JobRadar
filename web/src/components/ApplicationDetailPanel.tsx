@@ -9,6 +9,7 @@ import {
   type StatusEvent,
 } from "../lib/api";
 import { useLocale, type MessageKey } from "../lib/i18n";
+import { useFocusTrap } from "../lib/useFocusTrap";
 import { CoverLetterPanel } from "./CoverLetterPanel";
 import { RedFlagList, ScoreBadge } from "./ScoreBadge";
 
@@ -134,6 +135,8 @@ export function ApplicationDetailPanel({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const saveTimer = useRef<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open && Boolean(local));
 
   useEffect(() => {
     if (!open || !app) return;
@@ -292,10 +295,12 @@ export function ApplicationDetailPanel({
           onClick={onClose}
         />
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
+          tabIndex={-1}
           aria-labelledby="app-detail-title"
-          className="absolute inset-0 left-auto flex w-full max-w-lg flex-col border-l border-(--ink) bg-(--paper) shadow-2xl"
+          className="absolute inset-0 left-auto flex w-full max-w-lg flex-col border-l border-(--ink) bg-(--paper) shadow-2xl focus:outline-none"
         >
           <header className="shrink-0 border-b border-(--hairline) px-4 py-3">
             <div className="flex items-start justify-between gap-2">
