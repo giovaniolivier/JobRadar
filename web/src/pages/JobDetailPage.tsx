@@ -65,15 +65,15 @@ export function JobDetailPage() {
 
   return (
     <div className="fade-in max-w-3xl">
-      <Link to="/dashboard" className="label hover:text-[var(--ink)]">
+      <Link to="/dashboard" className="label hover:text-(--ink)">
         {t("job.back")}
       </Link>
 
-      <div className="mt-5 flex items-start gap-4 border-b border-[var(--ink)] pb-6">
+      <div className="mt-5 flex items-start gap-4 border-b border-(--ink) pb-6">
         <ScoreBadge score={job.analysis?.relevanceScore} size={56} />
         <div>
           <h1 className="text-3xl leading-tight sm:text-4xl">{job.title}</h1>
-          <p className="mt-2 text-[var(--ink-soft)]">
+          <p className="mt-2 text-(--ink-soft)">
             {job.company}
             {job.location ? ` · ${job.location}` : ""}
           </p>
@@ -113,7 +113,7 @@ export function JobDetailPage() {
         <section className="panel mt-6">
           <p className="label">{t("job.analysisEyebrow")}</p>
           <h2 className="mt-1 text-xl">{t("job.analysisTitle")}</h2>
-          <p className="mt-3 leading-relaxed text-[var(--ink)]/90">{job.analysis.summary}</p>
+          <p className="mt-3 leading-relaxed text-(--ink)/90">{job.analysis.summary}</p>
           {(job.analysis.strengths?.length || job.analysis.gaps?.length) && (
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
@@ -139,7 +139,7 @@ export function JobDetailPage() {
             </div>
           )}
           <RedFlagList flags={job.analysis.redFlags} />
-          <dl className="mt-5 grid gap-4 border-t border-[var(--hairline)] pt-4 sm:grid-cols-3">
+          <dl className="mt-5 grid gap-4 border-t border-(--hairline) pt-4 sm:grid-cols-3">
             <div>
               <dt className="label">{t("job.salary")}</dt>
               <dd className="mono mt-1 text-sm">{job.analysis.extractedSalary ?? "—"}</dd>
@@ -160,13 +160,13 @@ export function JobDetailPage() {
         <section className="panel">
           <p className="label">{t("job.draft")}</p>
           <h2 className="mt-1 text-xl">{t("job.letterTitle")}</h2>
-          <pre className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed text-[var(--ink)]/90">
+          <pre className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-(--font-body) text-sm leading-relaxed text-(--ink)/90">
             {coverLetter.slice(0, 400)}
             {coverLetter.length > 400 ? "…" : ""}
           </pre>
           <button
             type="button"
-            className="btn btn-ghost mt-3 !text-xs"
+            className="btn btn-ghost mt-3 text-xs!"
             onClick={() => setLetterOpen(true)}
           >
             {t("job.openEditor")}
@@ -177,7 +177,7 @@ export function JobDetailPage() {
       <section className="panel">
         <p className="label">{t("job.source")}</p>
         <h2 className="mt-1 text-xl">{t("job.description")}</h2>
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink)]/85">
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-(--ink)/85">
           {job.description}
         </p>
       </section>

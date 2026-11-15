@@ -173,12 +173,12 @@ export function NotificationsMenu() {
   }
 
   const header = (
-    <div className="flex items-center justify-between gap-2 border-b border-[var(--hairline)] px-4 py-3 lg:px-3 lg:py-2.5">
+    <div className="flex items-center justify-between gap-2 border-b border-(--hairline) px-4 py-3 lg:px-3 lg:py-2.5">
       <p className="label">{t("nav.notifications")}</p>
       {unread > 0 && (
         <button
           type="button"
-          className="text-xs text-[var(--ink)]/70 underline underline-offset-4 hover:text-[var(--ink)]"
+          className="text-xs text-(--ink)/70 underline underline-offset-4 hover:text-(--ink)"
           onClick={markAllSeen}
         >
           {t("nav.notificationsMarkAll")}
@@ -189,7 +189,7 @@ export function NotificationsMenu() {
 
   const list: ReactNode =
     preview.length === 0 ? (
-      <p className="px-4 py-5 text-sm text-[var(--ink)]/75 lg:px-3">
+      <p className="px-4 py-5 text-sm text-(--ink)/75 lg:px-3">
         {t("nav.notificationsEmpty")}
       </p>
     ) : (
@@ -197,13 +197,13 @@ export function NotificationsMenu() {
         {preview.map((item) => {
           const isUnread = !seen.has(item.id);
           return (
-            <li key={item.id} className="border-b border-[var(--hairline)] last:border-0">
+            <li key={item.id} className="border-b border-(--hairline) last:border-0">
               <button
                 type="button"
                 role="menuitem"
                 disabled={busyId === item.id}
-                className={`flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--row-hover)] lg:px-3 lg:py-3 ${
-                  isUnread ? "bg-[var(--row-hover)]/60" : ""
+                className={`flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-(--row-hover) lg:px-3 lg:py-3 ${
+                  isUnread ? "bg-(--row-hover)/60" : ""
                 }`}
                 onClick={() => void handleItemClick(item)}
               >
@@ -216,22 +216,22 @@ export function NotificationsMenu() {
                   <span className="flex items-start justify-between gap-2">
                     <span
                       className={`text-sm leading-snug ${
-                        isUnread ? "font-medium text-[var(--ink)]" : "text-[var(--ink)]/90"
+                        isUnread ? "font-medium text-(--ink)" : "text-(--ink)/90"
                       }`}
                     >
                       {item.title}
                     </span>
                     {isUnread && (
                       <span
-                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--amber)]"
+                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-(--amber)"
                         aria-label={t("nav.notificationsUnreadDot")}
                       />
                     )}
                   </span>
                   {item.body && (
-                    <span className="mt-0.5 block text-xs text-[var(--ink)]/70">{item.body}</span>
+                    <span className="mt-0.5 block text-xs text-(--ink)/70">{item.body}</span>
                   )}
-                  <span className="mono mt-1.5 block text-[0.65rem] text-[var(--ink)]/70">
+                  <span className="mono mt-1.5 block text-[0.65rem] text-(--ink)/70">
                     {relativeTime(item.createdAt, locale, t("common.justNow"))}
                   </span>
                 </span>
@@ -243,11 +243,11 @@ export function NotificationsMenu() {
     );
 
   const footer = (
-    <div className="border-t border-[var(--hairline)] px-4 py-3 lg:px-3 lg:py-2">
+    <div className="border-t border-(--hairline) px-4 py-3 lg:px-3 lg:py-2">
       <Link
         to="/settings#notifications"
         role="menuitem"
-        className="text-xs text-[var(--ink)]/70 underline underline-offset-4 hover:text-[var(--ink)]"
+        className="text-xs text-(--ink)/70 underline underline-offset-4 hover:text-(--ink)"
         onClick={() => setOpen(false)}
       >
         {t("nav.notificationsSettings")}
@@ -260,7 +260,7 @@ export function NotificationsMenu() {
       <button
         ref={triggerRef}
         type="button"
-        className="relative inline-flex h-11 w-11 items-center justify-center border border-[var(--ink)] bg-transparent text-[var(--ink)] transition-colors hover:bg-[var(--ghost-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)] lg:h-9 lg:w-9"
+        className="relative inline-flex h-11 w-11 items-center justify-center border border-(--ink) bg-transparent text-(--ink) transition-colors hover:bg-(--ghost-hover) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--amber) lg:h-9 lg:w-9"
         aria-expanded={open}
         aria-controls={panelId}
         aria-haspopup="menu"
@@ -271,7 +271,7 @@ export function NotificationsMenu() {
       >
         <BellIcon />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--brick)] px-1 text-[0.65rem] font-semibold text-[var(--paper-lift)]">
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--brick) px-1 text-[0.65rem] font-semibold text-(--paper-lift)">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -284,7 +284,7 @@ export function NotificationsMenu() {
             <div className="fixed inset-0 z-[60] lg:hidden" role="presentation" data-notif-panel>
               <button
                 type="button"
-                className="absolute inset-0 bg-[var(--paper-deep)]/70"
+                className="absolute inset-0 bg-(--paper-deep)/70"
                 aria-label={t("nav.closeMenu")}
                 onClick={() => setOpen(false)}
               />
@@ -292,11 +292,11 @@ export function NotificationsMenu() {
                 id={panelId}
                 role="menu"
                 aria-label={t("nav.notifications")}
-                className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
+                className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col border-t border-(--ink) bg-(--paper-lift) shadow-lg"
                 style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
               >
                 <div
-                  className="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--hairline)]"
+                  className="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-(--hairline)"
                   aria-hidden
                 />
                 {header}
@@ -310,7 +310,7 @@ export function NotificationsMenu() {
               data-notif-panel
               role="menu"
               aria-label={t("nav.notifications")}
-              className="fixed z-[60] hidden w-[min(100vw-2rem,22rem)] border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg lg:block"
+              className="fixed z-[60] hidden w-[min(100vw-2rem,22rem)] border border-(--ink) bg-(--paper-lift) shadow-lg lg:block"
               style={(() => {
                 const rect = triggerRef.current?.getBoundingClientRect();
                 if (!rect) return { top: 0, right: 16 };

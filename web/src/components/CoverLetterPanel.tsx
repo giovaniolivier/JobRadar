@@ -57,8 +57,8 @@ function Segmented<T extends string>({
             onClick={() => onChange(opt.id)}
             className={
               on
-                ? "inline-flex items-center border border-[var(--amber)] bg-[var(--amber)] px-3 py-1.5 text-sm font-medium text-[var(--amber-fg)] disabled:opacity-50"
-                : "inline-flex items-center border border-[var(--hairline)] bg-transparent px-3 py-1.5 text-sm text-[var(--ink-soft)] hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-50"
+                ? "inline-flex items-center border border-(--amber) bg-(--amber) px-3 py-1.5 text-sm font-medium text-(--amber-fg) disabled:opacity-50"
+                : "inline-flex items-center border border-(--hairline) bg-transparent px-3 py-1.5 text-sm text-(--ink-soft) hover:border-(--ink) hover:text-(--ink) disabled:opacity-50"
             }
           >
             {opt.label}
@@ -275,7 +275,7 @@ export function CoverLetterPanel({
     <div className="fixed inset-0 z-[60] overflow-hidden">
       <button
         type="button"
-        className="absolute inset-0 bg-[var(--ink)]/40"
+        className="absolute inset-0 bg-(--ink)/40"
         aria-label={t("letter.close")}
         onClick={onClose}
       />
@@ -283,20 +283,20 @@ export function CoverLetterPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby="letter-panel-title"
-        className="absolute inset-0 left-auto flex w-full max-w-2xl flex-col border-l border-[var(--ink)] bg-[var(--paper)] shadow-2xl"
+        className="absolute inset-0 left-auto flex w-full max-w-2xl flex-col border-l border-(--ink) bg-(--paper) shadow-2xl"
       >
-        <header className="shrink-0 border-b border-[var(--hairline)] px-4 py-3">
+        <header className="shrink-0 border-b border-(--hairline) px-4 py-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="label">{t("letter.eyebrow")}</p>
               <h2 id="letter-panel-title" className="mt-0.5 text-lg leading-snug sm:text-xl">
                 <span className="line-clamp-2">
                   {job.title}
-                  <span className="text-[var(--ink-soft)]"> — {job.company}</span>
+                  <span className="text-(--ink-soft)"> — {job.company}</span>
                 </span>
               </h2>
             </div>
-            <button type="button" className="btn btn-ghost !px-2 !py-1 !text-xs" onClick={onClose}>
+            <button type="button" className="btn btn-ghost px-2! py-1! text-xs!" onClick={onClose}>
               {t("letter.close")}
             </button>
           </div>
@@ -304,19 +304,19 @@ export function CoverLetterPanel({
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           {!hasCvState ? (
-            <div className="border border-dashed border-[var(--ink)] px-5 py-8">
-              <p className="text-lg text-[var(--ink)]">{t("letter.needCv")}</p>
-              <p className="mt-2 text-sm text-[var(--ink-soft)]">{t("letter.needCvBody")}</p>
+            <div className="border border-dashed border-(--ink) px-5 py-8">
+              <p className="text-lg text-(--ink)">{t("letter.needCv")}</p>
+              <p className="mt-2 text-sm text-(--ink-soft)">{t("letter.needCvBody")}</p>
               <Link to="/profile" className="btn btn-amber mt-5 inline-flex" onClick={onClose}>
                 {t("letter.goProfile")}
               </Link>
             </div>
           ) : (
             <>
-              <section className="space-y-4 border-b border-[var(--hairline)] pb-5">
+              <section className="space-y-4 border-b border-(--hairline) pb-5">
                 <div>
                   <p className="label">{t("letter.settings")}</p>
-                  <p className="mt-1 text-sm text-[var(--ink-soft)]">{t("letter.settingsHint")}</p>
+                  <p className="mt-1 text-sm text-(--ink-soft)">{t("letter.settingsHint")}</p>
                 </div>
                 <div>
                   <span className="label mb-1.5 block">{t("letter.tone")}</span>
@@ -361,11 +361,11 @@ export function CoverLetterPanel({
               </section>
 
               {busy === "generate" && (
-                <div className="mt-5 border border-[var(--hairline)] px-4 py-5">
+                <div className="mt-5 border border-(--hairline) px-4 py-5">
                   <p className="label">{t("letter.loadingLabel")}</p>
-                  <p className="mt-2 text-[var(--ink)]">{t(LOADING_KEYS[loadingStep]!)}</p>
-                  <div className="mt-4 h-1 overflow-hidden bg-[var(--paper-deep)]">
-                    <div className="analyze-progress h-full bg-[var(--amber)]" />
+                  <p className="mt-2 text-(--ink)">{t(LOADING_KEYS[loadingStep]!)}</p>
+                  <div className="mt-4 h-1 overflow-hidden bg-(--paper-deep)">
+                    <div className="analyze-progress h-full bg-(--amber)" />
                   </div>
                 </div>
               )}
@@ -378,7 +378,7 @@ export function CoverLetterPanel({
                   {hasCvState && (
                     <button
                       type="button"
-                      className="btn btn-ghost !py-1.5 !text-sm"
+                      className="btn btn-ghost py-1.5! text-sm!"
                       disabled={!!busy}
                       onClick={() => void generate()}
                     >
@@ -394,12 +394,12 @@ export function CoverLetterPanel({
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="label">{t("letter.result")}</p>
                       {demo && (
-                        <span className="mono text-[0.65rem] tracking-wide text-[var(--ink-soft)]">
+                        <span className="mono text-[0.65rem] tracking-wide text-(--ink-soft)">
                           {t("letter.demo")}
                         </span>
                       )}
                     </div>
-                    <p className="mono text-xs text-[var(--ink-soft)]">
+                    <p className="mono text-xs text-(--ink-soft)">
                       {words === 1
                         ? t("letter.wordCount", { words, chars })
                         : t("letter.wordCountPlural", { words, chars })}
@@ -407,7 +407,7 @@ export function CoverLetterPanel({
                   </div>
                   <textarea
                     ref={textareaRef}
-                    className="field min-h-[16rem] font-[var(--font-body)] text-sm leading-relaxed"
+                    className="field min-h-[16rem] font-(--font-body) text-sm leading-relaxed"
                     value={letter}
                     onChange={(e) => {
                       setLetter(e.target.value);
@@ -415,7 +415,7 @@ export function CoverLetterPanel({
                     }}
                     aria-label={t("letter.editableAria")}
                   />
-                  <p className="text-xs text-[var(--ink-soft)]">
+                  <p className="text-xs text-(--ink-soft)">
                     {t("letter.fromProfile", { strengths: strengthsSuffix })}
                   </p>
                 </section>
@@ -425,12 +425,12 @@ export function CoverLetterPanel({
         </div>
 
         {hasCvState && hasLetter && busy !== "generate" && (
-          <footer className="shrink-0 space-y-2 border-t border-[var(--hairline)] px-4 py-3">
-            <p className="text-xs text-[var(--ink-soft)]">{t("letter.disclaimer")}</p>
+          <footer className="shrink-0 space-y-2 border-t border-(--hairline) px-4 py-3">
+            <p className="text-xs text-(--ink-soft)">{t("letter.disclaimer")}</p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="btn btn-amber flex-1 !py-2"
+                className="btn btn-amber flex-1 py-2!"
                 disabled={!!busy}
                 onClick={() => void copyLetter()}
               >
@@ -438,7 +438,7 @@ export function CoverLetterPanel({
               </button>
               <button
                 type="button"
-                className="btn btn-ghost flex-1 !py-2"
+                className="btn btn-ghost flex-1 py-2!"
                 disabled={!!busy}
                 onClick={downloadLetter}
               >
@@ -448,7 +448,7 @@ export function CoverLetterPanel({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="btn btn-ghost flex-1 !py-2"
+                className="btn btn-ghost flex-1 py-2!"
                 disabled={!!busy}
                 onClick={() => void generate()}
               >
@@ -456,7 +456,7 @@ export function CoverLetterPanel({
               </button>
               <button
                 type="button"
-                className="btn btn-ghost flex-1 !py-2"
+                className="btn btn-ghost flex-1 py-2!"
                 disabled={!!busy || (!dirty && savedSnapshot === letter)}
                 onClick={() => void saveToApplication()}
               >

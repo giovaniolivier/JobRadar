@@ -388,7 +388,7 @@ function AnalyzeOfferPanel({
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
-        className="absolute inset-0 bg-[var(--ink)]/40"
+        className="absolute inset-0 bg-(--ink)/40"
         aria-label={t("analyze.close")}
         disabled={step === "loading"}
         onClick={() => step !== "loading" && requestClose()}
@@ -398,9 +398,9 @@ function AnalyzeOfferPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby="analyze-offer-title"
-        className="relative flex h-full w-full max-w-lg flex-col border-l border-[var(--ink)] bg-[var(--paper)] shadow-2xl"
+        className="relative flex h-full w-full max-w-lg flex-col border-l border-(--ink) bg-(--paper) shadow-2xl"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-[var(--hairline)] px-5 py-4">
+        <header className="flex items-start justify-between gap-3 border-b border-(--hairline) px-5 py-4">
           <div>
             <p className="label">{t("analyze.action")}</p>
             <h2 id="analyze-offer-title" className="mt-1 text-xl sm:text-2xl">
@@ -418,7 +418,7 @@ function AnalyzeOfferPanel({
           {step !== "loading" && (
             <button
               type="button"
-              className="btn btn-ghost !px-2 !py-1 !text-xs"
+              className="btn btn-ghost px-2! py-1! text-xs!"
               onClick={requestClose}
             >
               {t("analyze.close")}
@@ -462,12 +462,12 @@ function AnalyzeOfferPanel({
                   {loadingMsg}
                 </p>
                 {stillWaiting && (
-                  <p className="mt-3 text-sm text-[var(--ink-soft)]">{t("analyze.stillWaiting")}</p>
+                  <p className="mt-3 text-sm text-(--ink-soft)">{t("analyze.stillWaiting")}</p>
                 )}
               </div>
               <button
                 type="button"
-                className="text-xs text-[var(--ink-soft)] underline underline-offset-4"
+                className="text-xs text-(--ink-soft) underline underline-offset-4"
                 onClick={cancelAnalysis}
               >
                 {t("analyze.cancelAnalysis")}
@@ -485,7 +485,7 @@ function AnalyzeOfferPanel({
               </button>
               <button
                 type="button"
-                className="text-sm text-[var(--ink-soft)] underline underline-offset-4"
+                className="text-sm text-(--ink-soft) underline underline-offset-4"
                 onClick={() => {
                   setError(null);
                   setStep("input");
@@ -510,7 +510,7 @@ function AnalyzeOfferPanel({
           )}
           {step === "result" && result && !result.analysis && (
             <div className="space-y-3">
-              <p className="text-sm text-[var(--ink-soft)]">{t("analyze.noAnalysis")}</p>
+              <p className="text-sm text-(--ink-soft)">{t("analyze.noAnalysis")}</p>
               <button
                 type="button"
                 className="btn btn-amber"
@@ -529,10 +529,10 @@ function AnalyzeOfferPanel({
         </div>
 
         {step === "input" && (
-          <footer className="flex items-center justify-between gap-3 border-t border-[var(--hairline)] px-5 py-4">
+          <footer className="flex items-center justify-between gap-3 border-t border-(--hairline) px-5 py-4">
             <button
               type="button"
-              className="text-sm text-[var(--ink-soft)] underline underline-offset-4"
+              className="text-sm text-(--ink-soft) underline underline-offset-4"
               onClick={requestClose}
             >
               {t("analyze.cancel")}
@@ -621,7 +621,7 @@ function InputStep({
             type="button"
             role="tab"
             aria-selected={mode === id}
-            className={`btn !py-1.5 !text-xs ${mode === id ? "btn-amber" : "btn-ghost"}`}
+            className={`btn py-1.5! text-xs! ${mode === id ? "btn-amber" : "btn-ghost"}`}
             onClick={() => setMode(id)}
           >
             {label}
@@ -653,7 +653,7 @@ function InputStep({
             />
           </label>
           <div className="mt-1.5 flex items-start justify-between gap-3">
-            <span className="text-xs text-[var(--ink-soft)]">{t("analyze.textHint")}</span>
+            <span className="text-xs text-(--ink-soft)">{t("analyze.textHint")}</span>
             <span
               className="mono shrink-0 text-[0.7rem] tabular-nums"
               style={{ color: enough ? "var(--match)" : "var(--ink-soft)" }}
@@ -679,10 +679,10 @@ function InputStep({
               autoFocus
             />
           </label>
-          <p className="mt-1.5 text-xs text-[var(--ink-soft)]">{t("analyze.urlHint")}</p>
+          <p className="mt-1.5 text-xs text-(--ink-soft)">{t("analyze.urlHint")}</p>
           <button
             type="button"
-            className="mt-2 text-sm underline decoration-[var(--amber)] underline-offset-4"
+            className="mt-2 text-sm underline decoration-(--amber) underline-offset-4"
             onClick={onSwitchToPaste}
           >
             {t("analyze.modePaste")} →
@@ -695,7 +695,7 @@ function InputStep({
           <span className="label mb-1.5 block">{t("analyze.fileLabel")}</span>
           <label
             className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed px-4 py-8 text-center transition-colors ${
-              dragging ? "border-[var(--amber)] bg-[var(--row-hover)]" : "border-[var(--hairline)]"
+              dragging ? "border-(--amber) bg-(--row-hover)" : "border-(--hairline)"
             }`}
             onDragEnter={(e) => {
               e.preventDefault();
@@ -719,15 +719,15 @@ function InputStep({
               onChange={(e) => void onFileChange(e.target.files?.[0] ?? null)}
             />
             <span className="text-sm font-medium">{t("analyze.fileDrop")}</span>
-            <span className="text-xs text-[var(--ink-soft)]">{t("analyze.fileFormats")}</span>
+            <span className="text-xs text-(--ink-soft)">{t("analyze.fileFormats")}</span>
             {fileName && (
-              <span className="mt-1 mono text-xs text-[var(--ink)]">
+              <span className="mt-1 mono text-xs text-(--ink)">
                 {t("analyze.fileSelected", { name: fileName })}
               </span>
             )}
           </label>
           {description.trim().length > 0 && mode === "file" && (
-            <p className="mt-2 text-xs text-[var(--ink-soft)]">
+            <p className="mt-2 text-xs text-(--ink-soft)">
               {t("analyze.fileLoaded", { n: description.trim().length })}
             </p>
           )}
@@ -735,7 +735,7 @@ function InputStep({
       )}
 
       <details
-        className="border border-[var(--hairline)] px-3 py-2"
+        className="border border-(--hairline) px-3 py-2"
         open={optionalOpen}
         onToggle={(e) => setOptionalOpen(e.currentTarget.open)}
       >
@@ -761,13 +761,13 @@ function InputStep({
               />
             </label>
           )}
-          <p className="text-xs text-[var(--ink-soft)]">{t("analyze.optionalHint")}</p>
+          <p className="text-xs text-(--ink-soft)">{t("analyze.optionalHint")}</p>
         </div>
       </details>
 
       {error && (
         <div
-          className="border border-[var(--brick)]/40 px-3 py-3 text-sm"
+          className="border border-(--brick)/40 px-3 py-3 text-sm"
           style={{ color: "var(--brick)" }}
           role="alert"
         >
@@ -775,7 +775,7 @@ function InputStep({
           {needsCv && (
             <Link
               to="/onboarding"
-              className="mt-2 inline-block underline decoration-[var(--amber)] underline-offset-4"
+              className="mt-2 inline-block underline decoration-(--amber) underline-offset-4"
             >
               {t("analyze.importCv")}
             </Link>
@@ -813,18 +813,18 @@ function ResultStep({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-4 border-b border-[var(--hairline)] pb-5">
+      <div className="flex items-start gap-4 border-b border-(--hairline) pb-5">
         <ScoreBadge score={a.relevanceScore} size={80} />
         <div className="min-w-0 pt-1">
           <h3 className="text-xl leading-snug sm:text-2xl">{job.title}</h3>
-          <p className="mt-1 text-sm text-[var(--ink-soft)]">{job.company}</p>
-          <p className="mono mt-2 text-xs text-[var(--ink-soft)]">
+          <p className="mt-1 text-sm text-(--ink-soft)">{job.company}</p>
+          <p className="mono mt-2 text-xs text-(--ink-soft)">
             {t("analyze.scoreLabel", { n: a.relevanceScore })}
           </p>
         </div>
       </div>
 
-      <blockquote className="border-l-2 border-[var(--amber)] pl-4 text-[0.95rem] leading-relaxed text-[var(--ink)]/90 italic">
+      <blockquote className="border-l-2 border-(--amber) pl-4 text-[0.95rem] leading-relaxed text-(--ink)/90 italic">
         {a.summary}
       </blockquote>
 
@@ -849,7 +849,7 @@ function ResultStep({
             {strengths.length ? (
               strengths.slice(0, 3).map((s) => <li key={s}>• {s}</li>)
             ) : (
-              <li className="text-[var(--ink-soft)]">{t("analyze.noStrengths")}</li>
+              <li className="text-(--ink-soft)">{t("analyze.noStrengths")}</li>
             )}
           </ul>
         </div>
@@ -861,7 +861,7 @@ function ResultStep({
             {gaps.length ? (
               gaps.slice(0, 3).map((g) => <li key={g}>• {g}</li>)
             ) : (
-              <li className="text-[var(--ink-soft)]">{t("analyze.noGaps")}</li>
+              <li className="text-(--ink-soft)">{t("analyze.noGaps")}</li>
             )}
           </ul>
         </div>
@@ -885,7 +885,7 @@ function ResultStep({
         </p>
       )}
 
-      <div className="flex flex-col gap-2 border-t border-[var(--hairline)] pt-4">
+      <div className="flex flex-col gap-2 border-t border-(--hairline) pt-4">
         {alreadyInPipeline ? (
           <p className="label text-center" style={{ color: "var(--match)" }}>
             {t("analyze.inPipeline")}
@@ -911,7 +911,7 @@ function ResultStep({
         {!alreadyInPipeline && (
           <button
             type="button"
-            className="mt-1 text-center text-sm text-[var(--ink-soft)] underline underline-offset-4"
+            className="mt-1 text-center text-sm text-(--ink-soft) underline underline-offset-4"
             disabled={!!busyAction}
             onClick={onIgnore}
           >

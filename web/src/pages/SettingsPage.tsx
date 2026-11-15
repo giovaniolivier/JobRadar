@@ -71,15 +71,15 @@ function Toggle({
         aria-hidden
         className={
           checked
-            ? "flex h-7 w-12 items-center justify-end border-2 border-[var(--amber-ui)] bg-[var(--amber-ui)] px-0.5"
-            : "flex h-7 w-12 items-center justify-start border-2 border-[var(--hairline)] bg-[var(--paper-deep)] px-0.5"
+            ? "flex h-7 w-12 items-center justify-end border-2 border-(--amber-ui) bg-(--amber-ui) px-0.5"
+            : "flex h-7 w-12 items-center justify-start border-2 border-(--hairline) bg-(--paper-deep) px-0.5"
         }
       >
         <span
           className={
             checked
-              ? "block h-[1.15rem] w-[1.15rem] bg-[var(--paper-lift)]"
-              : "block h-[1.15rem] w-[1.15rem] bg-[var(--ink)]/55"
+              ? "block h-[1.15rem] w-[1.15rem] bg-(--paper-lift)"
+              : "block h-[1.15rem] w-[1.15rem] bg-(--ink)/55"
           }
         />
       </span>
@@ -110,8 +110,8 @@ function Segmented<T extends string>({
             onClick={() => onChange(opt.id)}
             className={
               on
-                ? "inline-flex min-h-11 items-center border border-[var(--amber)] bg-[var(--amber)] px-3 py-2 text-sm font-medium text-[var(--amber-fg)]"
-                : "inline-flex min-h-11 items-center border border-[var(--hairline)] bg-transparent px-3 py-2 text-sm text-[var(--ink)]/75 hover:border-[var(--ink)] hover:text-[var(--ink)]"
+                ? "inline-flex min-h-11 items-center border border-(--amber) bg-(--amber) px-3 py-2 text-sm font-medium text-(--amber-fg)"
+                : "inline-flex min-h-11 items-center border border-(--hairline) bg-transparent px-3 py-2 text-sm text-(--ink)/75 hover:border-(--ink) hover:text-(--ink)"
             }
           >
             {opt.label}
@@ -134,9 +134,9 @@ function SettingRow({
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <div className="min-w-0">
-        <p className="font-medium text-[var(--ink)]">{title}</p>
+        <p className="font-medium text-(--ink)">{title}</p>
         {description && (
-          <p className="mt-0.5 text-sm text-[var(--ink)]/75">{description}</p>
+          <p className="mt-0.5 text-sm text-(--ink)/75">{description}</p>
         )}
       </div>
       <div className="shrink-0">{control}</div>
@@ -299,10 +299,10 @@ export function SettingsPage() {
 
   return (
     <div className="fade-in max-w-2xl pb-16">
-      <header className="border-b border-[var(--hairline)] pb-4">
+      <header className="border-b border-(--hairline) pb-4">
         <p className="label">{t("settings.eyebrow")}</p>
         <h1 className="mt-1 text-3xl sm:text-4xl">{t("settings.title")}</h1>
-        <p className="mt-2 max-w-xl text-[var(--ink)]/75">{t("settings.subtitle")}</p>
+        <p className="mt-2 max-w-xl text-(--ink)/75">{t("settings.subtitle")}</p>
         {savedHint && (
           <p className="mono mt-3 text-sm" style={{ color: "var(--match)" }} role="status">
             {savedHint}
@@ -317,7 +317,7 @@ export function SettingsPage() {
 
       {/* Onglets mobile — une section à la fois */}
       <div
-        className="sticky top-[3.25rem] z-20 -mx-4 flex gap-1 overflow-x-auto border-b border-[var(--hairline)] bg-[var(--paper)]/95 px-4 py-2 backdrop-blur-[2px] lg:hidden"
+        className="sticky top-[3.25rem] z-20 -mx-4 flex gap-1 overflow-x-auto border-b border-(--hairline) bg-(--paper)/95 px-4 py-2 backdrop-blur-[2px] lg:hidden"
         role="tablist"
         aria-label={t("settings.title")}
       >
@@ -331,8 +331,8 @@ export function SettingsPage() {
               aria-selected={active}
               className={`min-h-10 shrink-0 whitespace-nowrap px-3 py-2 text-center text-[0.7rem] font-medium tracking-wide transition-colors ${
                 active
-                  ? "border border-[var(--amber)] text-[var(--amber)]"
-                  : "border border-[var(--hairline)] text-[var(--ink)]/70"
+                  ? "border border-(--amber) text-(--amber)"
+                  : "border border-(--hairline) text-(--ink)/70"
               }`}
               onClick={() => setSettingsTab(s.id)}
             >
@@ -346,12 +346,12 @@ export function SettingsPage() {
       <section
         id="notifications"
         role="tabpanel"
-        className={`${tabPanelClass("notifications")} space-y-1 border-b border-[var(--hairline)] pb-8 lg:pb-10`}
+        className={`${tabPanelClass("notifications")} space-y-1 border-b border-(--hairline) pb-8 lg:pb-10`}
       >
         <h2 className="text-xl">{t("settings.notifications")}</h2>
-        <p className="text-sm text-[var(--ink)]/75">{t("settings.notificationsHint")}</p>
+        <p className="text-sm text-(--ink)/75">{t("settings.notificationsHint")}</p>
 
-        <div className="mt-4 divide-y divide-[var(--hairline)] border-y border-[var(--hairline)]">
+        <div className="mt-4 divide-y divide-(--hairline) border-y border-(--hairline)">
           <SettingRow
             title={t("settings.email")}
             description={t("settings.emailHint")}
@@ -377,7 +377,7 @@ export function SettingsPage() {
         </div>
 
         <p className="label mt-6">{t("settings.events")}</p>
-        <div className="mt-2 divide-y divide-[var(--hairline)] border-y border-[var(--hairline)]">
+        <div className="mt-2 divide-y divide-(--hairline) border-y border-(--hairline)">
           <SettingRow
             title={t("settings.highScore")}
             description={t("settings.highScoreHint")}
@@ -442,10 +442,10 @@ export function SettingsPage() {
 
       <section
         role="tabpanel"
-        className={`${tabPanelClass("appearance")} space-y-3 border-b border-[var(--hairline)] pb-10`}
+        className={`${tabPanelClass("appearance")} space-y-3 border-b border-(--hairline) pb-10`}
       >
         <h2 className="text-xl">{t("settings.appearance")}</h2>
-        <p className="text-sm text-[var(--ink)]/75">{t("settings.appearanceHint")}</p>
+        <p className="text-sm text-(--ink)/75">{t("settings.appearanceHint")}</p>
         <Segmented
           ariaLabel={t("settings.theme")}
           value={settings.theme}
@@ -456,11 +456,11 @@ export function SettingsPage() {
 
       <section
         role="tabpanel"
-        className={`${tabPanelClass("locale")} space-y-5 border-b border-[var(--hairline)] pb-10`}
+        className={`${tabPanelClass("locale")} space-y-5 border-b border-(--hairline) pb-10`}
       >
         <div>
           <h2 className="text-xl">{t("settings.localeRegion")}</h2>
-          <p className="mt-1 text-sm text-[var(--ink)]/75">{t("settings.localeRegionHint")}</p>
+          <p className="mt-1 text-sm text-(--ink)/75">{t("settings.localeRegionHint")}</p>
         </div>
         <div>
           <span className="label mb-1.5 block">{t("settings.uiLanguage")}</span>
@@ -493,11 +493,11 @@ export function SettingsPage() {
 
       <section
         role="tabpanel"
-        className={`${tabPanelClass("privacy")} space-y-6 border-b border-[var(--hairline)] pb-10`}
+        className={`${tabPanelClass("privacy")} space-y-6 border-b border-(--hairline) pb-10`}
       >
         <div>
           <h2 className="text-xl">{t("settings.privacy")}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--ink)]/75">
+          <p className="mt-2 text-sm leading-relaxed text-(--ink)/75">
             {t("settings.privacyBody")}
           </p>
         </div>
@@ -512,12 +512,12 @@ export function SettingsPage() {
           </button>
           <Link
             to="/legal/privacy"
-            className="text-sm underline decoration-[var(--amber)] underline-offset-4"
+            className="text-sm underline decoration-(--amber) underline-offset-4"
           >
             {t("settings.privacyPolicy")}
           </Link>
         </div>
-        <p className="text-xs text-[var(--ink)]/70">{t("settings.exportHint")}</p>
+        <p className="text-xs text-(--ink)/70">{t("settings.exportHint")}</p>
 
         <DeleteAccountPanel hasPassword={hasPassword} onError={setError} />
       </section>
@@ -525,20 +525,20 @@ export function SettingsPage() {
       <section role="tabpanel" className={`${tabPanelClass("integrations")} space-y-4`}>
         <div>
           <h2 className="text-xl">{t("settings.integrations")}</h2>
-          <p className="mt-1 text-sm text-[var(--ink)]/75">{t("settings.integrationsHint")}</p>
+          <p className="mt-1 text-sm text-(--ink)/75">{t("settings.integrationsHint")}</p>
         </div>
         <div className="space-y-3 opacity-70">
-          <div className="flex flex-col gap-2 border border-[var(--hairline)] px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="flex flex-col gap-2 border border-(--hairline) px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div>
               <p className="font-medium">{t("settings.browserExt")}</p>
-              <p className="mt-0.5 text-sm text-[var(--ink)]/75">{t("settings.browserExtHint")}</p>
+              <p className="mt-0.5 text-sm text-(--ink)/75">{t("settings.browserExtHint")}</p>
             </div>
             <span className="label shrink-0">{t("settings.soon")}</span>
           </div>
-          <div className="flex flex-col gap-2 border border-[var(--hairline)] px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="flex flex-col gap-2 border border-(--hairline) px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div>
               <p className="font-medium">{t("settings.calendar")}</p>
-              <p className="mt-0.5 text-sm text-[var(--ink)]/75">{t("settings.calendarHint")}</p>
+              <p className="mt-0.5 text-sm text-(--ink)/75">{t("settings.calendarHint")}</p>
             </div>
             <span className="label shrink-0">{t("settings.soon")}</span>
           </div>

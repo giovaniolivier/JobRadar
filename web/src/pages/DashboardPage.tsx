@@ -78,19 +78,19 @@ export function DashboardPage() {
   return (
     <div className="fade-in space-y-10">
       {showCvBanner && (
-        <div className="flex items-start gap-3 border border-[var(--amber)]/50 bg-[var(--row-hover)] px-4 py-3 sm:px-5">
-          <p className="min-w-0 flex-1 text-sm text-[var(--ink)]">
+        <div className="flex items-start gap-3 border border-(--amber)/50 bg-(--row-hover) px-4 py-3 sm:px-5">
+          <p className="min-w-0 flex-1 text-sm text-(--ink)">
             {t("dashboard.cvBanner")}{" "}
             <Link
               to="/onboarding"
-              className="font-medium underline decoration-[var(--amber)] underline-offset-4"
+              className="font-medium underline decoration-(--amber) underline-offset-4"
             >
               {t("dashboard.cvBannerLink")}
             </Link>
           </p>
           <button
             type="button"
-            className="shrink-0 text-xs text-[var(--ink)]/70 underline underline-offset-4 hover:text-[var(--ink)]"
+            className="shrink-0 text-xs text-(--ink)/70 underline underline-offset-4 hover:text-(--ink)"
             onClick={dismissCvBanner}
           >
             {t("dashboard.cvBannerLater")}
@@ -98,11 +98,11 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 border-b border-[var(--hairline)] pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-(--hairline) pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl">
           <p className="label">{t("dashboard.eyebrow")}</p>
           <h1 className="mt-1 text-3xl sm:text-4xl">{t("dashboard.title")}</h1>
-          <p className="mt-2 text-[var(--ink)]/75">{t("dashboard.subtitle")}</p>
+          <p className="mt-2 text-(--ink)/75">{t("dashboard.subtitle")}</p>
           {stats.activityHint && (
             <p className="mt-3 text-sm" style={{ color: "var(--match)" }}>
               {stats.activityHint}
@@ -111,7 +111,7 @@ export function DashboardPage() {
         </div>
         <button
           type="button"
-          className="btn btn-amber !hidden self-start lg:!inline-flex"
+          className="btn btn-amber hidden! self-start lg:inline-flex!"
           onClick={openAnalyze}
         >
           {t("dashboard.analyzeCta")}
@@ -128,9 +128,9 @@ export function DashboardPage() {
       </section>
 
       {isEmpty ? (
-        <section className="border border-[var(--hairline)] px-5 py-10 max-lg:pr-20 sm:px-8">
+        <section className="border border-(--hairline) px-5 py-10 max-lg:pr-20 sm:px-8">
           <h2 className="text-2xl">{t("dashboard.emptyTitle")}</h2>
-          <p className="mt-3 max-w-lg text-[var(--ink)]/75">{t("dashboard.emptyBody")}</p>
+          <p className="mt-3 max-w-lg text-(--ink)/75">{t("dashboard.emptyBody")}</p>
           <button type="button" className="btn btn-amber mt-6 inline-flex" onClick={openAnalyze}>
             {t("dashboard.analyzeCta")}
           </button>
@@ -145,17 +145,17 @@ export function DashboardPage() {
               </div>
               <Link
                 to="/offers"
-                className="text-sm underline decoration-[var(--amber)] underline-offset-4"
+                className="text-sm underline decoration-(--amber) underline-offset-4"
               >
                 {t("dashboard.seeAll")}
               </Link>
             </div>
             {topOffers.length === 0 ? (
-              <p className="text-[var(--ink)]/75">
+              <p className="text-(--ink)/75">
                 {t("dashboard.noTopOffers")}{" "}
                 <button
                   type="button"
-                  className="underline decoration-[var(--amber)]"
+                  className="underline decoration-(--amber)"
                   onClick={openAnalyze}
                 >
                   {t("dashboard.analyzeLink")}
@@ -163,7 +163,7 @@ export function DashboardPage() {
                 .
               </p>
             ) : (
-              <ul className="divide-y divide-[var(--hairline)] border-y border-[var(--hairline)]">
+              <ul className="divide-y divide-(--hairline) border-y border-(--hairline)">
                 {topOffers.map((offer, i) => (
                   <li
                     key={offer.id}
@@ -174,9 +174,9 @@ export function DashboardPage() {
                       <ScoreBadge score={offer.relevanceScore} />
                       <div className="min-w-0">
                         <h3 className="display text-lg font-semibold leading-snug">{offer.title}</h3>
-                        <p className="text-sm text-[var(--ink)]/70">{offer.company}</p>
+                        <p className="text-sm text-(--ink)/70">{offer.company}</p>
                         {offer.summary && (
-                          <p className="mt-2 line-clamp-2 text-sm text-[var(--ink)]/80">
+                          <p className="mt-2 line-clamp-2 text-sm text-(--ink)/80">
                             {offer.summary}
                           </p>
                         )}
@@ -184,10 +184,10 @@ export function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:items-stretch">
-                      <Link to={`/offers/${offer.id}`} className="btn btn-amber !text-xs">
+                      <Link to={`/offers/${offer.id}`} className="btn btn-amber text-xs!">
                         {t("dashboard.generateLetter")}
                       </Link>
-                      <Link to={`/offers/${offer.id}`} className="btn btn-ghost !text-xs">
+                      <Link to={`/offers/${offer.id}`} className="btn btn-ghost text-xs!">
                         {t("dashboard.open")}
                       </Link>
                     </div>
@@ -205,27 +205,27 @@ export function DashboardPage() {
               </div>
               <Link
                 to="/pipeline"
-                className="text-sm underline decoration-[var(--amber)] underline-offset-4"
+                className="text-sm underline decoration-(--amber) underline-offset-4"
               >
                 {t("dashboard.pipelineFull")}
               </Link>
             </div>
             {pipelineFocus.length === 0 ? (
-              <p className="text-[var(--ink)]/75">{t("dashboard.pipelineEmpty")}</p>
+              <p className="text-(--ink)/75">{t("dashboard.pipelineEmpty")}</p>
             ) : (
               <ul className="space-y-3">
                 {pipelineFocus.map((item) => (
                   <li key={item.id}>
                     <Link
                       to={`/offers/${item.jobId}`}
-                      className="flex flex-col gap-1 border border-[var(--hairline)] px-4 py-3 transition-colors hover:bg-[var(--row-hover)] sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-1 border border-(--hairline) px-4 py-3 transition-colors hover:bg-(--row-hover) sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
                         <p className="font-medium">
                           {item.title}
-                          <span className="text-[var(--ink)]/70"> — {item.company}</span>
+                          <span className="text-(--ink)/70"> — {item.company}</span>
                         </p>
-                        <p className="mt-1 text-sm text-[var(--ink)]/70">{item.hint}</p>
+                        <p className="mt-1 text-sm text-(--ink)/70">{item.hint}</p>
                       </div>
                       <span className="label shrink-0">
                         {item.status === "INTERVIEW"
@@ -246,7 +246,7 @@ export function DashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-[var(--hairline)] px-4 py-4">
+    <div className="border border-(--hairline) px-4 py-4">
       <p className="label">{label}</p>
       <p className="display mt-2 text-3xl tabular-nums">{value}</p>
     </div>

@@ -141,9 +141,9 @@ export function LoginPage() {
             placeholder="000000"
           />
           {devCode && (
-            <p className="text-xs text-[var(--ink-soft)]">
+            <p className="text-xs text-(--ink-soft)">
               {t("auth.devCode")}{" "}
-              <span className="font-mono text-[var(--ink)]">{devCode}</span>
+              <span className="font-mono text-(--ink)">{devCode}</span>
             </p>
           )}
           {error && (
@@ -166,7 +166,7 @@ export function LoginPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <button
               type="button"
-              className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
+              className="text-(--ink) underline decoration-(--amber) underline-offset-4"
               disabled={loading}
               onClick={() => void onResendOtp()}
             >
@@ -174,7 +174,7 @@ export function LoginPage() {
             </button>
             <button
               type="button"
-              className="text-[var(--ink-soft)] underline underline-offset-4"
+              className="text-(--ink-soft) underline underline-offset-4"
               disabled={loading}
               onClick={() => {
                 setChallengeId(null);
@@ -213,18 +213,18 @@ export function LoginPage() {
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <label className="flex cursor-pointer items-center gap-2 text-[var(--ink-soft)]">
+          <label className="flex cursor-pointer items-center gap-2 text-(--ink-soft)">
             <input
               type="checkbox"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
-              className="accent-[var(--amber)]"
+              className="accent-(--amber)"
             />
             {t("auth.remember")}
           </label>
           <Link
             to="/forgot-password"
-            className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
+            className="text-(--ink) underline decoration-(--amber) underline-offset-4"
           >
             {t("auth.forgot")}
           </Link>
@@ -248,11 +248,11 @@ export function LoginPage() {
 
       <SocialButtons onInfo={setInfo} onError={setError} />
 
-      <p className="mt-4 text-sm text-[var(--ink-soft)]">
+      <p className="mt-4 text-sm text-(--ink-soft)">
         {t("auth.noAccount")}{" "}
         <Link
           to="/register"
-          className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
+          className="text-(--ink) underline decoration-(--amber) underline-offset-4"
         >
           {t("auth.createAccount")}
         </Link>
@@ -361,30 +361,30 @@ export function RegisterPage() {
                 />
               ))}
             </div>
-            <p className="mono mt-1 text-[0.65rem] text-[var(--ink-soft)]">
+            <p className="mono mt-1 text-[0.65rem] text-(--ink-soft)">
               {t("auth.passwordStrength", { label: strength.label })}
               {!passwordOk ? t("auth.passwordMin") : ""}
             </p>
           </div>
         )}
 
-        <label className="flex cursor-pointer items-start gap-2 text-sm text-[var(--ink-soft)]">
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-(--ink-soft)">
           <input
             type="checkbox"
             checked={acceptTerms}
             onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-0.5 accent-[var(--amber)]"
+            className="mt-0.5 accent-(--amber)"
             required
           />
           <span>
             {t("auth.acceptTerms")}{" "}
-            <Link to="/legal/cgu" className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4">
+            <Link to="/legal/cgu" className="text-(--ink) underline decoration-(--amber) underline-offset-4">
               {t("legal.cgu")}
             </Link>{" "}
             {t("auth.andThe")}{" "}
             <Link
               to="/legal/privacy"
-              className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4"
+              className="text-(--ink) underline decoration-(--amber) underline-offset-4"
             >
               {t("legal.privacy")}
             </Link>
@@ -396,7 +396,7 @@ export function RegisterPage() {
           <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
             {error}{" "}
             {(error === t("auth.emailTaken") || error.includes("existe déjà") || error.includes("already exists")) && (
-              <Link to="/login" className="underline decoration-[var(--amber)] underline-offset-4">
+              <Link to="/login" className="underline decoration-(--amber) underline-offset-4">
                 {t("auth.login")}
               </Link>
             )}
@@ -408,16 +408,16 @@ export function RegisterPage() {
           </p>
         )}
 
-        <button type="submit" disabled={!canSubmit} className="btn btn-amber w-full !py-2">
+        <button type="submit" disabled={!canSubmit} className="btn btn-amber w-full py-2!">
           {loading ? t("auth.creating") : t("auth.createSubmit")}
         </button>
       </form>
 
       <SocialButtons onInfo={setInfo} onError={setError} />
 
-      <p className="mt-3 text-sm text-[var(--ink-soft)]">
+      <p className="mt-3 text-sm text-(--ink-soft)">
         {t("auth.hasAccount")}{" "}
-        <Link to="/login" className="text-[var(--ink)] underline decoration-[var(--amber)] underline-offset-4">
+        <Link to="/login" className="text-(--ink) underline decoration-(--amber) underline-offset-4">
           {t("auth.login")}
         </Link>
       </p>
@@ -447,13 +447,13 @@ function AuthShell({
       {!compact && <p className="label mt-2">{t("auth.shellLabel")}</p>}
       <h1 className={`text-xl sm:text-2xl ${compact ? "mt-2" : "mt-3"}`}>{title}</h1>
       <p
-        className={`text-sm leading-snug text-[var(--ink-soft)] ${
+        className={`text-sm leading-snug text-(--ink-soft) ${
           compact ? "mt-1 mb-3" : "mt-1.5 mb-4"
         }`}
       >
         {subtitle}
       </p>
-      <div className={`border-y border-[var(--ink)] ${compact ? "py-3" : "py-4"}`}>{children}</div>
+      <div className={`border-y border-(--ink) ${compact ? "py-3" : "py-4"}`}>{children}</div>
     </div>
   );
 }
@@ -487,7 +487,7 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)}
-        className={`field ${dense ? "!py-2" : ""}`}
+        className={`field ${dense ? "py-2!" : ""}`}
         aria-invalid={hint ? true : undefined}
       />
       {hint && (
@@ -527,12 +527,12 @@ function PasswordField({
           value={value}
           autoComplete={autoComplete}
           onChange={(e) => onChange(e.target.value)}
-          className={`field pr-20 ${dense ? "!py-2" : ""}`}
+          className={`field pr-20 ${dense ? "py-2!" : ""}`}
         />
         <button
           type="button"
           onClick={onToggle}
-          className="absolute top-1/2 right-2 -translate-y-1/2 px-2 py-1 text-xs text-[var(--ink-soft)] hover:text-[var(--ink)]"
+          className="absolute top-1/2 right-2 -translate-y-1/2 px-2 py-1 text-xs text-(--ink-soft) hover:text-(--ink)"
         >
           {show ? t("common.hide") : t("common.show")}
         </button>
@@ -594,7 +594,7 @@ function SocialButtons({
         {googleEnabled && (
           <button
             type="button"
-            className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
+            className="btn btn-ghost w-full py-1.5! text-xs! gap-2"
             onClick={() => start("google")}
           >
             <GoogleIcon />
@@ -604,7 +604,7 @@ function SocialButtons({
         {linkedinEnabled && (
           <button
             type="button"
-            className="btn btn-ghost w-full !py-1.5 !text-xs gap-2"
+            className="btn btn-ghost w-full py-1.5! text-xs! gap-2"
             onClick={() => start("linkedin")}
           >
             <LinkedInIcon />

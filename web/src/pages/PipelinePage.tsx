@@ -242,12 +242,12 @@ export function PipelinePage() {
 
   return (
     <div className="fade-in">
-      <div className="border-b border-[var(--hairline)] pb-6">
+      <div className="border-b border-(--hairline) pb-6">
         <p className="label">{t("pipeline.eyebrow")}</p>
         <h1 className="mt-1 text-3xl sm:text-4xl">{t("pipeline.title")}</h1>
-        <p className="mt-2 max-w-xl text-[var(--ink)]/75">{t("pipeline.subtitle")}</p>
+        <p className="mt-2 max-w-xl text-(--ink)/75">{t("pipeline.subtitle")}</p>
         {!loading && (
-          <p className="mono mt-3 text-sm text-[var(--ink)]/70">
+          <p className="mono mt-3 text-sm text-(--ink)/70">
             {activeCount === 1
               ? t("pipeline.activeCount", { n: activeCount })
               : t("pipeline.activeCountPlural", { n: activeCount })}
@@ -265,33 +265,33 @@ export function PipelinePage() {
         <p className="mt-10 label">{t("pipeline.loading")}</p>
       ) : trulyEmpty ? (
         <div className="mt-12 max-w-lg">
-          <p className="text-lg text-[var(--ink)]">{t("pipeline.empty")}</p>
+          <p className="text-lg text-(--ink)">{t("pipeline.empty")}</p>
           <button type="button" className="btn btn-amber mt-5 inline-flex" onClick={openAnalyze}>
             {t("pipeline.emptyCta")}
           </button>
         </div>
       ) : (
-        <div className="mt-8 grid gap-0 border-t border-[var(--ink)] lg:grid-cols-4">
+        <div className="mt-8 grid gap-0 border-t border-(--ink) lg:grid-cols-4">
           {STATUSES.map((status, colIdx) => {
             const column = apps.filter((a) => a.status === status);
             const isTarget = desktopDrag && dragOver === status;
             return (
               <section
                 key={status}
-                className={`border-b border-[var(--hairline)] py-4 transition-colors lg:border-b-0 lg:px-3 xl:px-4 ${
-                  colIdx === 0 ? "lg:pl-0" : "lg:border-l lg:border-[var(--hairline)]"
+                className={`border-b border-(--hairline) py-4 transition-colors lg:border-b-0 lg:px-3 xl:px-4 ${
+                  colIdx === 0 ? "lg:pl-0" : "lg:border-l lg:border-(--hairline)"
                 } ${colIdx === STATUSES.length - 1 ? "lg:pr-0" : ""} ${
-                  isTarget ? "bg-[var(--row-hover)]" : ""
+                  isTarget ? "bg-(--row-hover)" : ""
                 }`}
                 onDragOver={(e) => onDragOverColumn(e, status)}
                 onDragLeave={() => setDragOver((cur) => (cur === status ? null : cur))}
                 onDrop={(e) => onDropColumn(e, status)}
               >
-                <div className="mb-3 flex items-baseline justify-between gap-2 border-b border-[var(--hairline)] pb-2">
-                  <h2 className="label !normal-case !tracking-wide" style={{ color: "var(--ink)" }}>
+                <div className="mb-3 flex items-baseline justify-between gap-2 border-b border-(--hairline) pb-2">
+                  <h2 className="label normal-case! tracking-wide!" style={{ color: "var(--ink)" }}>
                     {statusLabels[status]}
                   </h2>
-                  <span className="mono text-xs text-[var(--ink)]/70">{column.length}</span>
+                  <span className="mono text-xs text-(--ink)/70">{column.length}</span>
                 </div>
 
                 <ul className="min-h-[4.5rem] space-y-0">
@@ -315,7 +315,7 @@ export function PipelinePage() {
                               setSelected(app);
                             }
                           }}
-                          className={`group border-b border-[var(--hairline)] py-3 last:border-b-0 hover:bg-[var(--row-hover)] ${
+                          className={`group border-b border-(--hairline) py-3 last:border-b-0 hover:bg-(--row-hover) ${
                             desktopDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
                           }`}
                           style={
@@ -333,10 +333,10 @@ export function PipelinePage() {
                               <p className="display truncate text-sm font-semibold leading-snug">
                                 {app.job?.title ?? t("pipeline.offerFallback")}
                               </p>
-                              <p className="truncate text-xs text-[var(--ink)]/70">
+                              <p className="truncate text-xs text-(--ink)/70">
                                 {app.job?.company}
                               </p>
-                              <p className="mono mt-1.5 text-[0.65rem] text-[var(--ink)]/70">
+                              <p className="mono mt-1.5 text-[0.65rem] text-(--ink)/70">
                                 {date.label}{" "}
                                 {formatShort(date.iso, locale)}
                                 {status === "APPLIED" && days > 0 ? ` · ${days}j` : ""}
@@ -369,7 +369,7 @@ export function PipelinePage() {
                                 value={app.status}
                                 disabled={busyId === app.id}
                                 aria-label={t("pipeline.changeStatus")}
-                                className="field mt-2 !py-1 text-xs opacity-100 transition-opacity lg:opacity-70 lg:group-hover:opacity-100"
+                                className="field mt-2 py-1! text-xs opacity-100 transition-opacity lg:opacity-70 lg:group-hover:opacity-100"
                                 onClick={(e) => e.stopPropagation()}
                                 onChange={(e) => {
                                   e.stopPropagation();
@@ -392,7 +392,7 @@ export function PipelinePage() {
                     );
                   })}
                   {!column.length && (
-                    <li className="py-8 text-center text-xs text-[var(--ink)]/70">
+                    <li className="py-8 text-center text-xs text-(--ink)/70">
                       {t("pipeline.columnEmpty")}
                     </li>
                   )}

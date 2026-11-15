@@ -58,7 +58,7 @@ export function RemotiveImport({ onImported }: { onImported: () => void | Promis
     return (
       <button
         type="button"
-        className="btn btn-ghost self-start !text-xs"
+        className="btn btn-ghost self-start text-xs!"
         onClick={openForm}
       >
         {t("offers.remotiveOpen")}
@@ -69,7 +69,7 @@ export function RemotiveImport({ onImported }: { onImported: () => void | Promis
   return (
     <form
       onSubmit={(e) => void submit(e)}
-      className="w-full rounded-sm border border-[var(--hairline)] p-4 sm:max-w-md"
+      className="w-full rounded-sm border border-(--hairline) p-4 sm:max-w-md"
       aria-busy={busy}
     >
       <label htmlFor={inputId} className="label mb-1.5 block">
@@ -85,11 +85,11 @@ export function RemotiveImport({ onImported }: { onImported: () => void | Promis
           disabled={busy}
           autoFocus
         />
-        <button type="submit" className="btn btn-amber shrink-0 !text-xs" disabled={busy}>
+        <button type="submit" className="btn btn-amber shrink-0 text-xs!" disabled={busy}>
           {busy ? t("offers.remotiveBusy") : t("offers.remotiveSubmit")}
         </button>
       </div>
-      <p className="mt-1.5 text-xs text-[var(--ink-soft)]">{t("offers.remotiveHint")}</p>
+      <p className="mt-1.5 text-xs text-(--ink-soft)">{t("offers.remotiveHint")}</p>
       {message ? (
         <p className="mt-2 text-sm" role="status">
           {message}

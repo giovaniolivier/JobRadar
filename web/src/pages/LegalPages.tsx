@@ -55,10 +55,10 @@ export function ForgotPasswordPage() {
       <BrandLogo to="/" size="lg" />
       <p className="label mt-3">{t("auth.forgotEyebrow")}</p>
       <h1 className="mt-6 text-2xl">{t("auth.forgotTitle")}</h1>
-      <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+      <p className="mt-3 text-sm leading-relaxed text-(--ink-soft)">
         {t("auth.forgotSubtitle")}
       </p>
-      <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-[var(--ink)] py-6">
+      <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-(--ink) py-6">
         <label className="block">
           <span className="label mb-1.5 block">Email</span>
           <input
@@ -82,11 +82,11 @@ export function ForgotPasswordPage() {
           </p>
         )}
         {devLink && (
-          <div className="rounded border border-[var(--ink)]/20 bg-[var(--ink)]/5 p-3 text-xs text-[var(--ink-soft)]">
+          <div className="rounded border border-(--ink)/20 bg-(--ink)/5 p-3 text-xs text-(--ink-soft)">
             <p className="mb-2">
               L’email n’a pas pu être envoyé (SMTP non configuré). Utilisez ce lien de secours :
             </p>
-            <a href={devLink} className="break-all underline decoration-[var(--amber)]">
+            <a href={devLink} className="break-all underline decoration-(--amber)">
               {devLink}
             </a>
           </div>
@@ -96,11 +96,11 @@ export function ForgotPasswordPage() {
             {loading ? "Envoi…" : sent ? "Renvoyer l’email" : "Envoyer le lien par email"}
           </button>
         ) : (
-          <p className="text-sm text-[var(--ink-soft)]">
+          <p className="text-sm text-(--ink-soft)">
             Pensez à vérifier vos courriers indésirables.{" "}
             <button
               type="button"
-              className="underline decoration-[var(--amber)]"
+              className="underline decoration-(--amber)"
               onClick={() => {
                 setSent(false);
                 setMessage(null);
@@ -111,7 +111,7 @@ export function ForgotPasswordPage() {
           </p>
         )}
       </form>
-      <Link to="/login" className="mt-6 text-sm underline decoration-[var(--amber)] underline-offset-4">
+      <Link to="/login" className="mt-6 text-sm underline decoration-(--amber) underline-offset-4">
         {t("auth.backToLogin")}
       </Link>
     </div>
@@ -159,7 +159,7 @@ export function ResetPasswordPage() {
     return (
       <div className="fade-in mx-auto max-w-md px-4 py-12">
         <p style={{ color: "var(--brick)" }}>Lien invalide : token manquant.</p>
-        <Link to="/forgot-password" className="mt-4 inline-block underline decoration-[var(--amber)]">
+        <Link to="/forgot-password" className="mt-4 inline-block underline decoration-(--amber)">
           Demander un nouveau lien
         </Link>
       </div>
@@ -171,8 +171,8 @@ export function ResetPasswordPage() {
       <BrandLogo to="/" size="lg" />
       <p className="label mt-3">{t("auth.forgotEyebrow")}</p>
       <h1 className="mt-6 text-2xl">{t("auth.resetTitle")}</h1>
-      <p className="mt-3 text-sm text-[var(--ink-soft)]">{t("auth.resetSubtitle")}</p>
-      <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-[var(--ink)] py-6">
+      <p className="mt-3 text-sm text-(--ink-soft)">{t("auth.resetSubtitle")}</p>
+      <form onSubmit={onSubmit} className="mt-8 space-y-4 border-y border-(--ink) py-6">
         <label className="block">
           <span className="label mb-1.5 block">Mot de passe</span>
           <div className="relative">
@@ -187,7 +187,7 @@ export function ResetPasswordPage() {
             />
             <button
               type="button"
-              className="absolute top-1/2 right-2 -translate-y-1/2 text-xs text-[var(--ink-soft)]"
+              className="absolute top-1/2 right-2 -translate-y-1/2 text-xs text-(--ink-soft)"
               onClick={() => setShow((v) => !v)}
             >
               {show ? "Masquer" : "Afficher"}
@@ -207,7 +207,7 @@ export function ResetPasswordPage() {
           />
         </label>
         {password.length > 0 && (
-          <p className="mono text-[0.7rem] text-[var(--ink-soft)]">Force : {strength.label}</p>
+          <p className="mono text-[0.7rem] text-(--ink-soft)">Force : {strength.label}</p>
         )}
         {error && (
           <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
@@ -222,7 +222,7 @@ export function ResetPasswordPage() {
           {loading ? "Enregistrement…" : "Mettre à jour le mot de passe"}
         </button>
       </form>
-      <Link to="/login" className="mt-6 text-sm underline decoration-[var(--amber)] underline-offset-4">
+      <Link to="/login" className="mt-6 text-sm underline decoration-(--amber) underline-offset-4">
         {t("auth.backToLogin")}
       </Link>
     </div>
@@ -232,20 +232,20 @@ export function ResetPasswordPage() {
 export function LegalCguPage() {
   return (
     <LegalLayout title="Conditions générales d’utilisation">
-      <p className="text-xs text-[var(--ink-soft)]">Dernière mise à jour : 24 septembre 2026</p>
+      <p className="text-xs text-(--ink-soft)">Dernière mise à jour : 24 septembre 2026</p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">1. Objet</h2>
+      <h2 className="text-base font-semibold text-(--ink)">1. Objet</h2>
       <p>
         JobRadar est un service web d’aide à la veille et au tri d’offres d’emploi : import de CV,
         analyse de correspondance, génération de brouillons de lettres et suivi de candidatures.
         L’éditeur du service est joignable à{" "}
-        <a className="underline decoration-[var(--amber)]" href="mailto:contact@jobradar.dev">
+        <a className="underline decoration-(--amber)" href="mailto:contact@jobradar.dev">
           contact@jobradar.dev
         </a>
         .
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">2. Compte et accès</h2>
+      <h2 className="text-base font-semibold text-(--ink)">2. Compte et accès</h2>
       <p>
         L’accès aux fonctionnalités principales nécessite la création d’un compte (email et mot de
         passe, ou fournisseur OAuth le cas échéant). Vous vous engagez à fournir des informations
@@ -254,7 +254,7 @@ export function LegalCguPage() {
         sécurité, atteinte aux droits de tiers).
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">3. Usage autorisé</h2>
+      <h2 className="text-base font-semibold text-(--ink)">3. Usage autorisé</h2>
       <p>
         Le service est destiné à un usage personnel de recherche d’emploi. Il est interdit
         d’automatiser massivement l’accès à l’API hors des outils fournis, de republier le contenu
@@ -262,7 +262,7 @@ export function LegalCguPage() {
         données à des fins illicites.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">4. Contenus et IA</h2>
+      <h2 className="text-base font-semibold text-(--ink)">4. Contenus et IA</h2>
       <p>
         Les scores, red flags, résumés et lettres générés sont des aides à la décision. Ils ne
         constituent ni un conseil juridique, ni une garantie d’embauche. Vous restez seul·e
@@ -271,7 +271,7 @@ export function LegalCguPage() {
         disponibilité et de leurs conditions.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">5. Disponibilité</h2>
+      <h2 className="text-base font-semibold text-(--ink)">5. Disponibilité</h2>
       <p>
         Nous nous efforçons d’assurer un service stable, sans engagement de résultat ni de
         disponibilité continue. Des maintenances ou interruptions peuvent survenir. Les
@@ -279,7 +279,7 @@ export function LegalCguPage() {
         majeurs lorsque c’est raisonnablement possible.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">6. Responsabilité</h2>
+      <h2 className="text-base font-semibold text-(--ink)">6. Responsabilité</h2>
       <p>
         Dans les limites autorisées par la loi, JobRadar ne saurait être tenu responsable des
         dommages indirects (perte d’opportunité, préjudice moral, etc.) liés à l’usage du service
@@ -288,7 +288,7 @@ export function LegalCguPage() {
         jour : responsabilité limitée aux dommages prévisibles directs).
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">7. Résiliation</h2>
+      <h2 className="text-base font-semibold text-(--ink)">7. Résiliation</h2>
       <p>
         Vous pouvez supprimer votre compte à tout moment depuis Paramètres → Données, ou Profil →
         Compte. Nous pouvons
@@ -296,7 +296,7 @@ export function LegalCguPage() {
         cela est possible.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">8. Droit applicable</h2>
+      <h2 className="text-base font-semibold text-(--ink)">8. Droit applicable</h2>
       <p>
         Les présentes CGU sont régies par le droit français. En cas de litige, et à défaut d’accord
         amiable, les tribunaux français compétents seront saisis.
@@ -308,19 +308,19 @@ export function LegalCguPage() {
 export function LegalPrivacyPage() {
   return (
     <LegalLayout title="Politique de confidentialité">
-      <p className="text-xs text-[var(--ink-soft)]">Dernière mise à jour : 24 septembre 2026</p>
+      <p className="text-xs text-(--ink-soft)">Dernière mise à jour : 24 septembre 2026</p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">1. Responsable du traitement</h2>
+      <h2 className="text-base font-semibold text-(--ink)">1. Responsable du traitement</h2>
       <p>
         Le responsable du traitement des données est l’éditeur de JobRadar, contact :{" "}
-        <a className="underline decoration-[var(--amber)]" href="mailto:contact@jobradar.dev">
+        <a className="underline decoration-(--amber)" href="mailto:contact@jobradar.dev">
           contact@jobradar.dev
         </a>
         . Hébergement : infrastructure cloud du déploiement (voir mentions légales / fiche
         d’hébergeur communiquée sur demande).
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">2. Données collectées</h2>
+      <h2 className="text-base font-semibold text-(--ink)">2. Données collectées</h2>
       <p>
         Compte : email, nom, hash du mot de passe (ou identifiants OAuth). Profil : texte de CV,
         compétences, préférences (lieux, salaire, secteurs). Offres : annonces importées ou
@@ -328,7 +328,7 @@ export function LegalPrivacyPage() {
         notification et journaux techniques nécessaires à la sécurité (jetons, OTP, etc.).
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">3. Finalités et bases légales</h2>
+      <h2 className="text-base font-semibold text-(--ink)">3. Finalités et bases légales</h2>
       <p>
         Exécution du contrat / intérêt légitime : fournir le service (analyse, pipeline, emails
         transactionnels d’auth). Consentement / intérêt légitime : emails d’alerte selon vos
@@ -336,7 +336,7 @@ export function LegalPrivacyPage() {
         pour la sécurité et les litiges éventuels.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">4. Destinataires</h2>
+      <h2 className="text-base font-semibold text-(--ink)">4. Destinataires</h2>
       <p>
         Vos données ne sont pas vendues ni partagées avec des recruteurs. Elles restent dans votre
         compte. Des sous-traitants techniques (hébergeur, SMTP, fournisseur d’IA) traitent des
@@ -344,7 +344,7 @@ export function LegalPrivacyPage() {
         Anthropic ou Google Gemini uniquement pour produire une analyse ou une lettre demandée.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">5. Durées de conservation</h2>
+      <h2 className="text-base font-semibold text-(--ink)">5. Durées de conservation</h2>
       <p>
         Les données de compte et de profil sont conservées tant que le compte est actif. Après
         suppression du compte, les données associées sont effacées ou anonymisées sous 30 jours,
@@ -352,18 +352,18 @@ export function LegalPrivacyPage() {
         réinitialisation / OTP expirent automatiquement (ordre de l’heure).
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">6. Vos droits (RGPD)</h2>
+      <h2 className="text-base font-semibold text-(--ink)">6. Vos droits (RGPD)</h2>
       <p>
         Vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation, de
         portabilité et d’opposition. Dans l’application : export des données et suppression du
         compte (Paramètres → Données ou Profil → Compte), gestion du CV (Profil). Vous pouvez aussi
         écrire à{" "}
-        <a className="underline decoration-[var(--amber)]" href="mailto:contact@jobradar.dev">
+        <a className="underline decoration-(--amber)" href="mailto:contact@jobradar.dev">
           contact@jobradar.dev
         </a>
         . Réclamation possible auprès de la CNIL (
         <a
-          className="underline decoration-[var(--amber)]"
+          className="underline decoration-(--amber)"
           href="https://www.cnil.fr"
           target="_blank"
           rel="noreferrer"
@@ -373,7 +373,7 @@ export function LegalPrivacyPage() {
         ).
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">7. Cookies et sécurité</h2>
+      <h2 className="text-base font-semibold text-(--ink)">7. Cookies et sécurité</h2>
       <p>
         Des cookies / jetons HTTP-only sont utilisés pour la session et la protection CSRF. Les
         mots de passe sont stockés hachés. Les communications doivent passer en HTTPS en
@@ -386,31 +386,31 @@ export function LegalPrivacyPage() {
 export function LegalMentionsPage() {
   return (
     <LegalLayout title="Mentions légales">
-      <p className="text-xs text-[var(--ink-soft)]">Dernière mise à jour : 24 septembre 2026</p>
+      <p className="text-xs text-(--ink-soft)">Dernière mise à jour : 24 septembre 2026</p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">Éditeur</h2>
+      <h2 className="text-base font-semibold text-(--ink)">Éditeur</h2>
       <p>
         JobRadar — service d’aide à la recherche d’emploi.
         <br />
         Contact :{" "}
-        <a className="underline decoration-[var(--amber)]" href="mailto:contact@jobradar.dev">
+        <a className="underline decoration-(--amber)" href="mailto:contact@jobradar.dev">
           contact@jobradar.dev
         </a>
       </p>
-      <p className="text-sm text-[var(--ink-soft)]">
+      <p className="text-sm text-(--ink-soft)">
         Si le service est édité par une société / auto-entrepreneur, renseignez ici la raison
         sociale, le siège social, le SIREN et le nom du directeur de la publication avant une mise
         en production publique.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">Hébergement</h2>
+      <h2 className="text-base font-semibold text-(--ink)">Hébergement</h2>
       <p>
         L’application et la base de données sont hébergées auprès du prestataire choisi pour le
         déploiement (ex. Render, Fly.io, Railway, VPS). Les coordonnées complètes de l’hébergeur
         seront affichées ici dès le choix définitif d’infrastructure.
       </p>
 
-      <h2 className="text-base font-semibold text-[var(--ink)]">Propriété intellectuelle</h2>
+      <h2 className="text-base font-semibold text-(--ink)">Propriété intellectuelle</h2>
       <p>
         L’interface, la marque JobRadar et le code du service sont protégés. Les CV et offres que
         vous importez restent votre propriété / celle de leurs ayants droit ; vous nous
@@ -427,23 +427,23 @@ function LegalLayout({ title, children }: { title: string; children: ReactNode }
       <BrandLogo to="/" size="md" />
       <p className="label mt-3">{t("legal.eyebrow")}</p>
       <h1 className="mt-6 text-3xl">{title}</h1>
-      <div className="mt-8 space-y-4 border-t border-[var(--ink)] pt-6 text-sm leading-relaxed text-[var(--ink)]/90">
+      <div className="mt-8 space-y-4 border-t border-(--ink) pt-6 text-sm leading-relaxed text-(--ink)/90">
         {children}
       </div>
       <nav className="mt-10 flex flex-wrap gap-4 text-sm">
-        <Link to="/legal/cgu" className="underline decoration-[var(--amber)] underline-offset-4">
+        <Link to="/legal/cgu" className="underline decoration-(--amber) underline-offset-4">
           {t("legal.cgu")}
         </Link>
-        <Link to="/legal/privacy" className="underline decoration-[var(--amber)] underline-offset-4">
+        <Link to="/legal/privacy" className="underline decoration-(--amber) underline-offset-4">
           {t("legal.privacy")}
         </Link>
         <Link
           to="/legal/mentions"
-          className="underline decoration-[var(--amber)] underline-offset-4"
+          className="underline decoration-(--amber) underline-offset-4"
         >
           {t("legal.mentions")}
         </Link>
-        <Link to="/" className="underline decoration-[var(--amber)] underline-offset-4">
+        <Link to="/" className="underline decoration-(--amber) underline-offset-4">
           {t("legal.home")}
         </Link>
       </nav>

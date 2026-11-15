@@ -68,14 +68,14 @@ export function TagInput({
     <div>
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
         <span className="label">{label}</span>
-        {hint && <span className="text-xs text-[var(--ink-soft)]">{hint}</span>}
+        {hint && <span className="text-xs text-(--ink-soft)">{hint}</span>}
       </div>
-      <div className="flex min-h-[2.75rem] flex-wrap items-center gap-1.5 border border-[var(--hairline)] bg-[var(--field-bg)] p-2 focus-within:border-[var(--ink)]">
+      <div className="flex min-h-[2.75rem] flex-wrap items-center gap-1.5 border border-(--hairline) bg-(--field-bg) p-2 focus-within:border-(--ink)">
         {tags.map((tag) => (
           <button
             key={tag}
             type="button"
-            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap border border-[var(--ink)] bg-[var(--ink)] px-2 py-0.5 text-sm text-[var(--btn-fg)]"
+            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap border border-(--ink) bg-(--ink) px-2 py-0.5 text-sm text-(--btn-fg)"
             onClick={() => onChange(tags.filter((t) => t !== tag))}
             title={`Retirer ${tag}`}
           >

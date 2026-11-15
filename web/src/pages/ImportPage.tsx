@@ -11,13 +11,13 @@ export function ImportPage() {
     <div className="fade-in max-w-xl">
       <p className="label">{t("import.eyebrow")}</p>
       <h1 className="mt-1 text-3xl sm:text-4xl">{t("import.title")}</h1>
-      <p className="mt-3 text-[var(--ink-soft)]">{t("import.subtitle")}</p>
+      <p className="mt-3 text-(--ink-soft)">{t("import.subtitle")}</p>
       <button type="button" className="btn btn-amber mt-6" onClick={openAnalyze}>
         {t("import.cta")}
       </button>
-      <p className="mt-6 text-sm text-[var(--ink-soft)]">
+      <p className="mt-6 text-sm text-(--ink-soft)">
         {t("import.dashboardHint")}{" "}
-        <Link to="/dashboard" className="underline decoration-[var(--amber)] underline-offset-4">
+        <Link to="/dashboard" className="underline decoration-(--amber) underline-offset-4">
           {t("import.dashboardLink")}
         </Link>
       </p>

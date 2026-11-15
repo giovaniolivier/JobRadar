@@ -62,7 +62,7 @@ export function DeleteAccountPanel({
   }
 
   return (
-    <div className={`space-y-4 border border-[var(--brick)] p-5 ${className}`}>
+    <div className={`space-y-4 border border-(--brick) p-5 ${className}`}>
       <div>
         <p className="label" style={{ color: "var(--brick)" }}>
           {t("profile.deleteDanger")}
@@ -70,7 +70,7 @@ export function DeleteAccountPanel({
         <h3 className="mt-1 text-xl" style={{ color: "var(--brick)" }}>
           {t("profile.deleteTitle")}
         </h3>
-        <p className="mt-2 text-sm text-[var(--ink)]/75">{t("profile.deleteBody")}</p>
+        <p className="mt-2 text-sm text-(--ink)/75">{t("profile.deleteBody")}</p>
       </div>
 
       {localError && !onError && (

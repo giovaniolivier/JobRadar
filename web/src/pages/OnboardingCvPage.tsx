@@ -305,24 +305,24 @@ export function OnboardingCvPage() {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 flex w-full items-center justify-center border-b border-[var(--ink)] bg-[var(--paper)]/95 px-4 py-2.5 backdrop-blur-[2px] sm:px-6 lg:py-3">
+      <header className="sticky top-0 z-30 flex w-full items-center justify-center border-b border-(--ink) bg-(--paper)/95 px-4 py-2.5 backdrop-blur-[2px] sm:px-6 lg:py-3">
         <BrandLogo to="" size="lg" lockup="wordmark" />
       </header>
 
       <main className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
-        <p className="text-sm text-[var(--ink-soft)]">
+        <p className="text-sm text-(--ink-soft)">
           {firstName ? t("onboarding.hello", { name: firstName }) : t("onboarding.welcome")}
         </p>
         <h1 className="mt-2 text-3xl leading-tight sm:text-4xl">{t("onboarding.title")}</h1>
-        <p className="mt-3 text-[var(--ink-soft)] leading-relaxed">{t("onboarding.subtitle")}</p>
+        <p className="mt-3 text-(--ink-soft) leading-relaxed">{t("onboarding.subtitle")}</p>
 
         {step === "upload" && (
           <div className="mt-8 space-y-4">
             <label
               className={`flex min-h-44 cursor-pointer flex-col items-center justify-center gap-3 border border-dashed px-5 py-10 text-center transition-colors ${
                 dragging
-                  ? "border-[var(--amber)] bg-[var(--row-hover)]"
-                  : "border-[var(--ink)] hover:border-[var(--amber)]"
+                  ? "border-(--amber) bg-(--row-hover)"
+                  : "border-(--ink) hover:border-(--amber)"
               }`}
               onDragEnter={(e) => {
                 e.preventDefault();
@@ -348,11 +348,11 @@ export function OnboardingCvPage() {
               />
               <UploadIcon />
               <span className="text-base font-medium">{t("onboarding.dropHint")}</span>
-              <span className="text-xs text-[var(--ink-soft)]">{t("onboarding.formats")}</span>
+              <span className="text-xs text-(--ink-soft)">{t("onboarding.formats")}</span>
             </label>
             <button
               type="button"
-              className="text-sm text-[var(--ink-soft)] underline underline-offset-4 hover:text-[var(--ink)]"
+              className="text-sm text-(--ink-soft) underline underline-offset-4 hover:text-(--ink)"
               onClick={() => {
                 setError(null);
                 setStep("manual");
@@ -365,21 +365,21 @@ export function OnboardingCvPage() {
 
         {step === "loading" && (
           <div className="mt-12 flex flex-col items-center gap-4 py-8 text-center">
-            <div className="h-1 w-40 overflow-hidden bg-[var(--paper-deep)]">
-              <div className="analyze-progress h-full bg-[var(--amber)]" />
+            <div className="h-1 w-40 overflow-hidden bg-(--paper-deep)">
+              <div className="analyze-progress h-full bg-(--amber)" />
             </div>
             <p className="display text-xl" aria-live="polite">
               {loadingMsg}
             </p>
-            {fileName && <p className="mono text-xs text-[var(--ink-soft)]">{fileName}</p>}
+            {fileName && <p className="mono text-xs text-(--ink-soft)">{fileName}</p>}
           </div>
         )}
 
         {step === "preview" && (
           <div className="mt-8 space-y-6">
-            <div className="border border-[var(--hairline)] px-4 py-4">
+            <div className="border border-(--hairline) px-4 py-4">
               <p className="label">{t("onboarding.verify")}</p>
-              <p className="mt-1 text-sm text-[var(--ink-soft)]">{t("onboarding.verifyHint")}</p>
+              <p className="mt-1 text-sm text-(--ink-soft)">{t("onboarding.verifyHint")}</p>
 
               <label className="mt-4 block">
                 <span className="label mb-1.5 block">{t("onboarding.yearsEstimated")}</span>
@@ -395,7 +395,7 @@ export function OnboardingCvPage() {
                   placeholder={t("onboarding.yearsPh")}
                   aria-invalid={yearsHint ? true : undefined}
                 />
-                <span className="mt-1 block text-xs text-[var(--ink-soft)]">
+                <span className="mt-1 block text-xs text-(--ink-soft)">
                   {t("onboarding.yearsHint")}
                 </span>
                 {yearsHint && (
@@ -416,13 +416,13 @@ export function OnboardingCvPage() {
               </div>
 
               {softSkills.length > 0 && (
-                <p className="mt-3 text-xs text-[var(--ink-soft)]">
+                <p className="mt-3 text-xs text-(--ink-soft)">
                   {t("onboarding.softSkills", { list: softSkills.slice(0, 6).join(" · ") })}
                 </p>
               )}
             </div>
 
-            <p className="text-sm text-[var(--ink-soft)]">{t("onboarding.editLater")}</p>
+            <p className="text-sm text-(--ink-soft)">{t("onboarding.editLater")}</p>
 
             <button
               type="button"
@@ -434,7 +434,7 @@ export function OnboardingCvPage() {
             </button>
             <button
               type="button"
-              className="w-full text-center text-sm text-[var(--ink-soft)] underline underline-offset-4"
+              className="w-full text-center text-sm text-(--ink-soft) underline underline-offset-4"
               onClick={() => {
                 setStep("upload");
                 setError(null);
@@ -447,7 +447,7 @@ export function OnboardingCvPage() {
 
         {step === "manual" && (
           <form className="mt-8 space-y-4" onSubmit={(e) => void onManualSubmit(e)}>
-            <p className="text-sm text-[var(--ink-soft)]">{t("onboarding.manualHint")}</p>
+            <p className="text-sm text-(--ink-soft)">{t("onboarding.manualHint")}</p>
             <label className="block">
               <span className="label mb-1.5 block">{t("onboarding.cvText")}</span>
               <textarea
@@ -484,7 +484,7 @@ export function OnboardingCvPage() {
                 placeholder={t("onboarding.yearsPh")}
                 aria-invalid={yearsHint ? true : undefined}
               />
-              <span className="mt-1 block text-xs text-[var(--ink-soft)]">
+              <span className="mt-1 block text-xs text-(--ink-soft)">
                 {t("onboarding.yearsHintStrict")}
               </span>
               {yearsHint && (
@@ -497,11 +497,11 @@ export function OnboardingCvPage() {
               {busy ? "…" : t("onboarding.continue")}
             </button>
             {!manualReady && (
-              <p className="text-xs text-[var(--ink-soft)]">{t("onboarding.manualReadyHint")}</p>
+              <p className="text-xs text-(--ink-soft)">{t("onboarding.manualReadyHint")}</p>
             )}
             <button
               type="button"
-              className="w-full text-center text-sm text-[var(--ink-soft)] underline underline-offset-4"
+              className="w-full text-center text-sm text-(--ink-soft) underline underline-offset-4"
               onClick={() => {
                 setStep("upload");
                 setError(null);
@@ -520,10 +520,10 @@ export function OnboardingCvPage() {
         )}
 
         {step === "upload" && (
-          <p className="mt-8 text-center text-xs text-[var(--ink-soft)]">
+          <p className="mt-8 text-center text-xs text-(--ink-soft)">
             <button
               type="button"
-              className="underline underline-offset-4 hover:text-[var(--ink)]"
+              className="underline underline-offset-4 hover:text-(--ink)"
               onClick={skip}
             >
               {t("onboarding.skip")}
@@ -537,7 +537,7 @@ export function OnboardingCvPage() {
 
 function UploadIcon() {
   return (
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden className="text-[var(--amber)]">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden className="text-(--amber)">
       <path
         d="M12 16V4m0 0 4 4m-4-4-4 4"
         stroke="currentColor"

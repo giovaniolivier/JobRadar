@@ -39,7 +39,7 @@ export function ScoreDialLoading({ size = 88 }: { size?: number }) {
           transform="rotate(-90 20 20)"
         />
       </svg>
-      <span className="mono absolute text-[0.65rem] tracking-wider text-[var(--ink-soft)]">…</span>
+      <span className="mono absolute text-[0.65rem] tracking-wider text-(--ink-soft)">…</span>
     </span>
   );
 }
@@ -54,11 +54,11 @@ export function ScoreBadge({ score, size = 44 }: { score: number | null | undefi
         title="Non analysé"
       >
         <span
-          className="block w-[70%] border-t border-[var(--hairline)]"
+          className="block w-[70%] border-t border-(--hairline)"
           style={{ opacity: 0.7 }}
           aria-hidden
         />
-        <span className="mono mt-1 text-[0.58rem] tracking-wider text-[var(--ink-soft)]">N/A</span>
+        <span className="mono mt-1 text-[0.58rem] tracking-wider text-(--ink-soft)">N/A</span>
       </span>
     );
   }

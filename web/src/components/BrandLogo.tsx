@@ -84,7 +84,7 @@ export function BrandLogo({
     <Link
       to={to}
       onClick={onClick}
-      className="inline-flex items-center leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+      className="inline-flex items-center leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--amber)"
       aria-label="JobRadar — accueil"
     >
       {img}

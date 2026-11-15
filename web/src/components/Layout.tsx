@@ -17,12 +17,12 @@ function initials(name: string | undefined, email: string | undefined) {
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `label whitespace-nowrap py-1 transition-colors ${
-    isActive ? "text-[var(--ink)] border-b border-[var(--amber)]" : "hover:text-[var(--ink)]"
+    isActive ? "text-(--ink) border-b border-(--amber)" : "hover:text-(--ink)"
   }`;
 
 const tabClass = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.65rem] font-medium tracking-wide transition-colors ${
-    isActive ? "!text-[var(--amber)]" : "!text-[var(--ink-soft)]"
+    isActive ? "text-(--amber)!" : "text-(--ink-soft)!"
   }`;
 
 const TABS = [
@@ -51,7 +51,7 @@ function LayoutShell() {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px]">
+      <header className="sticky top-0 z-30 border-b border-(--ink) bg-(--paper)/95 backdrop-blur-[2px]">
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-3 px-4 py-2 sm:gap-x-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8 lg:py-2">
           {/* Left — wordmark compact on mobile, full on desktop */}
           <div className="flex min-w-0 items-center">
@@ -83,7 +83,7 @@ function LayoutShell() {
           <div className="flex items-center justify-end gap-2 sm:gap-3">
             <button
               type="button"
-              className="btn btn-amber !hidden !py-2 !text-xs lg:!inline-flex lg:!text-sm"
+              className="btn btn-amber hidden! py-2! text-xs! lg:inline-flex! lg:text-sm!"
               onClick={() => openAnalyze()}
             >
               {t("nav.newOffer")}
@@ -110,7 +110,7 @@ function LayoutShell() {
       {!hideFab && (
         <button
           type="button"
-          className="mobile-fab fixed z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--ink)] bg-[var(--amber)] text-[var(--amber-fg)] shadow-lg transition-transform active:scale-95 lg:hidden"
+          className="mobile-fab fixed z-40 flex h-14 w-14 items-center justify-center rounded-full border border-(--ink) bg-(--amber) text-(--amber-fg) shadow-lg transition-transform active:scale-95 lg:hidden"
           style={{
             right: "max(1rem, env(safe-area-inset-right, 0px))",
             bottom: "calc(4.75rem + env(safe-area-inset-bottom, 0px))",
@@ -124,7 +124,7 @@ function LayoutShell() {
 
       {/* Tab bar (mobile) */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--ink)] bg-[var(--paper)]/95 backdrop-blur-[2px] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-(--ink) bg-(--paper)/95 backdrop-blur-[2px] lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         aria-label={t("nav.primary")}
       >
@@ -224,11 +224,11 @@ function UserMenu({
   }
 
   const identity = (
-    <div className="border-b border-[var(--hairline)] px-4 py-3 lg:px-3 lg:py-2.5">
+    <div className="border-b border-(--hairline) px-4 py-3 lg:px-3 lg:py-2.5">
       <p className="truncate text-sm font-medium" title={name}>
         {name}
       </p>
-      <p className="truncate text-xs text-[var(--ink-soft)]" title={email}>
+      <p className="truncate text-xs text-(--ink-soft)" title={email}>
         {email}
       </p>
     </div>
@@ -240,7 +240,7 @@ function UserMenu({
         <MenuItem onClick={() => closeAnd(onAccount)}>{t("nav.myAccount")}</MenuItem>
         <MenuItem onClick={() => closeAnd(onSettings)}>{t("nav.settings")}</MenuItem>
       </div>
-      <div className="border-t border-[var(--hairline)] py-1">
+      <div className="border-t border-(--hairline) py-1">
         <MenuItem onClick={() => closeAnd(onLogout)} tone="danger">
           {t("nav.logout")}
         </MenuItem>
@@ -253,7 +253,7 @@ function UserMenu({
       <button
         ref={triggerRef}
         type="button"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--paper-lift)] text-xs font-semibold tracking-wide text-[var(--ink)] transition-colors hover:border-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)] lg:h-9 lg:w-9"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-(--hairline) bg-(--paper-lift) text-xs font-semibold tracking-wide text-(--ink) transition-colors hover:border-(--ink) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--amber) lg:h-9 lg:w-9"
         aria-expanded={open}
         aria-controls={panelId}
         aria-haspopup="menu"
@@ -276,7 +276,7 @@ function UserMenu({
             <div className="fixed inset-0 z-[60] lg:hidden" role="presentation" data-account-panel>
               <button
                 type="button"
-                className="absolute inset-0 bg-[var(--paper-deep)]/70"
+                className="absolute inset-0 bg-(--paper-deep)/70"
                 aria-label={t("nav.closeMenu")}
                 onClick={() => setOpen(false)}
               />
@@ -284,10 +284,10 @@ function UserMenu({
                 id={panelId}
                 role="menu"
                 aria-label={t("nav.accountMenu")}
-                className="absolute inset-x-0 bottom-0 border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
+                className="absolute inset-x-0 bottom-0 border-t border-(--ink) bg-(--paper-lift) shadow-lg"
                 style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
               >
-                <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[var(--hairline)]" aria-hidden />
+                <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-(--hairline)" aria-hidden />
                 {identity}
                 {items}
               </div>
@@ -298,7 +298,7 @@ function UserMenu({
               data-account-panel
               role="menu"
               aria-label={t("nav.accountMenu")}
-              className="fixed z-[60] hidden w-56 border border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg lg:block"
+              className="fixed z-[60] hidden w-56 border border-(--ink) bg-(--paper-lift) shadow-lg lg:block"
               style={(() => {
                 const rect = triggerRef.current?.getBoundingClientRect();
                 if (!rect) return { top: 0, right: 16 };
@@ -331,8 +331,8 @@ function MenuItem({
     <button
       type="button"
       role="menuitem"
-      className={`block w-full px-4 py-3.5 text-left text-sm transition-colors hover:bg-[var(--row-hover)] focus-visible:bg-[var(--row-hover)] focus-visible:outline-none lg:px-3 lg:py-2.5 ${
-        tone === "danger" ? "text-[var(--brick)]" : ""
+      className={`block w-full px-4 py-3.5 text-left text-sm transition-colors hover:bg-(--row-hover) focus-visible:bg-(--row-hover) focus-visible:outline-none lg:px-3 lg:py-2.5 ${
+        tone === "danger" ? "text-(--brick)" : ""
       }`}
       onClick={onClick}
     >

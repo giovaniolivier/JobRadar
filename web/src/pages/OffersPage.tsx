@@ -78,7 +78,7 @@ function filtersDirty(f: {
 /** Petit badge d'origine (offres importées automatiquement). */
 function SourceTag({ label }: { label: string }) {
   return (
-    <span className="mono ml-2 inline-block rounded-sm border border-[var(--hairline)] px-1.5 align-middle text-[10px] uppercase tracking-wide text-[var(--ink)]/60">
+    <span className="mono ml-2 inline-block rounded-sm border border-(--hairline) px-1.5 align-middle text-[10px] uppercase tracking-wide text-(--ink)/60">
       {label}
     </span>
   );
@@ -289,13 +289,13 @@ export function OffersPage() {
 
   return (
     <div className="fade-in">
-      <div className="flex flex-col gap-4 border-b border-[var(--hairline)] pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-(--hairline) pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl">
           <p className="label">{t("offers.eyebrow")}</p>
           <h1 className="mt-1 text-3xl sm:text-4xl">{t("offers.title")}</h1>
-          <p className="mt-2 text-[var(--ink)]/75">{t("offers.subtitle")}</p>
+          <p className="mt-2 text-(--ink)/75">{t("offers.subtitle")}</p>
           {!loading && (
-            <p className="mono mt-3 text-sm text-[var(--ink)]/70">
+            <p className="mono mt-3 text-sm text-(--ink)/70">
               {filtered.length === jobs.length
                 ? jobs.length === 1
                   ? t("offers.count", { n: jobs.length })
@@ -307,7 +307,7 @@ export function OffersPage() {
         <div className="flex flex-col items-start gap-2 sm:items-end">
           <button
             type="button"
-            className="btn btn-amber !hidden self-start sm:self-end lg:!inline-flex"
+            className="btn btn-amber hidden! self-start sm:self-end lg:inline-flex!"
             onClick={openAnalyze}
           >
             {t("offers.new")}
@@ -317,7 +317,7 @@ export function OffersPage() {
       </div>
 
       {!trulyEmpty && (
-        <div className="mt-5 border-b border-[var(--hairline)] pb-5">
+        <div className="mt-5 border-b border-(--hairline) pb-5">
           {/* Mobile — recherche + Filtrer */}
           <div className="flex gap-2 md:hidden">
             <input
@@ -328,7 +328,7 @@ export function OffersPage() {
             />
             <button
               type="button"
-              className="btn btn-ghost shrink-0 !px-3 !text-xs"
+              className="btn btn-ghost shrink-0 px-3! text-xs!"
               aria-expanded={filtersOpen}
               onClick={() => setFiltersOpen(true)}
             >
@@ -380,7 +380,7 @@ export function OffersPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <select
-                className="field !w-auto min-w-[10rem]"
+                className="field w-auto! min-w-[10rem]"
                 value={redFlags}
                 onChange={(e) => setRedFlags(e.target.value as RedFlagFilter)}
                 aria-label={t("offers.redFlags")}
@@ -390,7 +390,7 @@ export function OffersPage() {
                 <option value="no">{t("offers.redFlagsNo")}</option>
               </select>
               <select
-                className="field !w-auto min-w-[10rem]"
+                className="field w-auto! min-w-[10rem]"
                 value={work}
                 onChange={(e) => setWork(e.target.value as WorkMode)}
                 aria-label={t("offers.workAria")}
@@ -401,7 +401,7 @@ export function OffersPage() {
                 <option value="onsite">{t("offers.workOnsite")}</option>
               </select>
               {dirty && (
-                <button type="button" className="btn btn-ghost !text-xs" onClick={resetFilters}>
+                <button type="button" className="btn btn-ghost text-xs!" onClick={resetFilters}>
                   {t("offers.resetFilters")}
                 </button>
               )}
@@ -432,14 +432,14 @@ export function OffersPage() {
         <p className="mt-10 label">{t("offers.loading")}</p>
       ) : trulyEmpty ? (
         <div className="mt-12 max-w-lg">
-          <p className="text-lg text-[var(--ink)]">{t("offers.empty")}</p>
+          <p className="text-lg text-(--ink)">{t("offers.empty")}</p>
           <button type="button" className="btn btn-amber mt-5 inline-flex" onClick={openAnalyze}>
             {t("offers.emptyCta")}
           </button>
         </div>
       ) : filterEmpty ? (
         <div className="mt-12 max-w-lg">
-          <p className="text-lg text-[var(--ink)]">{t("offers.filterEmpty")}</p>
+          <p className="text-lg text-(--ink)">{t("offers.filterEmpty")}</p>
           <button type="button" className="btn btn-ghost mt-5" onClick={resetFilters}>
             {t("offers.resetFilters")}
           </button>
@@ -447,7 +447,7 @@ export function OffersPage() {
       ) : (
         <>
           {/* Mobile — cartes registre */}
-          <ul className="mt-6 divide-y divide-[var(--hairline)] border-y border-[var(--ink)] md:hidden">
+          <ul className="mt-6 divide-y divide-(--hairline) border-y border-(--ink) md:hidden">
             {visible.map((job, i) => {
               const flags = effectiveRedFlags(job, salaryUnspecified);
               return (
@@ -458,7 +458,7 @@ export function OffersPage() {
                 >
                   <button
                     type="button"
-                    className="flex w-full flex-col gap-2 px-0 py-4 text-left transition-colors active:bg-[var(--row-hover)]"
+                    className="flex w-full flex-col gap-2 px-0 py-4 text-left transition-colors active:bg-(--row-hover)"
                     onClick={() => openOfferDetail(job)}
                   >
                     <div className="flex items-start gap-3">
@@ -467,7 +467,7 @@ export function OffersPage() {
                         <h2 className="display text-base font-semibold leading-snug">
                           {job.title}
                         </h2>
-                        <p className="mt-0.5 text-sm text-[var(--ink)]/70">
+                        <p className="mt-0.5 text-sm text-(--ink)/70">
                           {job.company}
                           {job.source === "remotive" ? <SourceTag label={t("offers.sourceRemotive")} /> : null}
                         </p>
@@ -479,7 +479,7 @@ export function OffersPage() {
                     >
                       {job.salaryRaw ?? t("offers.salaryNc")}
                       {job.location ? (
-                        <span className="text-[var(--ink)]/70"> · {job.location}</span>
+                        <span className="text-(--ink)/70"> · {job.location}</span>
                       ) : null}
                     </p>
                     {flags.length > 0 ? (
@@ -488,7 +488,7 @@ export function OffersPage() {
                       </div>
                     ) : null}
                     {job.application ? (
-                      <p className="label pl-[3.5rem] text-[var(--match)]">{t("offers.inPipeline")}</p>
+                      <p className="label pl-[3.5rem] text-(--match)">{t("offers.inPipeline")}</p>
                     ) : null}
                   </button>
                 </li>
@@ -535,7 +535,7 @@ export function OffersPage() {
                       <ScoreBadge score={job.analysis?.relevanceScore} />
                       <div className="min-w-0">
                         <h2 className="display text-lg font-semibold leading-snug">{job.title}</h2>
-                        <p className="mt-0.5 text-sm text-[var(--ink)]/70">
+                        <p className="mt-0.5 text-sm text-(--ink)/70">
                           {job.company}
                           {job.location ? ` · ${job.location}` : ""}
                           {job.source === "remotive" ? <SourceTag label={t("offers.sourceRemotive")} /> : null}
@@ -558,16 +558,16 @@ export function OffersPage() {
                             {flags.length > 1 ? ` +${flags.length - 1}` : ""}
                           </span>
                         ) : (
-                          <span className="text-sm text-[var(--ink)]/70">—</span>
+                          <span className="text-sm text-(--ink)/70">—</span>
                         )}
                       </div>
                       <div className="flex items-center justify-end">
                         {job.application ? (
-                          <span className="label text-[var(--match)]">{t("offers.inPipeline")}</span>
+                          <span className="label text-(--match)">{t("offers.inPipeline")}</span>
                         ) : (
                           <button
                             type="button"
-                            className="btn btn-ghost !py-1 !text-xs whitespace-nowrap opacity-70 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                            className="btn btn-ghost py-1! text-xs! whitespace-nowrap opacity-70 transition-opacity group-hover:opacity-100 focus:opacity-100"
                             disabled={pipelineBusy === job.id}
                             onClick={(e) => void addToPipeline(e, job)}
                           >
@@ -640,7 +640,7 @@ function FiltersSheet({
     <div className="fixed inset-0 z-[60] md:hidden" role="presentation">
       <button
         type="button"
-        className="absolute inset-0 bg-[var(--paper-deep)]/70"
+        className="absolute inset-0 bg-(--paper-deep)/70"
         aria-label={t("offers.filtersClose")}
         onClick={onClose}
       />
@@ -649,29 +649,29 @@ function FiltersSheet({
         role="dialog"
         aria-modal="true"
         aria-label={t("offers.filtersAria")}
-        className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col border-t border-[var(--ink)] bg-[var(--paper-lift)] shadow-lg"
+        className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col border-t border-(--ink) bg-(--paper-lift) shadow-lg"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--hairline)]" aria-hidden />
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--hairline)] px-4 py-3">
+        <div className="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-(--hairline)" aria-hidden />
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-(--hairline) px-4 py-3">
           <p className="label">{t("offers.filtersTitle")}</p>
           <div className="flex items-center gap-3">
             {dirty && (
               <button
                 type="button"
-                className="text-xs text-[var(--ink)]/70 underline underline-offset-4"
+                className="text-xs text-(--ink)/70 underline underline-offset-4"
                 onClick={onReset}
               >
                 {t("offers.reset")}
               </button>
             )}
-            <button type="button" className="btn btn-ghost !py-1.5 !text-xs" onClick={onClose}>
+            <button type="button" className="btn btn-ghost py-1.5! text-xs!" onClick={onClose}>
               {t("common.close")}
             </button>
           </div>
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">{children}</div>
-        <div className="shrink-0 border-t border-[var(--hairline)] px-4 py-3">
+        <div className="shrink-0 border-t border-(--hairline) px-4 py-3">
           <button type="button" className="btn btn-amber w-full" onClick={onClose}>
             {t("offers.seeResults")}
           </button>

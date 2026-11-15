@@ -414,14 +414,14 @@ export function ProfilePage() {
 
   return (
     <div className="fade-in max-w-3xl pb-16">
-      <header className="border-b border-[var(--hairline)] pb-4">
+      <header className="border-b border-(--hairline) pb-4">
         <p className="label">
           {onboarding ? t("profile.eyebrowOnboarding") : t("profile.eyebrow")}
         </p>
         <h1 className="mt-1 text-3xl sm:text-4xl">
           {onboarding ? t("profile.titleOnboarding") : t("profile.title")}
         </h1>
-        <p className="mt-2 max-w-xl text-[var(--ink)]/75">
+        <p className="mt-2 max-w-xl text-(--ink)/75">
           {onboarding ? t("profile.subtitleOnboarding") : t("profile.subtitle")}
         </p>
         {toast && (
@@ -437,7 +437,7 @@ export function ProfilePage() {
       </header>
 
       <div
-        className="sticky top-[3.25rem] z-20 -mx-4 grid grid-cols-4 gap-1 border-b border-[var(--hairline)] bg-[var(--paper)]/95 px-4 py-2 backdrop-blur-[2px] lg:hidden"
+        className="sticky top-[3.25rem] z-20 -mx-4 grid grid-cols-4 gap-1 border-b border-(--hairline) bg-(--paper)/95 px-4 py-2 backdrop-blur-[2px] lg:hidden"
         role="tablist"
         aria-label={t("profile.tabsAria")}
       >
@@ -453,8 +453,8 @@ export function ProfilePage() {
               title={meta.full ? t(meta.full) : t(meta.short)}
               className={`min-h-10 px-1 py-2 text-center text-[0.7rem] font-medium tracking-wide transition-colors ${
                 active
-                  ? "border border-[var(--amber)] text-[var(--amber)]"
-                  : "border border-[var(--hairline)] text-[var(--ink)]/70"
+                  ? "border border-(--amber) text-(--amber)"
+                  : "border border-(--hairline) text-(--ink)/70"
               }`}
               onClick={() => setProfileTab(id)}
             >
@@ -467,17 +467,17 @@ export function ProfilePage() {
       <div className="mt-5 space-y-8 lg:mt-8 lg:space-y-10">
         <section
           role="tabpanel"
-          className={`${tabPanelClass("cv")} space-y-4 border-b border-[var(--hairline)] pb-8 lg:pb-10`}
+          className={`${tabPanelClass("cv")} space-y-4 border-b border-(--hairline) pb-8 lg:pb-10`}
         >
           <div>
             <h2 className="text-xl">{t("profile.cvTitle")}</h2>
           </div>
 
           {!hasCv && !replacingCv ? (
-            <div className="border border-dashed border-[var(--ink)] px-5 py-8">
-              <p className="text-lg text-[var(--ink)]">{t("profile.cvEmptyTitle")}</p>
-              <p className="mt-2 text-sm text-[var(--ink)]/75">{t("profile.cvEmptyBody")}</p>
-              <p className="mt-2 text-xs text-[var(--ink)]/70">{t("profile.cvEmptyFormats")}</p>
+            <div className="border border-dashed border-(--ink) px-5 py-8">
+              <p className="text-lg text-(--ink)">{t("profile.cvEmptyTitle")}</p>
+              <p className="mt-2 text-sm text-(--ink)/75">{t("profile.cvEmptyBody")}</p>
+              <p className="mt-2 text-xs text-(--ink)/70">{t("profile.cvEmptyFormats")}</p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -503,7 +503,7 @@ export function ProfilePage() {
                     <p className="font-medium truncate">
                       {profile?.cvFileName || t("profile.cvImported")}
                     </p>
-                    <p className="mono mt-1 text-xs text-[var(--ink)]/70">
+                    <p className="mono mt-1 text-xs text-(--ink)/70">
                       {importDate
                         ? t("profile.cvImportedOn", { date: importDate })
                         : t("profile.cvImportDateUnknown")}
@@ -512,7 +512,7 @@ export function ProfilePage() {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="btn btn-ghost !py-1.5 !text-sm"
+                      className="btn btn-ghost py-1.5! text-sm!"
                       disabled={!canPreviewCv}
                       onClick={() => setCvPreview((v) => !v)}
                     >
@@ -520,7 +520,7 @@ export function ProfilePage() {
                     </button>
                     <button
                       type="button"
-                      className="btn btn-amber !py-1.5 !text-sm"
+                      className="btn btn-amber py-1.5! text-sm!"
                       onClick={() => {
                         setReplacingCv(true);
                         setCvPreview(false);
@@ -533,15 +533,15 @@ export function ProfilePage() {
               )}
 
               {cvPreview && profile?.cvText && (
-                <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap border border-[var(--hairline)] bg-[var(--field-bg)] p-3 font-[var(--font-body)] text-sm leading-relaxed">
+                <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap border border-(--hairline) bg-(--field-bg) p-3 font-(--font-body) text-sm leading-relaxed">
                   {profile.cvText}
                 </pre>
               )}
 
               {replacingCv && (
-                <div className="space-y-3 border border-[var(--ink)] p-4">
-                  <p className="text-sm text-[var(--ink)]/75">{t("profile.cvReplaceHint")}</p>
-                  <p className="text-xs text-[var(--ink)]/70">{t("profile.cvReplaceFormats")}</p>
+                <div className="space-y-3 border border-(--ink) p-4">
+                  <p className="text-sm text-(--ink)/75">{t("profile.cvReplaceHint")}</p>
+                  <p className="text-xs text-(--ink)/70">{t("profile.cvReplaceFormats")}</p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -600,13 +600,13 @@ export function ProfilePage() {
 
         <section
           role="tabpanel"
-          className={`${tabPanelClass("skills")} space-y-5 border-b border-[var(--hairline)] pb-10`}
+          className={`${tabPanelClass("skills")} space-y-5 border-b border-(--hairline) pb-10`}
         >
           <div>
             <h2 className="text-xl">{t("profile.skillsTitle")}</h2>
-            <p className="mt-1 text-sm text-[var(--ink)]/75">{t("profile.skillsSubtitle")}</p>
+            <p className="mt-1 text-sm text-(--ink)/75">{t("profile.skillsSubtitle")}</p>
             {!hasCv && (
-              <p className="mt-2 text-xs text-[var(--amber)]">{t("profile.skillsNoCvHint")}</p>
+              <p className="mt-2 text-xs text-(--amber)">{t("profile.skillsNoCvHint")}</p>
             )}
           </div>
           <TagInput
@@ -632,12 +632,12 @@ export function ProfilePage() {
 
         <section
           role="tabpanel"
-          className={`${tabPanelClass("prefs")} space-y-5 border-b border-[var(--hairline)] pb-10`}
+          className={`${tabPanelClass("prefs")} space-y-5 border-b border-(--hairline) pb-10`}
         >
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 className="text-xl">{t("profile.prefsTitle")}</h2>
-              <p className="mt-1 text-sm text-[var(--ink)]/75">{t("profile.prefsSubtitle")}</p>
+              <p className="mt-1 text-sm text-(--ink)/75">{t("profile.prefsSubtitle")}</p>
             </div>
             {prefsSaved && (
               <p className="mono text-xs" style={{ color: "var(--match)" }}>
@@ -663,7 +663,7 @@ export function ProfilePage() {
 
           <div>
             <span className="label mb-1.5 block">{t("profile.workType")}</span>
-            <p className="mb-2 text-xs text-[var(--ink)]/70">{t("profile.workTypeHint")}</p>
+            <p className="mb-2 text-xs text-(--ink)/70">{t("profile.workTypeHint")}</p>
             <div className="flex flex-wrap gap-2">
               {WORK_MODE_KEYS.map((m) => {
                 const on = workModes.includes(m.id);
@@ -673,8 +673,8 @@ export function ProfilePage() {
                     type="button"
                     className={
                       on
-                        ? "inline-flex items-center border border-[var(--amber)] bg-[var(--amber)] px-3 py-1.5 text-sm font-medium text-[var(--amber-fg)]"
-                        : "inline-flex items-center border border-[var(--hairline)] bg-transparent px-3 py-1.5 text-sm text-[var(--ink-soft)] hover:border-[var(--ink)] hover:text-[var(--ink)]"
+                        ? "inline-flex items-center border border-(--amber) bg-(--amber) px-3 py-1.5 text-sm font-medium text-(--amber-fg)"
+                        : "inline-flex items-center border border-(--hairline) bg-transparent px-3 py-1.5 text-sm text-(--ink-soft) hover:border-(--ink) hover:text-(--ink)"
                     }
                     aria-pressed={on}
                     onClick={() => toggleWorkMode(m.id)}
@@ -750,24 +750,24 @@ export function ProfilePage() {
 
         <section
           role="tabpanel"
-          className={`${tabPanelClass("account")} space-y-8 border-b border-[var(--hairline)] pb-10 lg:border-b-0`}
+          className={`${tabPanelClass("account")} space-y-8 border-b border-(--hairline) pb-10 lg:border-b-0`}
         >
           <div>
             <h2 className="text-xl">{t("profile.accountTitle")}</h2>
-            <p className="mt-1 text-sm text-[var(--ink)]/75">{t("profile.accountSubtitle")}</p>
+            <p className="mt-1 text-sm text-(--ink)/75">{t("profile.accountSubtitle")}</p>
           </div>
 
           <Link
             to="/settings?tab=privacy"
-            className="flex items-center justify-between gap-3 border border-[var(--ink)] px-4 py-3.5 transition-colors hover:bg-[var(--row-hover)]"
+            className="flex items-center justify-between gap-3 border border-(--ink) px-4 py-3.5 transition-colors hover:bg-(--row-hover)"
           >
             <span>
               <span className="block text-sm font-medium">{t("profile.settingsLink")}</span>
-              <span className="mt-0.5 block text-xs text-[var(--ink)]/70">
+              <span className="mt-0.5 block text-xs text-(--ink)/70">
                 {t("profile.settingsLinkHint")}
               </span>
             </span>
-            <span className="text-[var(--amber)]" aria-hidden>
+            <span className="text-(--amber)" aria-hidden>
               →
             </span>
           </Link>
@@ -795,7 +795,7 @@ export function ProfilePage() {
           </div>
 
           {hasPassword ? (
-            <form onSubmit={onChangePassword} className="space-y-3 border-t border-[var(--hairline)] pt-5">
+            <form onSubmit={onChangePassword} className="space-y-3 border-t border-(--hairline) pt-5">
               <p className="label">{t("profile.changePassword")}</p>
               <label className="block">
                 <span className="label mb-1.5 block">{t("profile.currentPassword")}</span>
@@ -821,7 +821,7 @@ export function ProfilePage() {
                     minLength={8}
                   />
                   {newPassword.length > 0 && (
-                    <p className="mono mt-1 text-xs text-[var(--ink-soft)]">
+                    <p className="mono mt-1 text-xs text-(--ink-soft)">
                       {t("auth.passwordStrength", { label: strength.label })}
                     </p>
                   )}
@@ -843,7 +843,7 @@ export function ProfilePage() {
               </button>
             </form>
           ) : (
-            <p className="text-sm text-[var(--ink)]/75">{t("profile.socialAccount")}</p>
+            <p className="text-sm text-(--ink)/75">{t("profile.socialAccount")}</p>
           )}
 
           <DeleteAccountPanel hasPassword={hasPassword} onError={setError} />

@@ -281,7 +281,7 @@ export function ApplicationDetailPanel({
       <div className="fixed inset-0 z-50 overflow-hidden">
         <button
           type="button"
-          className="absolute inset-0 bg-[var(--ink)]/40"
+          className="absolute inset-0 bg-(--ink)/40"
           aria-label={t("app.close")}
           onClick={onClose}
         />
@@ -289,25 +289,25 @@ export function ApplicationDetailPanel({
           role="dialog"
           aria-modal="true"
           aria-labelledby="app-detail-title"
-          className="absolute inset-0 left-auto flex w-full max-w-lg flex-col border-l border-[var(--ink)] bg-[var(--paper)] shadow-2xl"
+          className="absolute inset-0 left-auto flex w-full max-w-lg flex-col border-l border-(--ink) bg-(--paper) shadow-2xl"
         >
-          <header className="shrink-0 border-b border-[var(--hairline)] px-4 py-3">
+          <header className="shrink-0 border-b border-(--hairline) px-4 py-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="label">{t("app.eyebrow")}</p>
                 <h2 id="app-detail-title" className="mt-0.5 truncate text-lg leading-snug sm:text-xl">
                   {job?.title ?? t("app.detailFallback")}
                 </h2>
-                <p className="truncate text-sm text-[var(--ink-soft)]">{job?.company ?? "—"}</p>
+                <p className="truncate text-sm text-(--ink-soft)">{job?.company ?? "—"}</p>
               </div>
-              <button type="button" className="btn btn-ghost !px-2 !py-1 !text-xs" onClick={onClose}>
+              <button type="button" className="btn btn-ghost px-2! py-1! text-xs!" onClick={onClose}>
                 {t("app.close")}
               </button>
             </div>
             <div className="mt-3 flex items-center gap-3">
               <ScoreBadge score={analysis?.relevanceScore ?? null} size={44} />
               <select
-                className="field min-w-0 flex-1 !py-1.5 text-sm"
+                className="field min-w-0 flex-1 py-1.5! text-sm"
                 value={local.status}
                 disabled={!!busy}
                 aria-label={t("app.statusAria")}
@@ -328,21 +328,21 @@ export function ApplicationDetailPanel({
           >
             {loadingDetail && <p className="label mb-3">{t("app.loading")}</p>}
 
-            <section className="border-b border-[var(--hairline)] pb-4">
+            <section className="border-b border-(--hairline) pb-4">
               <p className="label mb-2">{t("app.journey")}</p>
               <ol className="flex flex-wrap gap-x-1 gap-y-2">
                 {timeline.map((step, i) => (
                   <li key={step.key} className="flex items-center gap-1 text-xs">
                     {i > 0 && (
-                      <span className="mx-0.5 text-[var(--ink-soft)]" aria-hidden>
+                      <span className="mx-0.5 text-(--ink-soft)" aria-hidden>
                         →
                       </span>
                     )}
                     <span
                       className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 ${
                         step.done
-                          ? "border-[var(--amber)] text-[var(--ink)]"
-                          : "border-dashed border-[var(--hairline)] text-[var(--ink-soft)]"
+                          ? "border-(--amber) text-(--ink)"
+                          : "border-dashed border-(--hairline) text-(--ink-soft)"
                       }`}
                     >
                       <span
@@ -357,7 +357,7 @@ export function ApplicationDetailPanel({
                       />
                       {step.label}
                       {step.done && step.date ? (
-                        <span className="mono text-[0.65rem] text-[var(--ink-soft)]">
+                        <span className="mono text-[0.65rem] text-(--ink-soft)">
                           {formatDate(step.date, locale)}
                         </span>
                       ) : null}
@@ -372,11 +372,11 @@ export function ApplicationDetailPanel({
               )}
             </section>
 
-            <section className="border-b border-[var(--hairline)] py-4">
+            <section className="border-b border-(--hairline) py-4">
               <p className="label mb-2">{t("app.analysis")}</p>
               {analysis ? (
                 <div className="space-y-3">
-                  <p className="text-sm leading-snug text-[var(--ink)]/90">
+                  <p className="text-sm leading-snug text-(--ink)/90">
                     {analysis.summary || t("app.noSummary")}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -390,7 +390,7 @@ export function ApplicationDetailPanel({
                             <li key={s}>• {s}</li>
                           ))
                         ) : (
-                          <li className="text-[var(--ink-soft)]">—</li>
+                          <li className="text-(--ink-soft)">—</li>
                         )}
                       </ul>
                     </div>
@@ -404,7 +404,7 @@ export function ApplicationDetailPanel({
                             <li key={g}>• {g}</li>
                           ))
                         ) : (
-                          <li className="text-[var(--ink-soft)]">—</li>
+                          <li className="text-(--ink-soft)">—</li>
                         )}
                       </ul>
                     </div>
@@ -422,11 +422,11 @@ export function ApplicationDetailPanel({
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-[var(--ink-soft)]">{t("app.noAnalysis")}</p>
+                <p className="text-sm text-(--ink-soft)">{t("app.noAnalysis")}</p>
               )}
             </section>
 
-            <section className="border-b border-[var(--hairline)] py-4">
+            <section className="border-b border-(--hairline) py-4">
               <label className="block">
                 <span className="label mb-1 block">{t("app.notes")}</span>
                 <textarea
@@ -439,7 +439,7 @@ export function ApplicationDetailPanel({
                   placeholder={t("app.notesPh")}
                 />
               </label>
-              <p className="mono mt-1 text-[0.65rem] text-[var(--ink-soft)]">
+              <p className="mono mt-1 text-[0.65rem] text-(--ink-soft)">
                 {busy === "notes"
                   ? t("app.notesSaving")
                   : notesDirty
@@ -457,14 +457,14 @@ export function ApplicationDetailPanel({
                     href={sourceHref}
                     target="_blank"
                     rel="noreferrer"
-                    className="underline underline-offset-4 hover:text-[var(--amber)]"
+                    className="underline underline-offset-4 hover:text-(--amber)"
                   >
                     {t("app.viewOriginal")}
                   </a>
                 ) : (
                   <Link
                     to={sourceHref}
-                    className="underline underline-offset-4 hover:text-[var(--amber)]"
+                    className="underline underline-offset-4 hover:text-(--amber)"
                     onClick={onClose}
                   >
                     {t("app.viewOffer")}
@@ -474,18 +474,18 @@ export function ApplicationDetailPanel({
             )}
 
             {local.coverLetter && (
-              <section className="mt-3 border border-[var(--hairline)] px-3 py-2">
+              <section className="mt-3 border border-(--hairline) px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="label">{t("app.letterSaved")}</p>
                   <button
                     type="button"
-                    className="text-xs underline underline-offset-4 text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                    className="text-xs underline underline-offset-4 text-(--ink-soft) hover:text-(--ink)"
                     onClick={() => setCoverPanelOpen(true)}
                   >
                     {t("app.letterOpen")}
                   </button>
                 </div>
-                <pre className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap font-[var(--font-body)] text-sm leading-relaxed text-[var(--ink-soft)]">
+                <pre className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap font-(--font-body) text-sm leading-relaxed text-(--ink-soft)">
                   {local.coverLetter.slice(0, 280)}
                   {local.coverLetter.length > 280 ? "…" : ""}
                 </pre>
@@ -499,12 +499,12 @@ export function ApplicationDetailPanel({
             )}
           </div>
 
-          <footer className="shrink-0 border-t border-[var(--hairline)] bg-[var(--paper)] px-4 py-3">
+          <footer className="shrink-0 border-t border-(--hairline) bg-(--paper) px-4 py-3">
             <div className="flex flex-col gap-2 sm:flex-row">
               {local.status !== "RESPONSE" && (
                 <button
                   type="button"
-                  className="btn btn-ghost flex-1 !py-2"
+                  className="btn btn-ghost flex-1 py-2!"
                   disabled={!!busy}
                   onClick={() => void markRejected()}
                 >
@@ -514,7 +514,7 @@ export function ApplicationDetailPanel({
               {(local.status === "APPLIED" || local.status === "INTERVIEW") && (
                 <button
                   type="button"
-                  className="btn btn-ghost flex-1 !py-2"
+                  className="btn btn-ghost flex-1 py-2!"
                   disabled={!!busy}
                   onClick={() => void planFollowUp()}
                 >
@@ -523,7 +523,7 @@ export function ApplicationDetailPanel({
               )}
               <button
                 type="button"
-                className="btn btn-amber flex-1 !py-2"
+                className="btn btn-amber flex-1 py-2!"
                 disabled={!!busy || !job}
                 onClick={() => setCoverPanelOpen(true)}
               >
