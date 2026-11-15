@@ -39,6 +39,71 @@ const aiLimiter = rateLimit({
   message: { error: "Trop d'analyses d'affilée. Réessayez dans une minute." },
 });
 
+type OwnedJob = NonNullable<Awaited<ReturnType<typeof findOwnedJob>>>;
+type OwnedProfile = NonNullable<Awaited<ReturnType<typeof prisma.profile.findUnique>>>;
+
+/**
+ * Analyse une offre existante contre le profil et persiste le résultat (analyse +
+ * métadonnées extraites), puis notifie si le score est élevé. Renvoie l'analyse.
+ * Factorise la logique partagée par POST /:id/analyze et POST /analyze-pending.
+ */
+async function analyzeAndPersistJob(userId: string, job: OwnedJob, profile: OwnedProfile) {
+  const result = await analyzeJobAgainstProfile(profile, job);
+  const score = clampScore(result.relevanceScore);
+
+  const metaRepair = needsJobMetadataRepair(job)
+    ? repairJobMetadataFromDescription(job)
+    : { title: job.title, company: job.company };
+  const nextTitle = result.extractedTitle?.trim() || metaRepair.title;
+  const nextCompany = result.extractedCompany?.trim() || metaRepair.company;
+
+  const analysisData = {
+    relevanceScore: score,
+    redFlags: result.redFlags,
+    strengths: result.strengths ?? [],
+    gaps: result.gaps ?? [],
+    summary: result.summary,
+    extractedSalary: result.extractedSalary ?? null,
+    extractedStack: result.extractedStack,
+    extractedSeniority: result.extractedSeniority ?? null,
+  };
+  const analysis = await prisma.analysis.upsert({
+    where: { jobId_userId: { jobId: job.id, userId } },
+    create: { jobId: job.id, userId, ...analysisData },
+    update: analysisData,
+  });
+
+  if (
+    result.extractedStack.length ||
+    result.extractedSalary ||
+    result.extractedSeniority ||
+    nextTitle !== job.title ||
+    nextCompany !== job.company
+  ) {
+    await prisma.job.update({
+      where: { id: job.id },
+      data: {
+        ...(result.extractedStack.length ? { techStack: result.extractedStack } : {}),
+        ...(result.extractedSalary ? { salaryRaw: result.extractedSalary } : {}),
+        ...(result.extractedSeniority ? { seniority: result.extractedSeniority } : {}),
+        ...(nextTitle !== job.title ? { title: nextTitle } : {}),
+        ...(nextCompany !== job.company ? { company: nextCompany } : {}),
+      },
+    });
+  }
+
+  void notifyHighScoreAnalysis({
+    userId,
+    analysisId: analysis.id,
+    score,
+    jobTitle: nextTitle || job.title,
+    company: nextCompany || job.company,
+    jobId: job.id,
+  }).catch(() => undefined);
+
+  return analysis;
+}
+
 function clampScore(n: number) {
   return Math.max(5, Math.min(100, Math.round(n)));
 }
@@ -460,63 +525,7 @@ offersRouter.post("/:id/analyze", aiLimiter, async (req: AuthedRequest, res, nex
     const profile = await prisma.profile.findUnique({ where: { userId } });
     if (!profile) throw new HttpError(400, "Upload your CV first (POST /auth/upload-cv)");
 
-    const result = await analyzeJobAgainstProfile(profile, job);
-    const score = clampScore(result.relevanceScore);
-
-    const metaRepair = needsJobMetadataRepair(job)
-      ? repairJobMetadataFromDescription(job)
-      : { title: job.title, company: job.company };
-    const nextTitle = result.extractedTitle?.trim() || metaRepair.title;
-    const nextCompany = result.extractedCompany?.trim() || metaRepair.company;
-
-    const analysis = await prisma.analysis.upsert({
-      where: { jobId_userId: { jobId: job.id, userId } },
-      create: {
-        jobId: job.id,
-        userId,
-        relevanceScore: score,
-        redFlags: result.redFlags,
-        strengths: result.strengths ?? [],
-        gaps: result.gaps ?? [],
-        summary: result.summary,
-        extractedSalary: result.extractedSalary ?? null,
-        extractedStack: result.extractedStack,
-        extractedSeniority: result.extractedSeniority ?? null,
-      },
-      update: {
-        relevanceScore: score,
-        redFlags: result.redFlags,
-        strengths: result.strengths ?? [],
-        gaps: result.gaps ?? [],
-        summary: result.summary,
-        extractedSalary: result.extractedSalary ?? null,
-        extractedStack: result.extractedStack,
-        extractedSeniority: result.extractedSeniority ?? null,
-      },
-    });
-
-    if (result.extractedStack.length || result.extractedSalary || result.extractedSeniority || nextTitle !== job.title || nextCompany !== job.company) {
-      await prisma.job.update({
-        where: { id: job.id },
-        data: {
-          ...(result.extractedStack.length ? { techStack: result.extractedStack } : {}),
-          ...(result.extractedSalary ? { salaryRaw: result.extractedSalary } : {}),
-          ...(result.extractedSeniority ? { seniority: result.extractedSeniority } : {}),
-          ...(nextTitle !== job.title ? { title: nextTitle } : {}),
-          ...(nextCompany !== job.company ? { company: nextCompany } : {}),
-        },
-      });
-    }
-
-    void notifyHighScoreAnalysis({
-      userId,
-      analysisId: analysis.id,
-      score,
-      jobTitle: nextTitle || job.title,
-      company: nextCompany || job.company,
-      jobId: job.id,
-    }).catch(() => undefined);
-
+    const analysis = await analyzeAndPersistJob(userId, job, profile);
     res.json(analysis);
   } catch (err) {
     next(err);
