@@ -11,6 +11,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, type Job } from "../lib/api";
 import { useLocale } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
 import { CoverLetterPanel } from "./CoverLetterPanel";
 import { RedFlagList, ScoreBadge, ScoreDialLoading } from "./ScoreBadge";
 
@@ -102,6 +103,7 @@ function AnalyzeOfferPanel({
   initialJob: Job | null;
 }) {
   const { t } = useLocale();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<Step>("input");
@@ -174,7 +176,7 @@ function AnalyzeOfferPanel({
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && step !== "loading" && !letterOpen) requestClose();
+      if (e.key === "Escape" && step !== "loading" && !letterOpen) void requestClose();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -186,10 +188,15 @@ function AnalyzeOfferPanel({
     );
   }
 
-  function requestClose() {
+  async function requestClose() {
     if (step === "loading") return;
     if (intent === "create" && step === "input" && hasDraft()) {
-      const ok = window.confirm(t("analyze.confirmAbandon"));
+      const ok = await confirm({
+        message: t("analyze.confirmAbandon"),
+        confirmLabel: t("analyze.confirmAbandonYes"),
+        cancelLabel: t("analyze.confirmAbandonNo"),
+        tone: "danger",
+      });
       if (!ok) return;
     }
     onClose();
@@ -391,7 +398,7 @@ function AnalyzeOfferPanel({
         className="absolute inset-0 bg-(--ink)/40"
         aria-label={t("analyze.close")}
         disabled={step === "loading"}
-        onClick={() => step !== "loading" && requestClose()}
+        onClick={() => { if (step !== "loading") void requestClose(); }}
       />
       <div
         ref={panelRef}
@@ -419,7 +426,7 @@ function AnalyzeOfferPanel({
             <button
               type="button"
               className="btn btn-ghost px-2! py-1! text-xs!"
-              onClick={requestClose}
+              onClick={() => void requestClose()}
             >
               {t("analyze.close")}
             </button>
@@ -533,7 +540,7 @@ function AnalyzeOfferPanel({
             <button
               type="button"
               className="text-sm text-(--ink-soft) underline underline-offset-4"
-              onClick={requestClose}
+              onClick={() => void requestClose()}
             >
               {t("analyze.cancel")}
             </button>

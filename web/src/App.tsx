@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./lib/auth";
 import { API_URL } from "./lib/api";
 import { LocaleProvider, useLocale } from "./lib/i18n";
 import { ToastProvider } from "./lib/toast";
+import { ConfirmProvider } from "./lib/confirm";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -92,7 +93,8 @@ export default function App() {
   return (
     <LocaleProvider>
       <ToastProvider>
-        <AuthProvider>
+        <ConfirmProvider>
+          <AuthProvider>
           <ApiStatusBanner />
           <Routes>
           <Route path="/" element={<HomeRoute />} />
@@ -118,7 +120,8 @@ export default function App() {
             </Route>
           </Route>
           </Routes>
-        </AuthProvider>
+          </AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </LocaleProvider>
   );
