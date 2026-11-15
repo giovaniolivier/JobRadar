@@ -53,6 +53,7 @@ app.get("/health", (_req, res) => {
     service: "jobradar-api",
     mail: {
       configured: mail.configured,
+      transport: mail.transport ?? undefined,
       verified: mail.verified,
       from: mail.from || undefined,
       error: mail.error ?? undefined,
@@ -69,6 +70,7 @@ app.get("/health/mail", (_req, res) => {
     service: "jobradar-api",
     mail: {
       configured: mail.configured,
+      transport: mail.transport ?? undefined,
       verified: mail.verified,
       from: mail.from || undefined,
       error: mail.error ?? undefined,

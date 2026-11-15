@@ -42,17 +42,19 @@ services:
         value: https://jobradar-web-ewb5.onrender.com
       - key: APP_ORIGIN
         value: https://jobradar-web-ewb5.onrender.com
-      # SMTP : Render (plan gratuit) bloque les ports 25 / 465 / 587.
-      # Brevo/Resend/Mailgun acceptent 2525 (STARTTLS) → seul port utilisable ici.
-      # MAIL_REQUIRED ne bloque plus le démarrage (l'API sert sans e-mail) ;
-      # l'état réel est visible sur /health.
+      # E-mail : Render (plan gratuit) bloque les ports SMTP 25 / 465 / 587.
+      # Méthode recommandée : BREVO_API_KEY (API HTTPS Brevo, port 443) — clé API v3,
+      # différente de la clé SMTP (Brevo → Settings → SMTP & API → API Keys).
+      # Le SMTP (port 2525) reste utilisé seulement si BREVO_API_KEY est vide.
+      # MAIL_REQUIRED ne bloque pas le démarrage ; l'état réel est sur /health.
       - key: MAIL_REQUIRED
         value: "true"
-      # Secours tant que l'envoi d'e-mails ne fonctionne pas sur Render :
-      # connexion mot de passe seul, sans code OTP. Repassez à "true" dès que
-      # /health indique mail.verified: true.
+      # auto : code de connexion par e-mail exigé dès que /health indique
+      # mail.verified: true, connexion mot de passe seul sinon.
       - key: LOGIN_OTP_REQUIRED
-        value: "false"
+        value: "auto"
+      - key: BREVO_API_KEY
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

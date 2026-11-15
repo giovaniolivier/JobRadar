@@ -15,7 +15,7 @@ Un seul repo GitHub ; web et API se déploient séparément (ou via Docker Compo
 - Node.js 20+
 - PostgreSQL
 - (Optionnel) clé **Gemini** et/ou **Groq** et/ou **Anthropic** pour l’IA
-- (Optionnel en local) SMTP pour OTP, reset password et emails de notification — **obligatoire en production**
+- (Optionnel en local) e-mail (clé API Brevo ou SMTP) pour OTP, reset password et emails de notification — **obligatoire en production**
 
 ## Setup local
 
@@ -25,7 +25,7 @@ Un seul repo GitHub ; web et API se déploient séparément (ou via Docker Compo
 cd api
 cp .env.example .env
 # Éditer DATABASE_URL, JWT_SECRET, CORS_ORIGIN, APP_ORIGIN,
-# GEMINI_API_KEY / GROQ_API_KEY / ANTHROPIC_API_KEY, AI_PROVIDER, SMTP_*
+# GEMINI_API_KEY / GROQ_API_KEY / ANTHROPIC_API_KEY, AI_PROVIDER, BREVO_API_KEY ou SMTP_*
 npm install
 npm run db:migrate:deploy   # ou npm run db:push en démo locale
 npm run db:seed
@@ -50,37 +50,47 @@ En `AI_PROVIDER=auto` (défaut) : **Gemini → Groq → Claude**, avec bascule s
 
 Voir `api/.env.example` pour les modèles (`GEMINI_MODEL`, `GROQ_MODEL`, etc.).
 
-### SMTP (Brevo)
+### E-mails (Brevo)
 
-L’API **démarre toujours**, même si SMTP est absent ou injoignable : la vérification
-tourne en arrière-plan et son résultat est exposé sur `/health`. En revanche la connexion
-par mot de passe envoie un **code OTP par e-mail** — sans SMTP fonctionnel, personne ne
-peut se connecter (l’envoi renvoie `503`).
+L’API **démarre toujours**, même si l’e-mail est absent ou injoignable : la vérification
+tourne en arrière-plan et son résultat est exposé sur `/health`. La connexion par mot de
+passe envoie un **code de vérification par e-mail** (voir `LOGIN_OTP_REQUIRED` ci-dessous).
 
-> **Secours** : `LOGIN_OTP_REQUIRED=false` désactive le code par e-mail et autorise la
-> connexion mot de passe seul. À réactiver (`true`) dès que `/health` renvoie
-> `mail.verified: true`.
+Deux transports, choisis automatiquement :
+
+| Transport | Activé si | Quand l’utiliser |
+|-----------|-----------|------------------|
+| **API HTTPS Brevo** (`brevo-api`) | `BREVO_API_KEY` est défini | **Recommandé**, obligatoire sur Render gratuit (port 443, jamais bloqué) |
+| SMTP (`smtp`) | `SMTP_HOST/USER/PASS` ou `SMTP_URL`, sans `BREVO_API_KEY` | En local, ou chez un hébergeur qui laisse passer le SMTP |
 
 1. Créer un compte [Brevo](https://www.brevo.com/) (plan gratuit : ~300 emails/jour)
-2. **Settings → SMTP & API → SMTP** : copier login + clé SMTP dans `api/.env`
-3. **Senders** : vérifier l’adresse de `MAIL_FROM`
-4. `npm run mail:test`
+2. **Senders** : vérifier l’adresse de `MAIL_FROM`
+3. **Settings → SMTP & API → API Keys** : créer une clé API v3 → `BREVO_API_KEY`
+   (ce n’est **pas** la clé SMTP ; si Brevo restreint les IP, autoriser celles de l’hébergeur
+   dans **Security → Authorised IPs**)
+4. `npm run mail:test` (affiche le transport utilisé)
 
-| Variable | Exemple Brevo |
-|----------|----------------|
-| `SMTP_HOST` | `smtp-relay.brevo.com` |
-| `SMTP_PORT` | `587` (local) · `2525` **sur Render** |
-| `SMTP_USER` | login SMTP du dashboard |
-| `SMTP_PASS` | clé SMTP |
+| Variable | Exemple |
+|----------|---------|
+| `BREVO_API_KEY` | `xkeysib-…` (clé API v3) |
 | `MAIL_FROM` | `JobRadar <ton@email-verifie.com>` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | `smtp-relay.brevo.com` / `587` (local) · `2525` sur Render / login SMTP / clé SMTP |
+
+**Code de connexion** — `LOGIN_OTP_REQUIRED` :
+
+| Valeur | Comportement |
+|--------|--------------|
+| `true` (défaut) | Code toujours exigé (sans e-mail fonctionnel, la connexion renvoie `503`) |
+| `auto` (Render) | Code exigé dès que `/health` indique `mail.verified: true`, mot de passe seul sinon |
+| `false` | Mot de passe seul (secours) |
 
 `APP_ORIGIN` = URL publique du front (liens reset + notifs).  
-Santé : `GET /health` → `{ mail: { configured, verified } }` (toujours `200` si l'API tourne).  
-Readiness e-mail : `GET /health/mail` → `503` si SMTP est configuré mais injoignable.
+Santé : `GET /health` → `{ mail: { configured, transport, verified } }` (toujours `200` si l'API tourne).  
+Readiness e-mail : `GET /health/mail` → `503` si l’e-mail est configuré mais injoignable.
 
 > **Render (plan gratuit)** : les ports SMTP sortants `25`, `465` et `587` sont bloqués
 > ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)).
-> Utilise `SMTP_PORT=2525` (Brevo accepte 2525 en STARTTLS), ou un plan payant.
+> Utilise `BREVO_API_KEY` (ou, à défaut, `SMTP_PORT=2525`).
 
 ### Connexion Google (optionnel)
 
@@ -135,7 +145,7 @@ docker compose up --build
 - API : http://localhost:4000  
 - Postgres : localhost:5432
 
-Passez aussi `SMTP_*`, `APP_ORIGIN`, `CORS_ORIGIN` et les clés IA via l’environnement ou un fichier `.env` à la racine (voir `docker-compose.yml`).
+Passez aussi `BREVO_API_KEY` / `SMTP_*`, `APP_ORIGIN`, `CORS_ORIGIN` et les clés IA via l’environnement ou un fichier `.env` à la racine (voir `docker-compose.yml`).
 
 ## Notes produit
 

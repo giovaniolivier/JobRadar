@@ -16,7 +16,14 @@ import {
   signAccessToken,
   setAuthCookies,
 } from "../lib/authTokens.js";
-import { appOrigin, generateOtpCode, isSmtpConfigured, maskEmail, sendMail } from "../lib/mail.js";
+import {
+  appOrigin,
+  generateOtpCode,
+  getMailStatus,
+  isMailConfigured,
+  maskEmail,
+  sendMail,
+} from "../lib/mail.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { extractCvText } from "../services/cvExtract.js";
@@ -60,12 +67,24 @@ function publicUser(user: { id: string; email: string; name: string }) {
 }
 
 /**
- * OTP par e-mail obligatoire par défaut. `LOGIN_OTP_REQUIRED=false` permet une
- * connexion mot de passe seul : utile quand l'hébergeur bloque le SMTP sortant
- * (Render gratuit) et qu'aucun code ne peut partir.
+ * Code de connexion par e-mail (`LOGIN_OTP_REQUIRED`) :
+ * - `true` (défaut) : toujours exigé ;
+ * - `false` : connexion mot de passe seul ;
+ * - `auto` : exigé dès que l'envoi d'e-mails est vérifié (/health → mail.verified),
+ *   mot de passe seul sinon — personne n'est bloqué si le fournisseur e-mail tombe.
  */
-const loginOtpRequired = () =>
-  (process.env.LOGIN_OTP_REQUIRED ?? "true").trim().toLowerCase() !== "false";
+export function loginOtpRequired(): boolean {
+  const mode = (process.env.LOGIN_OTP_REQUIRED ?? "true").trim().toLowerCase();
+  if (mode === "false") return false;
+  if (mode !== "auto") return true;
+  const mailOk = getMailStatus().verified === true;
+  if (!mailOk) {
+    console.warn(
+      "[auth] LOGIN_OTP_REQUIRED=auto — e-mail non vérifié, connexion sans code de vérification."
+    );
+  }
+  return mailOk;
+}
 
 /**
  * URL de redirection OAuth. Priorité à `*_REDIRECT_URI`, sinon on dérive l'URL
@@ -128,8 +147,8 @@ async function issueLoginOtp(user: { id: string; email: string }, remember: bool
     challengeId,
     emailHint: maskEmail(user.email),
     expiresInSec: Math.floor(OTP_TTL_MS / 1000),
-    // Only expose the code in API when SMTP is not configured (local fallback)
-    ...(!mail.delivered && !isSmtpConfigured() ? { devCode: code } : {}),
+    // Only expose the code in API when no mail transport is configured (local fallback)
+    ...(!mail.delivered && !isMailConfigured() ? { devCode: code } : {}),
   };
 }
 
@@ -375,7 +394,7 @@ authRouter.post("/forgot-password", authLimiter, async (req, res, next) => {
     res.json({
       ok: true,
       message: "Un email de réinitialisation a été envoyé. Vérifiez aussi vos spams.",
-      ...(!mail.delivered && !isSmtpConfigured() ? { devResetUrl: resetUrl } : {}),
+      ...(!mail.delivered && !isMailConfigured() ? { devResetUrl: resetUrl } : {}),
     });
   } catch (err) {
     next(err);

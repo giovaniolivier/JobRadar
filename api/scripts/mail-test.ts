@@ -1,18 +1,20 @@
 /**
- * Test SMTP end-to-end.
+ * Test e-mail de bout en bout (API Brevo ou SMTP, selon la configuration).
  * Usage: npm run mail:test
  * Optional: MAIL_TO=you@example.com npm run mail:test
  */
 /// <reference types="node" />
 import "dotenv/config";
-import { appOrigin, sendMail, verifySmtp } from "../src/lib/mail.js";
+import { appOrigin, sendMail, verifyMail } from "../src/lib/mail.js";
 
 async function main() {
-  const status = await verifySmtp();
-  console.log("SMTP status:", status);
+  const status = await verifyMail();
+  console.log("Mail status:", status);
 
   if (!status.configured) {
-    console.error("SMTP non configuré. Renseignez SMTP_* dans api/.env (voir .env.example).");
+    console.error(
+      "E-mail non configuré. Renseignez BREVO_API_KEY ou SMTP_* dans api/.env (voir .env.example)."
+    );
     process.exit(1);
   }
   if (!status.verified) {
@@ -32,18 +34,20 @@ async function main() {
 
   const result = await sendMail({
     to,
-    subject: "JobRadar — test SMTP",
-    text: `Test OK.\nOrigin app: ${appOrigin()}\nHorodatage: ${new Date().toISOString()}`,
+    subject: `JobRadar — test e-mail (${status.transport})`,
+    text: `Test OK via ${status.transport}.\nOrigin app: ${appOrigin()}\nHorodatage: ${new Date().toISOString()}`,
     html: `
       <div style="font-family:sans-serif;max-width:420px;line-height:1.5">
-        <p><strong>JobRadar</strong> — test SMTP réussi.</p>
+        <p><strong>JobRadar</strong> — test e-mail réussi (${status.transport}).</p>
         <p style="color:#666;font-size:13px">Origin: ${appOrigin()}</p>
         <p style="color:#666;font-size:13px">${new Date().toISOString()}</p>
       </div>
     `,
   });
 
-  console.log(result.delivered ? `Email envoyé à ${to}` : "Non délivré (mode log)");
+  console.log(
+    result.delivered ? `Email envoyé à ${to} via ${status.transport}` : "Non délivré (mode log)"
+  );
 }
 
 function extractFrom(from: string): string {

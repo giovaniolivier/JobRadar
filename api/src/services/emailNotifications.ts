@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma.js";
-import { appOrigin, isSmtpConfigured, sendMail } from "../lib/mail.js";
+import { appOrigin, isMailConfigured, sendMail } from "../lib/mail.js";
 
 const HIGH_SCORE_MIN = 70;
 const FOLLOWUP_DAYS = 7;
@@ -48,10 +48,10 @@ async function sendOnce(opts: {
   });
   // En prod avec SMTP : on marque seulement si délivré.
   // En dev sans SMTP : on marque aussi pour éviter le spam console à chaque tick.
-  if (delivered || !isSmtpConfigured()) {
+  if (delivered || !isMailConfigured()) {
     await markSent(opts.userId, opts.key);
   }
-  return delivered || !isSmtpConfigured();
+  return delivered || !isMailConfigured();
 }
 
 /** Après une analyse : email immédiat si score élevé et prefs OK. */
