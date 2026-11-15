@@ -84,11 +84,6 @@ export const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flas
 export const GROQ_MODEL = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
 export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-5-5";
 
-/** @deprecated use aiProviderErrorMessage */
-export function anthropicErrorMessage(err: unknown): string {
-  return aiProviderErrorMessage(err);
-}
-
 function errText(err: unknown): string {
   return err && typeof err === "object" && "message" in err
     ? String((err as { message?: string }).message)
