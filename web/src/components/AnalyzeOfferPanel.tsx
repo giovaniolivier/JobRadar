@@ -34,6 +34,17 @@ export function useAnalyzeOffer() {
 
 const MIN_TEXT = 80;
 
+/** Réponse de POST /offers/fetch-url. */
+type FetchedOffer = {
+  title: string | null;
+  company: string | null;
+  location: string | null;
+  salary: string | null;
+  description: string;
+  source: "json-ld" | "html";
+  url: string;
+};
+
 const LOADING_KEYS = ["analyze.loading1", "analyze.loading2", "analyze.loading3"] as const;
 
 type PanelIntent = "create" | "view";
@@ -210,28 +221,71 @@ function AnalyzeOfferPanel({
     setNotice(null);
     setNeedsCv(false);
 
+    let text = description.trim();
+    let jobTitle = title.trim();
+    let jobCompany = company.trim();
+    let jobLocation = "";
+
     if (mode === "link") {
       if (!url.trim()) {
         setError(t("analyze.errorUrl"));
         return;
       }
-      // Le scraping n'existe pas encore : on bascule sur le collage de texte
-      // (l'URL reste dans les champs optionnels) au lieu de bloquer l'utilisateur.
-      if (description.trim().length < MIN_TEXT) {
-        setMode("paste");
-        setOptionalOpen(true);
-        setNotice(t("analyze.scrapingUnavailable"));
-        return;
+      // Lecture automatique de la page ; si le site la bloque, on bascule sur le
+      // collage de texte (l'URL reste dans les champs optionnels).
+      if (text.length < MIN_TEXT) {
+        setStep("loading");
+        const fetchController = new AbortController();
+        abortRef.current = fetchController;
+        try {
+          const offer = await api<FetchedOffer>("/offers/fetch-url", {
+            method: "POST",
+            body: JSON.stringify({ url: url.trim() }),
+            signal: fetchController.signal,
+          });
+          if (fetchController.signal.aborted) return;
+          text = offer.description.trim();
+          setDescription(offer.description);
+          if (!jobTitle && offer.title) {
+            jobTitle = offer.title;
+            setTitle(offer.title);
+          }
+          if (!jobCompany && offer.company) {
+            jobCompany = offer.company;
+            setCompany(offer.company);
+          }
+          jobLocation = offer.location ?? "";
+        } catch (err) {
+          if (
+            fetchController.signal.aborted ||
+            (err instanceof DOMException && err.name === "AbortError")
+          ) {
+            setStep("input");
+            return;
+          }
+          setStep("input");
+          // 400 : lien invalide ou adresse non publique → l'utilisateur corrige le lien.
+          if (err instanceof ApiError && err.status === 400 && err.message) {
+            setError(err.message);
+            return;
+          }
+          setMode("paste");
+          setOptionalOpen(true);
+          setNotice(t("analyze.scrapingFailed"));
+          return;
+        } finally {
+          if (abortRef.current === fetchController) abortRef.current = null;
+        }
       }
     }
 
-    if (mode === "file" && description.trim().length < MIN_TEXT) {
+    if (mode === "file" && text.length < MIN_TEXT) {
       setError(t("analyze.errorFile"));
       return;
     }
 
-    const text = description.trim();
     if (text.length < MIN_TEXT) {
+      setStep("input");
       setError(t("analyze.errorMinText"));
       return;
     }
@@ -244,9 +298,10 @@ function AnalyzeOfferPanel({
         method: "POST",
         body: JSON.stringify({
           description: text,
-          title: title.trim() || undefined,
-          company: company.trim() || undefined,
+          title: jobTitle || undefined,
+          company: jobCompany || undefined,
           url: url.trim() || undefined,
+          location: jobLocation || undefined,
         }),
         signal: controller.signal,
       });

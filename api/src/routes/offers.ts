@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { paramId } from "../lib/params.js";
@@ -6,6 +7,7 @@ import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { analyzeJobAgainstProfile, analyzeJobHeuristic, anthropicErrorMessage, generateCoverLetter } from "../services/ai.js";
 import { notifyHighScoreAnalysis } from "../services/emailNotifications.js";
+import { fetchOfferFromUrl, OfferFetchError } from "../services/fetchOffer.js";
 import {
   importManualJobs,
   parseJobsCsv,
@@ -344,6 +346,29 @@ offersRouter.post("/analyze-new", async (req: AuthedRequest, res, next) => {
       throw new HttpError(502, anthropicErrorMessage(err));
     }
   } catch (err) {
+    next(err);
+  }
+});
+
+const fetchUrlLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop de liens lus d'affilée. Réessayez dans une minute." },
+});
+
+/** POST /offers/fetch-url — lit une offre depuis son lien (sans l'enregistrer). */
+offersRouter.post("/fetch-url", fetchUrlLimiter, async (req: AuthedRequest, res, next) => {
+  try {
+    const body = z.object({ url: z.string().min(1).max(2048) }).parse(req.body ?? {});
+    const offer = await fetchOfferFromUrl(body.url, MIN_OFFER_TEXT);
+    res.json(offer);
+  } catch (err) {
+    if (err instanceof OfferFetchError) {
+      next(new HttpError(err.status, err.message));
+      return;
+    }
     next(err);
   }
 });

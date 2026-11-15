@@ -1,4 +1,5 @@
 import { parse } from "csv-parse/sync";
+import { stripHtml } from "../lib/html.js";
 import { prisma } from "../lib/prisma.js";
 
 type RemotiveJob = {
@@ -12,17 +13,6 @@ type RemotiveJob = {
   tags?: string[];
   job_type?: string;
 };
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function guessSeniority(title: string, description: string): string | null {
   const text = `${title} ${description}`;

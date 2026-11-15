@@ -608,7 +608,7 @@ export const messages = {
     "analyze.urlLabel": "URL de l’offre",
     "analyze.urlPlaceholder": "https://linkedin.com/jobs/… ou indeed, site carrière…",
     "analyze.urlHint":
-      "Le lien sera gardé en référence. Pour l’instant, l’analyse se fait via « Coller le texte » (scraping automatique bientôt).",
+      "JobRadar lit l’offre directement depuis le lien. Certains sites (LinkedIn, Indeed…) bloquent la lecture automatique : il faudra alors coller le texte.",
     "analyze.fileLabel": "Fichier de l’offre",
     "analyze.fileDrop": "Glissez un fichier ici, ou parcourir",
     "analyze.fileFormats": "Formats acceptés : PDF, .txt",
@@ -635,7 +635,9 @@ export const messages = {
     "analyze.confirmAbandon": "Vous avez saisi du contenu. Abandonner cette offre ?",
     "analyze.errorUrl": "Indiquez l’URL de l’offre.",
     "analyze.scrapingUnavailable":
-      "Le scraping automatique n’est pas encore disponible : collez le texte de l’annonce ci-dessous. Votre URL est conservée dans les champs optionnels.",
+      "Collez le texte de l’annonce ci-dessous. Votre lien est conservé dans les champs optionnels.",
+    "analyze.scrapingFailed":
+      "Impossible de lire cette page automatiquement (site protégé ou contenu chargé en JavaScript) : collez le texte de l’annonce ci-dessous. Votre lien est conservé dans les champs optionnels.",
     "analyze.errorFile": "Importez un fichier .txt, ou collez le texte de l’offre.",
     "analyze.errorMinText": "Collez le texte complet de l'offre pour lancer l'analyse.",
     "analyze.errorFailed": "L'analyse a échoué. Réessayez dans un instant.",
@@ -1309,7 +1311,7 @@ export const messages = {
     "analyze.urlLabel": "Job URL",
     "analyze.urlPlaceholder": "https://linkedin.com/jobs/… or indeed, career site…",
     "analyze.urlHint":
-      "The link is kept for reference. For now, analysis uses “Paste text” (auto-scraping soon).",
+      "JobRadar reads the job straight from the link. Some sites (LinkedIn, Indeed…) block automatic reading: you’ll then need to paste the text.",
     "analyze.fileLabel": "Job file",
     "analyze.fileDrop": "Drop a file here, or browse",
     "analyze.fileFormats": "Accepted formats: PDF, .txt",
@@ -1336,7 +1338,9 @@ export const messages = {
     "analyze.confirmAbandon": "You have entered content. Discard this job?",
     "analyze.errorUrl": "Enter the job URL.",
     "analyze.scrapingUnavailable":
-      "Automatic scraping isn’t available yet: paste the job description below. Your URL is kept in the optional fields.",
+      "Paste the job description below. Your link is kept in the optional fields.",
+    "analyze.scrapingFailed":
+      "This page couldn’t be read automatically (protected site or content loaded with JavaScript): paste the job description below. Your link is kept in the optional fields.",
     "analyze.errorFile": "Import a .txt file, or paste the job text.",
     "analyze.errorMinText": "Paste the full job text to start the analysis.",
     "analyze.errorFailed": "Analysis failed. Try again in a moment.",
