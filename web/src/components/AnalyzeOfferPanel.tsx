@@ -335,6 +335,24 @@ function AnalyzeOfferPanel({
     setStillWaiting(false);
   }
 
+  /** Analyse une offre déjà enregistrée (ex. importée depuis Remotive). */
+  async function analyzeExisting() {
+    if (!result) return;
+    setBusyAction("analyze");
+    setError(null);
+    try {
+      const analysis = await api<NonNullable<Job["analysis"]>>(`/offers/${result.id}/analyze`, {
+        method: "POST",
+        body: "{}",
+      });
+      setResult({ ...result, analysis });
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : t("analyze.errorFailed"));
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function addToPipeline() {
     if (!result) return;
     setBusyAction("pipeline");
@@ -491,7 +509,22 @@ function AnalyzeOfferPanel({
             />
           )}
           {step === "result" && result && !result.analysis && (
-            <p className="text-sm text-[var(--ink-soft)]">{t("analyze.noAnalysis")}</p>
+            <div className="space-y-3">
+              <p className="text-sm text-[var(--ink-soft)]">{t("analyze.noAnalysis")}</p>
+              <button
+                type="button"
+                className="btn btn-amber"
+                disabled={busyAction === "analyze"}
+                onClick={() => void analyzeExisting()}
+              >
+                {busyAction === "analyze" ? t("analyze.loading2") : t("analyze.analyzeNow")}
+              </button>
+              {error ? (
+                <p className="text-sm" style={{ color: "var(--brick)" }} role="alert">
+                  {error}
+                </p>
+              ) : null}
+            </div>
           )}
         </div>
 

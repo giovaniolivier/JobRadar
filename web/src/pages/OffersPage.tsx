@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { api, type Job } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
+import { RemotiveImport } from "../components/RemotiveImport";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 import { useLocale } from "../lib/i18n";
 
@@ -72,6 +73,15 @@ function filtersDirty(f: {
   work: WorkMode;
 }) {
   return f.q.trim() !== "" || activeFilterCount(f) > 0;
+}
+
+/** Petit badge d'origine (offres importées automatiquement). */
+function SourceTag({ label }: { label: string }) {
+  return (
+    <span className="mono ml-2 inline-block rounded-sm border border-[var(--hairline)] px-1.5 align-middle text-[10px] uppercase tracking-wide text-[var(--ink)]/60">
+      {label}
+    </span>
+  );
 }
 
 export function OffersPage() {
@@ -294,13 +304,16 @@ export function OffersPage() {
             </p>
           )}
         </div>
-        <button
-          type="button"
-          className="btn btn-amber !hidden self-start lg:!inline-flex"
-          onClick={openAnalyze}
-        >
-          {t("offers.new")}
-        </button>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <button
+            type="button"
+            className="btn btn-amber !hidden self-start sm:self-end lg:!inline-flex"
+            onClick={openAnalyze}
+          >
+            {t("offers.new")}
+          </button>
+          <RemotiveImport onImported={load} />
+        </div>
       </div>
 
       {!trulyEmpty && (
@@ -454,7 +467,10 @@ export function OffersPage() {
                         <h2 className="display text-base font-semibold leading-snug">
                           {job.title}
                         </h2>
-                        <p className="mt-0.5 text-sm text-[var(--ink)]/70">{job.company}</p>
+                        <p className="mt-0.5 text-sm text-[var(--ink)]/70">
+                          {job.company}
+                          {job.source === "remotive" ? <SourceTag label={t("offers.sourceRemotive")} /> : null}
+                        </p>
                       </div>
                     </div>
                     <p
@@ -522,6 +538,7 @@ export function OffersPage() {
                         <p className="mt-0.5 text-sm text-[var(--ink)]/70">
                           {job.company}
                           {job.location ? ` · ${job.location}` : ""}
+                          {job.source === "remotive" ? <SourceTag label={t("offers.sourceRemotive")} /> : null}
                         </p>
                       </div>
                       <p
