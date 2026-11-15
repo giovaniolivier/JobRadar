@@ -6,6 +6,7 @@ import { api, apiForm, type ProfileData, type ProfileResponse } from "../lib/api
 import { useAuth } from "../lib/auth";
 import { useLocale, type MessageKey } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { FormSkeleton, SkeletonRegion } from "../components/Skeleton";
 import {
   dedupeNormalize,
   formatSalaryDisplay,
@@ -406,7 +407,12 @@ export function ProfilePage() {
     return profileTab === id ? "block" : "hidden lg:block";
   }
 
-  if (loading) return <p className="label">{t("profile.loading")}</p>;
+  if (loading)
+    return (
+      <SkeletonRegion label={t("profile.loading")}>
+        <FormSkeleton />
+      </SkeletonRegion>
+    );
 
   return (
     <div className="fade-in max-w-3xl pb-16">

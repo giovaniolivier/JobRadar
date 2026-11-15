@@ -4,6 +4,7 @@ import { fetchDashboard, type DashboardSummary } from "../lib/home";
 import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 import { useLocale } from "../lib/i18n";
+import { DashboardSkeleton, SkeletonRegion } from "../components/Skeleton";
 
 const CV_BANNER_DISMISS_KEY = "jobradar_cv_reminder_dismissed";
 
@@ -51,7 +52,11 @@ export function DashboardPage() {
   }, [t]);
 
   if (loading) {
-    return <p className="label">{t("dashboard.loading")}</p>;
+    return (
+      <SkeletonRegion label={t("dashboard.loading")}>
+        <DashboardSkeleton />
+      </SkeletonRegion>
+    );
   }
   if (error) {
     return (

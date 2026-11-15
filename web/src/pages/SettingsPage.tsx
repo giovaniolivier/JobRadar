@@ -4,6 +4,7 @@ import { DeleteAccountPanel } from "../components/DeleteAccountPanel";
 import { api, downloadDataExport, type ProfileResponse, type UserSettings } from "../lib/api";
 import { useLocale, type AppLocale } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { FormSkeleton, SkeletonRegion } from "../components/Skeleton";
 import { applyTheme, type ThemePreference } from "../lib/theme";
 
 type Choice<T extends string> = { id: T; label: string };
@@ -293,7 +294,12 @@ export function SettingsPage() {
     return settingsTab === id ? "block" : "hidden lg:block";
   }
 
-  if (loading) return <p className="label">{t("settings.loading")}</p>;
+  if (loading)
+    return (
+      <SkeletonRegion label={t("settings.loading")}>
+        <FormSkeleton />
+      </SkeletonRegion>
+    );
 
   return (
     <div className="fade-in max-w-2xl pb-16">

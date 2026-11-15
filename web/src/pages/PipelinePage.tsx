@@ -11,6 +11,7 @@ import { useAnalyzeOffer } from "../components/AnalyzeOfferPanel";
 import { ApplicationDetailPanel } from "../components/ApplicationDetailPanel";
 import { ScoreBadge } from "../components/ScoreBadge";
 import { useLocale, type MessageKey } from "../lib/i18n";
+import { PipelineSkeleton, SkeletonRegion } from "../components/Skeleton";
 
 const STATUSES = ["TO_APPLY", "APPLIED", "INTERVIEW", "RESPONSE"] as const;
 
@@ -262,7 +263,9 @@ export function PipelinePage() {
       )}
 
       {loading ? (
-        <p className="mt-10 label">{t("pipeline.loading")}</p>
+        <SkeletonRegion label={t("pipeline.loading")}>
+          <PipelineSkeleton />
+        </SkeletonRegion>
       ) : trulyEmpty ? (
         <div className="mt-12 max-w-lg">
           <p className="text-lg text-(--ink)">{t("pipeline.empty")}</p>

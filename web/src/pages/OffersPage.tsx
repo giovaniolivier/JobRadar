@@ -16,6 +16,7 @@ import { RemotiveImport } from "../components/RemotiveImport";
 import { RedFlagList, ScoreBadge } from "../components/ScoreBadge";
 import { useLocale } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { OffersSkeleton, SkeletonRegion } from "../components/Skeleton";
 
 type SortKey = "score" | "date" | "salary";
 type ScoreFilter = "all" | "80" | "60";
@@ -432,7 +433,9 @@ export function OffersPage() {
       )}
 
       {loading ? (
-        <p className="mt-10 label">{t("offers.loading")}</p>
+        <SkeletonRegion label={t("offers.loading")}>
+          <OffersSkeleton />
+        </SkeletonRegion>
       ) : trulyEmpty ? (
         <div className="mt-12 max-w-lg">
           <p className="text-lg text-(--ink)">{t("offers.empty")}</p>
